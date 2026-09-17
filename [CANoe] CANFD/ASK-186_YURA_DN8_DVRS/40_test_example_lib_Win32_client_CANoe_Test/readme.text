@@ -1,0 +1,5 @@
+CANoe 테스트 수행 방법
+
+1) .\lib_Win32_Client\HKMC_AdvancedSeedKey_Win32.dll 아래의 폴더에 복사 후 CANoe 프로젝트 실행
+
+   .\lib_Win32_client_CANoe_Test\Exec32

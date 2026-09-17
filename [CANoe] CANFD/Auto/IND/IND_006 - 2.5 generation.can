@@ -1,0 +1,556 @@
+/*@!Encoding:1252*/
+includes
+{
+  
+}
+
+variables{ 
+  // Global Variable Declaration
+  int flag_RecSet_error = 0;
+
+  char PLBM_Battery[4] = {'P','L','B','M'};
+  char eAGM_Battery[4] = {'E','A','G','M'};
+  char answer[4];     
+  
+  int wait_Signalchange;
+  int Check_var;
+  // Message Declaration for CAN FD
+  message HU_BLTN_CAM_02_200ms _HU_BLTN_CAM_02_200ms;
+  message HU_BLTN_CAM_01_00ms _HU_BLTN_CAM_01_00ms;
+}
+//Preconditions: -ACC&&IGN&&ccNC/ccIC switch OFF, AVN mode, All recording setting OFF
+//               -Add signal: BLTN_CAM_RecSta_OWP; BLTN_CAM_Prk_Oped_Time 
+
+int checkBatteryType(char a[], int size)
+{
+  int i, matchPLBM, matchEAGM;
+  
+  matchPLBM = 1;
+  
+  matchEAGM = 1;
+  
+  for (i = 0; i < size; i++)
+  {
+    if (a[i] != PLBM_Battery[i])
+    {
+      matchPLBM = 0;
+    }
+    if (a[i] != eAGM_Battery[i])
+    {
+      matchEAGM = 0;
+    }
+  }
+
+  if (matchPLBM)
+    return 1;
+  else if (matchEAGM)
+    return 2;
+  else
+    return 0;
+}
+
+void Set_Battery(){
+  int flag_Timeout; 
+  int battery_Type; 
+  
+  flag_Timeout = 0;
+  battery_Type = 0;
+  
+  @panel::Switch_CGWNM = 1;
+  
+  KEY_ON();
+  
+  do
+  {
+    testWaitForStringInput("Please enter kind of battery (PLBM or EAGM):", 300000);
+    
+    testGetStringInput(answer, 5);
+    
+    write("You entered: %c%c%c%c", answer[0], answer[1], answer[2], answer[3]);
+    
+    battery_Type = checkBatteryType(answer,4);
+    
+    if(battery_Type == 0){
+      write("Invalid input! Please enter 'PLBM' or 'EAGM'.");
+    }
+  } while(battery_Type == 0);
+  
+  switch(battery_Type){
+    case(1): 
+      write("Battery type is PLBM.");     
+      @ControlPowerSupply::RadioBtn_PwrSplyModel = 1; //Choose model power suplly TL305TP
+      @ControlPowerSupply::Numeric_PortNum = 3; //Choose numberic port to connect PC 
+ 
+      if( @ControlPowerSupply::RadioBtn_PwrSplyModel == 1 && @ControlPowerSupply::Numeric_PortNum == 3 ){
+        while (@ControlPowerSupply::isConectedPwrSply == 0 && flag_Timeout <= 30){
+        @ControlPowerSupply::Button_Connect = 0; 
+        testWaitForTimeout(1000);
+        @ControlPowerSupply::Button_Connect = 1;
+        testWaitForTimeout(1000);  
+        @ControlPowerSupply::Button_Connect = 0;
+        flag_Timeout++;  
+        }
+      }
+      flag_Timeout = 0;
+      break;
+    case(2):
+      write("Battery type is EAGM.");
+      setSignal(ICU_BS2SoC, 0x64); break;
+  }
+
+  KEY_OFF();
+  
+  @panel::Switch_CGWNM = 0;
+}
+
+void KEY_ON(){
+  setSignal(SMK_TrmnlCtrlGrpStaBDC,0x1); // ACC ON
+}
+
+void KEY_OFF(){
+  setSignal(SMK_TrmnlCtrlGrpStaBDC,0x0); // OFF 
+}
+
+void Enter_BLTN_CAM(){
+  // CAN FD
+  _HU_BLTN_CAM_02_200ms.HU_BLTN_CAM_UI_Mode = 0x1; //Enter BLTN_CAM mode
+  output(_HU_BLTN_CAM_02_200ms);
+}
+
+void Exit_BLTN_CAM(){
+  // CAN FD 
+  _HU_BLTN_CAM_02_200ms.HU_BLTN_CAM_UI_Mode = 0x0; //Enter AVN mode - Exit BLTN_CAM Mode
+  output(_HU_BLTN_CAM_02_200ms);
+}
+void Turn_OFF_RecSet(){
+  if (getSignal(BLTN_CAM_RecSet_OWD) == 0x2 || getSignal(BLTN_CAM_RecSet_OWP) == 0x2 || getSignal(BLTN_CAM_RecSet_DEV) == 0x2 || getSignal(BLTN_CAM_RecSet_PEV) == 0x2){
+    @panel::Switch_CGWNM = 1;
+  
+    KEY_ON();
+    testWaitForTimeout(3000);
+    
+    do {
+      Enter_BLTN_CAM();      
+      testWaitForTimeout(3000);
+      if (getSignal(BLTN_CAM_RecSet_OWD) == 0x2) {write("OWD OFF"); @panel::LED_Ctrl_SetOWD = 1;testWaitForTimeout(500);}
+      else if (getSignal(BLTN_CAM_RecSet_OWP) == 0x2) {write("OWP OFF"); @panel::LED_Ctrl_SetOWP = 1;testWaitForTimeout(500);}
+      else if (getSignal(BLTN_CAM_RecSet_PEV) == 0x2) {write("PEV OFF"); @panel::LED_Ctrl_SetPEV = 1;testWaitForTimeout(500);}
+      else if (getSignal(BLTN_CAM_RecSet_DEV) == 0x2) {write("DEV OFF"); @panel::LED_Ctrl_SetDEV = 1;testWaitForTimeout(500);}
+      Exit_BLTN_CAM();
+      testWaitForTimeout(2000);
+      flag_RecSet_error++;
+    } while((getSignal(BLTN_CAM_RecSet_OWD) == 0x2 || getSignal(BLTN_CAM_RecSet_OWP) == 0x2 || getSignal(BLTN_CAM_RecSet_DEV) == 0x2 || getSignal(BLTN_CAM_RecSet_PEV) == 0x2) && (flag_RecSet_error < 15));
+    
+    flag_RecSet_error = 0; 
+    
+    KEY_OFF();
+    
+    @panel::Switch_CGWNM = 0;
+  }
+  else {
+    write("Notifications: All recording setting are turned OFF.");
+  }
+}
+
+void BLTN_CAM_Settings(){
+  if ($BLTN_CAM_RecSet_OWD == 0x1){
+    @panel::LED_Ctrl_SetOWD = 1; 
+        
+    testWaitForTimeout(500);
+        
+    if ($BLTN_CAM_RecSet_OWD == 0x2){
+          
+      write("OWD: 0x%X (ON)",$BLTN_CAM_RecSet_OWD);
+      
+    } 
+    else if ($BLTN_CAM_RecSet_OWD == 0x1) {
+          
+      write("OWD: 0x%X (OFF)",$BLTN_CAM_RecSet_OWD);
+          
+    }
+  }
+      
+  testWaitForTimeout(500);
+      
+  if ($BLTN_CAM_RecSet_OWP == 0x1){
+    @panel::LED_Ctrl_SetOWP = 1; 
+        
+    testWaitForTimeout(500);
+        
+    if ($BLTN_CAM_RecSet_OWP == 0x2){
+          
+      write("OWP: 0x%X (ON)",$BLTN_CAM_RecSet_OWP);
+        
+    } 
+    else if ($BLTN_CAM_RecSet_OWD == 0x1){
+          
+      write("OWP: 0x%X (OFF)",$BLTN_CAM_RecSet_OWP);
+          
+    }
+  }
+      
+  testWaitForTimeout(500);      
+  write("OWP Rec Time: 20h"); @panel::TrackBar_OWP_TIME = 20;   
+}
+
+void Init(){
+  @panel::Switch_CGWNM = 1; 
+  
+  KEY_ON();
+  testWaitForTimeout(3000);
+  
+  while (getSignal(BLTN_CAM_SD_Format_Op_State) != 0x1){
+    @panel::Button_RecReset = 1; 
+    testWaitForSignalChange(BLTN_CAM_SD_Format_Op_State,500);
+  }
+  
+  write("Run Set_Battery()");
+  Set_Battery();
+  
+  KEY_OFF();
+  
+  @panel::Switch_CGWNM = 0; 
+}
+
+void Clock_Down(long CD_time){
+  write("=== START CLOCK ===");  
+  while (CD_time > 0){
+    write("Remaining time: %02d:%02d", CD_time/60, CD_time%60);
+    testWaitForTimeout(60000);
+    CD_time--;
+  }
+}
+
+void Setup_Function(){
+  @panel::Switch_CGWNM = 1;
+  
+  KEY_ON();
+  testWaitForTimeout(3000);
+    
+  do {
+    Enter_BLTN_CAM();
+    testWaitForTimeout(3000);
+    BLTN_CAM_Settings();
+    @panel::Switch_Clock = 1;  
+    testWaitForTimeout(1000);  
+    @panel::Switch_Clock = 0;  
+    Exit_BLTN_CAM();
+    flag_RecSet_error++;
+  } while((getSignal(BLTN_CAM_RecSet_OWP) == 0x1 || getSignal(BLTN_CAM_RecSet_OWD) == 0x1) && flag_RecSet_error < 15);
+  
+  flag_RecSet_error = 0;
+}
+
+void CaptureGraphics(){
+  testReportAddWindowCapture("IND","BLTN_CAM_RecSta_OWP;BLTN_CAM_Prk_Oped_Time","Screenshot"); 
+}
+
+void Setup_End_test(){
+  @panel::Switch_CGWNM = 1; 
+  KEY_ON();
+  testWaitForTimeout(3000);
+  
+  do {
+    Enter_BLTN_CAM();
+    testWaitForTimeout(3000);
+    if (getSignal(BLTN_CAM_RecSet_OWD) == 0x2) {write("OWD OFF"); @panel::LED_Ctrl_SetOWD = 1; testWaitForTimeout(500);}
+    else if (getSignal(BLTN_CAM_RecSet_OWP) == 0x2) {write("OWP OFF"); @panel::LED_Ctrl_SetOWP = 1; testWaitForTimeout(500);}
+    Exit_BLTN_CAM();
+    testWaitForTimeout(2000);
+    flag_RecSet_error++;
+  }  while((getSignal(BLTN_CAM_RecSet_OWP) == 0x2 || getSignal(BLTN_CAM_RecSet_OWD) == 0x2) && flag_RecSet_error < 15);
+  
+  flag_RecSet_error = 0;
+  
+  @panel::Switch_CGWNM = 0; 
+}
+
+testcase IND_006_1(){
+  write("=== START IND_006_1 ===");
+  
+  write("Run Setup_Function()"); Setup_Function();
+  
+  testStep("Step 1","=== STEP 1 ===");
+  write("=== STEP 1 ===");
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWD,100000) == 1) {
+    
+    write("OWD recording is started");
+    
+    if(getSignal(BLTN_CAM_Prk_Oped_Time) == 0x0){
+      
+      testStepPass("Pass","Step 1 is OK");
+    
+      testWaitForTimeout(1000);
+      
+      write("Run CaptureGraphics()"); testReportAddWindowCapture("IND","BLTN_CAM_RecSta_OWD;BLTN_CAM_Prk_Oped_Time","Screenshot");  
+    }
+    else{
+      testStepFail("Fail","Step 1 is NG");
+      
+      testWaitForTimeout(1000);
+      
+      write("Run CaptureGraphics()"); testReportAddWindowCapture("IND","BLTN_CAM_RecSta_OWD;BLTN_CAM_Prk_Oped_Time","Screenshot");  
+    }
+  }
+  else{
+    
+    testStepWarning("Error","OWD recording hasn't started.");
+    write("Error: OWD recording hasn't started.");
+    
+    write("Run Setup_End_test()"); Setup_End_test();
+    
+    write("Run KEY_OFF()"); KEY_OFF();
+  
+    write("Run stop()"); stop();
+  }
+
+  write("Run Setup_End_test()"); Setup_End_test();
+    
+  write("Run KEY_OFF()"); KEY_OFF();
+  
+  write("=== FINISH IND_006_1 ===");    
+}
+
+testcase IND_006_2(){
+  byte get_Val = 0x0;
+  write("=== START IND_006_2 ===");
+  
+  write("Run Setup_Function()"); Setup_Function();
+  
+  testStep("Step 2","=== STEP 2 ===");
+  write("=== STEP 2 ===");
+  
+  testWaitForTimeout(3000);
+  
+  write("Run KEY_OFF()"); KEY_OFF();
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWP,100000) == 1){
+    write("OWP recording is started");
+    
+    @panel::Switch_CGWNM = 0;
+
+    Clock_Down(15); 
+    
+    @panel::Switch_CGWNM = 1;
+    write("Run KEY_ON()"); KEY_ON();
+    
+    wait_Signalchange = testWaitForSignalChange(BLTN_CAM_Prk_Oped_Time,120000);
+    get_Val = $BLTN_CAM_Prk_Oped_Time;
+    
+    if(wait_Signalchange == 1 && get_Val == 0x1){
+      
+      write("BLTN_CAM_Prk_Oped_Time: 0x%X", get_Val);      
+      
+      testStepPass("Pass","Step 2 is OK");
+      
+      testWaitForTimeout(1000);
+      
+      write("Run CaptureGraphics()");  testReportAddWindowCapture("IND","BLTN_CAM_RecSta_OWP;BLTN_CAM_Prk_Oped_Time","Screenshot");  
+    }
+    else{
+  
+      write("BLTN_CAM_Prk_Oped_Time: 0x%X", get_Val);      
+      
+      testStepFail("Fail","Step 2 is NG");
+      
+      testWaitForTimeout(1000);
+      
+      write("Run CaptureGraphics()");  testReportAddWindowCapture("IND","BLTN_CAM_RecSta_OWP;BLTN_CAM_Prk_Oped_Time","Screenshot");  
+    }
+  }
+  else{
+    testStepWarning("Error","OWP recording hasn't started.");
+    write("Error: OWP recording hasn't started.");
+    
+    write("Run Setup_End_test()"); Setup_End_test();
+    
+    write("Run KEY_OFF()"); KEY_OFF();
+  
+    write("Run stop()"); stop();
+  }
+  
+  wait_Signalchange = 2;
+  get_Val = 0x0;
+  
+  write("Run Setup_End_test()"); Setup_End_test();
+  
+  @panel::Switch_CGWNM = 0;
+  write("Run KEY_OFF()"); KEY_OFF();    
+  
+  write("Done testcase IND_006_2");      
+}  
+
+testcase IND_006_3(){
+  byte get_Val = 0;
+  
+  write("=== START IND_006_3 ===");
+  
+  write("Run Setup_Function()"); Setup_Function();
+  
+  testStep("Step 3","=== STEP 3 ===");
+  write("=== STEP 3 ===");
+  
+  testWaitForTimeout(3000);
+  
+  write("Run KEY_OFF()"); KEY_OFF();
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWP,100000) == 1){
+    write("OWP recording is started");
+    
+    @panel::Switch_CGWNM = 0;
+    
+    Clock_Down(630); 
+    
+    @panel::Switch_CGWNM = 1;
+    
+    write("Run KEY_ON()"); KEY_ON();
+    
+    wait_Signalchange = testWaitForSignalChange(BLTN_CAM_Prk_Oped_Time,120000);
+    get_Val = $BLTN_CAM_Prk_Oped_Time;
+    
+    if(wait_Signalchange == 1 && get_Val == 0xA){
+      
+      write("BLTN_CAM_Prk_Oped_Time: 0x%X", get_Val);      
+      
+      testStepPass("Pass","Step 3 is OK");
+      
+      testWaitForTimeout(1000);
+      
+      write("Run CaptureGraphics()"); testReportAddWindowCapture("IND","BLTN_CAM_RecSta_OWP;BLTN_CAM_Prk_Oped_Time","Screenshot");  
+    }
+    else{
+      
+      write("BLTN_CAM_Prk_Oped_Time: 0x%X", get_Val);      
+      
+      testStepFail("Fail","Step 3 is NG");
+      
+      testWaitForTimeout(1000);
+      
+      CaptureGraphics();
+    }
+  }
+  else{
+    
+    testStepWarning("Error","OWP recording hasn't started.");
+    write("Error: OWP recording hasn't started.");
+    
+    write("Run Setup_End_test()"); Setup_End_test();
+    
+    write("Run KEY_OFF()"); KEY_OFF();
+  
+    write("Run stop()"); stop();
+  }
+  
+  wait_Signalchange = 2;
+  get_Val = 0x0;
+  
+  write("Run Setup_End_test()"); Setup_End_test();
+    
+  write("Run KEY_OFF()"); KEY_OFF();
+  
+  @panel::Switch_CGWNM = 0;
+  
+  write("=== FINISH IND_006_3 ===");        
+}
+
+testcase IND_006_4(){
+  byte get_Val = 0x0;
+  
+  write("=== START IND_006_4 ===");
+  
+  write("Run Setup_Function()"); Setup_Function();
+  
+  testStep("Step 4","=== STEP 4 ===");
+  write("=== STEP 4 ===");
+  
+  testWaitForTimeout(3000);
+  
+  write("Run KEY_OFF()"); KEY_OFF();
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWP,100000) == 1){
+    write("OWP recording is started");
+    
+    @panel::Switch_CGWNM = 0;
+    
+    Clock_Down(1200); 
+    
+    @panel::Switch_CGWNM = 1;
+    
+    write("Run KEY_ON()"); KEY_ON();
+    
+    wait_Signalchange = testWaitForSignalChange(BLTN_CAM_Prk_Oped_Time,120000);
+    get_Val = $BLTN_CAM_Prk_Oped_Time;
+    
+    if(wait_Signalchange == 1 && get_Val == 0x14){
+      
+      write("BLTN_CAM_Prk_Oped_Time: 0x%X", get_Val);
+      
+      testStepPass("Pass","Step 4 is OK");
+      
+      testWaitForTimeout(1000);
+      
+      write("Run CaptureGraphics()"); testReportAddWindowCapture("IND","BLTN_CAM_RecSta_OWP;BLTN_CAM_Prk_Oped_Time","Screenshot");  
+    }
+    else{
+      
+      write("BLTN_CAM_Prk_Oped_Time: 0x%X", get_Val);      
+      
+      testStepFail("Fail","Step 4 is NG");
+      
+      testWaitForTimeout(1000);
+      
+      CaptureGraphics();
+    }
+  }
+  else{
+    testStepWarning("Error","OWP recording hasn't started.");
+    write("Error: OWP recording hasn't started.");
+    
+    write("Run Setup_End_test()"); Setup_End_test();
+    
+    write("Run KEY_OFF()"); KEY_OFF();
+  
+    write("Run stop()"); stop();
+  }
+  
+  wait_Signalchange = 2;
+  get_Val = 0x0;
+  
+  testWaitForTimeout(100000);
+  
+  write("Run Setup_End_test()"); Setup_End_test();
+    
+  write("Run KEY_OFF()"); KEY_OFF();
+  
+  @panel::Switch_CGWNM = 0;  
+  
+  write("=== FINISH IND_006_4 ===");          
+}
+
+void MainTest(){
+  write("Run Turn_OFF_RecSet()"); Turn_OFF_RecSet();
+  
+  write("Run Init()"); Init();
+  
+//  testWaitForValueInput("Notification: Enter the testcase ID (1/2/3/4/5/6/7):",300000); 
+  
+//  switch(testGetValueInput()){
+//    case(1): IND_006_1(); break;
+    
+//    case(2): IND_006_2(); break;
+      
+//    case(3): IND_006_3(); break;
+      
+///*    case(4): */IND_006_4(); /*break;*/
+    
+//    case(5): IND_006_1(); IND_006_2(); break;  
+      
+//    case(6): IND_006_1(); IND_006_2(); IND_006_3(); break;
+      IND_006_4();
+      
+//    case(7): IND_006_1(); IND_006_2(); IND_006_3();IND_006_4(); break;     
+    
+//    case(8): IND_006_4(); break;  
+//  }
+}

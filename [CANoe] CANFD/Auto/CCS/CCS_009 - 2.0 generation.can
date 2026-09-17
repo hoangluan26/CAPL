@@ -1,0 +1,569 @@
+﻿/*@!Encoding:65001*/
+// Preconditions: - Block CCU, ACC and IGN and ccNC/ccIC switch OFF state, AVN mode
+includes
+{
+  
+  #include "DeclarationFunction_Gen2.h"
+  
+}
+
+variables
+{
+  // Message Declaration
+  // CAN
+  message HU_BLTN_CAM_E_00 _HU_BLTN_CAM_E_00;
+  message HU_BLTN_CAM_PE_00_200ms _HU_BLTN_CAM_PE_00_200ms;
+  message HU_BLTN_CAM_E_01 _HU_BLTN_CAM_E_01;
+  message SMK_13_200ms _SMK_13_200ms;
+  message ICU_08_200ms _ICU_08_200ms;
+  message IAU_16_200ms _IAU_16_200ms;  
+  message ICU_10_200ms _ICU_10_200ms;  
+  message BCM_02_200ms _BCM_02_200ms;
+  // Global Variable Declaration
+  int i;
+  int flag = 0;
+  int flag_RecSet_error = 0;
+  int condition1 = 0, condition2 = 0, condition3 = 0;
+  byte KEY_state = 0x0;
+  byte Profile_value = 0x1;
+  byte Mode_state = 0x2;
+  byte Bat_val = 0x50; 
+  byte Alarm_state = 0x0; 
+  int get_PEVRecorded_change = 0;
+  byte get_PEVRecorded_value = 0x0;
+  // Timer Declaration  
+  msTimer send_SMK_TrmnlCtrlGrpStaBDC_timer;
+  msTimer send_ICU_PowerAutoCutModSta_timer;
+  msTimer send_IAU_ProfileIDRVal_timer;
+  msTimer send_ICU_BS2SoC_timer;
+  msTimer send_BAlarm_BglrAlrmCurrentSta_timer;
+}
+
+void Capture_Graphics() {
+  testWaitForTimeout(3000);
+  testReportAddWindowCapture("Graphics 2","","BLTN_CAM_RecSta_OWP;BLTN_CAM_RecSta_PEV;BLTN_CAM_PEV_Recorded;BAlarm_BglrAlrm_CurrentSta","./envidence.jpg");  
+}
+
+on timer send_BAlarm_BglrAlrmCurrentSta_timer {
+  _BCM_02_200ms.BAlarm_BglrAlrmCurrentSta = Alarm_state;      
+  output(_BCM_02_200ms);  
+  send_BAlarm_BglrAlrmCurrentSta_timer.set(200);
+}
+
+on timer send_SMK_TrmnlCtrlGrpStaBDC_timer {
+  _SMK_13_200ms.SMK_TrmnlCtrlGrpStaBDC = KEY_state;      
+  output(_SMK_13_200ms);  
+  send_SMK_TrmnlCtrlGrpStaBDC_timer.set(200);
+}
+
+on timer send_IAU_ProfileIDRVal_timer {
+  _IAU_16_200ms.IAU_ProfileIDRVal = Profile_value;
+  output(_IAU_16_200ms); 
+  send_IAU_ProfileIDRVal_timer.set(200);
+}
+
+on timer send_ICU_PowerAutoCutModSta_timer {
+  _ICU_08_200ms.ICU_PowerAutoCutModSta = Mode_state;
+  output(_ICU_08_200ms);
+  send_ICU_PowerAutoCutModSta_timer.set(200);
+}
+
+on timer send_ICU_BS2SoC_timer {
+  _ICU_10_200ms.ICU_BS2SoC = Bat_val;
+  output(_ICU_10_200ms);
+  send_ICU_BS2SoC_timer.set(200);
+}
+
+testcase CCS_009_1() {
+  testStep("Notifications","Start test-case CCS_009_1");
+  write("=== START CCS_009_1 ===");  
+  
+  write("=== SETTING ===");
+  
+  Alarm_state = 0x0; //Off
+  
+  write("KEY ON"); KEY_state = 0x1; testWaitForTimeout(3000);
+  
+  do {
+    
+    Enter_BLTN_CAM(); testWaitForTimeout(3000);
+    
+    if ($BLTN_CAM_RecSet_OWP == 0x1) {write("OWP On"); @panel::LED_Ctrl_SetOWP = 1; testWaitForTimeout(500);}
+    if ($BLTN_CAM_RecSet_PEV == 0x1) {write("PEV On"); @panel::LED_Ctrl_SetPEV = 1; testWaitForTimeout(500);}
+    if ($BLTN_CAM_Set_PEV_AppNoti == 0x1) {write("App Noti On"); @panel::Button_AppNoti_PEV = 1; testWaitForTimeout(500);}
+    
+    Exit_BLTN_CAM(); testWaitForTimeout(3000);
+    flag_RecSet_error++;
+    
+  } while (($BLTN_CAM_RecSet_OWP == 0x1 || $BLTN_CAM_RecSet_PEV == 0x1 || $BLTN_CAM_Set_PEV_AppNoti == 0x1) && (flag_RecSet_error < 15));
+  
+  write("=== TESTING ===");
+  
+  write("KEY OFF"); KEY_state = 0x0;
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWP,10000) == 1) {
+    
+    write("OWP recording is started"); @panel::Switch_CGWNM = 1;
+    
+    Alarm_state = 0x2; //Arm
+    testWaitForTimeout(5000);
+    Alarm_state = 0x0; //Off
+    testWaitForTimeout(5000);
+    
+    openPanel("Note");
+    
+    if (testWaitForSignalChange(BLTN_CAM_RecSta_PEV,20000) == 1) {
+      
+      write("PEV recording is started"); closePanel("Note");
+      
+      get_PEVRecorded_change = testWaitForSignalChange(BLTN_CAM_PEV_Recorded,10000);
+      
+      get_PEVRecorded_value = $BLTN_CAM_PEV_Recorded;
+      
+      if (get_PEVRecorded_change == 1 && get_PEVRecorded_value == 0x2) {
+        
+        write("PEV_Recorded: 0x%X << Test-case is OK >>", get_PEVRecorded_value);
+        
+        testStepPass("Pass","Test-case is OK");
+        
+      }
+      else {
+        
+        write("PEV_Recorded: 0x%X << Test-case is NG >>", get_PEVRecorded_value);
+        
+        testStepFail("Fail","Test-case is NG");
+      }
+    }
+  }
+  else {
+    write("OWP recording hasn't started");
+    write("Stop measurement"); stop();
+  }
+  
+  write("Run Capture_Graphics()"); Capture_Graphics();  
+  
+  Init();
+  
+  @panel::Switch_CGWNM = 0;
+  
+  write("=== FINISH CCS_009_1 ===");
+}
+
+testcase CCS_009_2() {
+  testStep("Notifications","Start test-case CCS_009_2");
+  write("=== START CCS_009_2 ==="); 
+  
+  Begin();
+  
+  write("=== SETTING ===");
+  
+  Alarm_state = 0xA; //Default
+  
+  write("KEY ON"); KEY_state = 0x1; testWaitForTimeout(3000);
+  
+  do {
+    
+    Enter_BLTN_CAM(); testWaitForTimeout(3000);
+    
+    if ($BLTN_CAM_RecSet_OWP == 0x1) {write("OWP On"); @panel::LED_Ctrl_SetOWP = 1; testWaitForTimeout(500);}
+    if ($BLTN_CAM_RecSet_PEV == 0x1) {write("PEV On"); @panel::LED_Ctrl_SetPEV = 1; testWaitForTimeout(500);}
+    if ($BLTN_CAM_Set_PEV_AppNoti == 0x1) {write("App Noti On"); @panel::Button_AppNoti_PEV = 1; testWaitForTimeout(500);}
+    
+    Exit_BLTN_CAM(); testWaitForTimeout(3000);
+    flag_RecSet_error++;
+    
+  } while (($BLTN_CAM_RecSet_OWP == 0x1 || $BLTN_CAM_RecSet_PEV == 0x1 || $BLTN_CAM_Set_PEV_AppNoti == 0x1) && (flag_RecSet_error < 15));
+  
+  write("=== TESTING ===");
+  
+  write("KEY OFF"); KEY_state = 0x0;
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWP,10000) == 1) {
+    
+    write("OWP recording is started"); @panel::Switch_CGWNM = 1;
+    
+    Alarm_state = 0x2; //Arm
+    testWaitForTimeout(5000); 
+    Alarm_state = 0xA; //Default
+    testWaitForTimeout(5000);
+    
+    openPanel("Note");
+    
+    if (testWaitForSignalChange(BLTN_CAM_RecSta_PEV,20000) == 1) {
+      
+      write("PEV recording is started"); closePanel("Note");
+      
+      get_PEVRecorded_change = testWaitForSignalChange(BLTN_CAM_PEV_Recorded,10000);
+      
+      get_PEVRecorded_value = $BLTN_CAM_PEV_Recorded;
+      
+      if (get_PEVRecorded_change == 1 && get_PEVRecorded_value == 0x2) {
+        
+        write("PEV_Recorded: 0x%X << Test-case is OK >>", get_PEVRecorded_value);
+        
+        testStepPass("Pass","Test-case is OK");
+        
+      }
+      else {
+        
+        write("PEV_Recorded: 0x%X << Test-case is NG >>", get_PEVRecorded_value);
+        
+        testStepFail("Fail","Test-case is NG");
+      }
+    }
+  }
+  else {
+    write("OWP recording hasn't started");
+    write("Stop measurement"); stop();
+  }
+  
+  write("Run Capture_Graphics()"); Capture_Graphics();  
+  
+  Init();
+  
+  @panel::Switch_CGWNM = 0;
+  
+  write("=== FINISH CCS_009_2 ===");  
+}
+
+testcase CCS_009_3() {
+  testStep("Notifications","Start test-case CCS_009_3");
+  write("=== START CCS_009_3 ===");  
+  
+  Begin();
+  
+  write("=== SETTING ===");
+  
+  Alarm_state = 0xC; //RESERVED 
+  
+  write("KEY ON"); KEY_state = 0x1; testWaitForTimeout(3000);
+  
+  do {
+    
+    Enter_BLTN_CAM(); testWaitForTimeout(3000);
+    
+    if ($BLTN_CAM_RecSet_OWP == 0x1) {write("OWP On"); @panel::LED_Ctrl_SetOWP = 1; testWaitForTimeout(500);}
+    if ($BLTN_CAM_RecSet_PEV == 0x1) {write("PEV On"); @panel::LED_Ctrl_SetPEV = 1; testWaitForTimeout(500);}
+    if ($BLTN_CAM_Set_PEV_AppNoti == 0x1) {write("App Noti On"); @panel::Button_AppNoti_PEV = 1; testWaitForTimeout(500);}
+    
+    Exit_BLTN_CAM(); testWaitForTimeout(3000);
+    flag_RecSet_error++;
+    
+  } while (($BLTN_CAM_RecSet_OWP == 0x1 || $BLTN_CAM_RecSet_PEV == 0x1 || $BLTN_CAM_Set_PEV_AppNoti == 0x1) && (flag_RecSet_error < 15));
+  
+  write("=== TESTING ===");
+  
+  write("KEY OFF"); KEY_state = 0x0;
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWP,10000) == 1) {
+    
+    write("OWP recording is started"); @panel::Switch_CGWNM = 1;
+    
+    Alarm_state = 0x2; //Arm
+    testWaitForTimeout(5000);
+    Alarm_state = 0xC; //RESERVED 
+    testWaitForTimeout(5000);
+    
+    openPanel("Note");
+    
+    if (testWaitForSignalChange(BLTN_CAM_RecSta_PEV,20000) == 1) {
+      
+      write("PEV recording is started"); closePanel("Note");
+      
+      get_PEVRecorded_change = testWaitForSignalChange(BLTN_CAM_PEV_Recorded,10000);
+      
+      get_PEVRecorded_value = $BLTN_CAM_PEV_Recorded;
+      
+      if (get_PEVRecorded_change == 1 && get_PEVRecorded_value == 0x2) {
+        
+        write("PEV_Recorded: 0x%X << Test-case is OK >>", get_PEVRecorded_value);
+        
+        testStepPass("Pass","Test-case is OK");
+        
+      }
+      else {
+        
+        write("PEV_Recorded: 0x%X << Test-case is NG >>", get_PEVRecorded_value);
+        
+        testStepFail("Fail","Test-case is NG");
+      }
+    }
+  }
+  else {
+    write("OWP recording hasn't started");
+    write("Stop measurement"); stop();
+  }
+  
+  write("Run Capture_Graphics()"); Capture_Graphics();  
+  
+  Init();
+  
+  @panel::Switch_CGWNM = 0;
+  
+  write("=== FINISH CCS_009_3 ===");
+}
+
+testcase CCS_009_4() {
+  testStep("Notifications","Start test-case CCS_009_4");
+  write("=== START CCS_009_4 ==="); 
+  
+  Begin();  
+  
+  write("=== SETTING ===");
+  
+  Alarm_state = 0xD; //RESERVED
+  
+  write("KEY ON"); KEY_state = 0x1; testWaitForTimeout(3000);
+  
+  do {
+    
+    Enter_BLTN_CAM(); testWaitForTimeout(3000);
+    
+    if ($BLTN_CAM_RecSet_OWP == 0x1) {write("OWP On"); @panel::LED_Ctrl_SetOWP = 1; testWaitForTimeout(500);}
+    if ($BLTN_CAM_RecSet_PEV == 0x1) {write("PEV On"); @panel::LED_Ctrl_SetPEV = 1; testWaitForTimeout(500);}
+    if ($BLTN_CAM_Set_PEV_AppNoti == 0x1) {write("App Noti On"); @panel::Button_AppNoti_PEV = 1; testWaitForTimeout(500);}
+    
+    Exit_BLTN_CAM(); testWaitForTimeout(3000);
+    flag_RecSet_error++;
+    
+  } while (($BLTN_CAM_RecSet_OWP == 0x1 || $BLTN_CAM_RecSet_PEV == 0x1 || $BLTN_CAM_Set_PEV_AppNoti == 0x1) && (flag_RecSet_error < 15));
+  
+  write("=== TESTING ===");
+  
+  write("KEY OFF"); KEY_state = 0x0;
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWP,10000) == 1) {
+    
+    write("OWP recording is started"); @panel::Switch_CGWNM = 1;
+    
+    Alarm_state = 0x2; //Arm
+    testWaitForTimeout(5000);
+    Alarm_state = 0xD; //RESERVED 
+    testWaitForTimeout(5000);
+    
+    openPanel("Note");
+    
+    if (testWaitForSignalChange(BLTN_CAM_RecSta_PEV,20000) == 1) {
+      
+      write("PEV recording is started"); closePanel("Note");
+      
+      get_PEVRecorded_change = testWaitForSignalChange(BLTN_CAM_PEV_Recorded,10000);
+      
+      get_PEVRecorded_value = $BLTN_CAM_PEV_Recorded;
+      
+      if (get_PEVRecorded_change == 1 && get_PEVRecorded_value == 0x2) {
+        
+        write("PEV_Recorded: 0x%X << Test-case is OK >>", get_PEVRecorded_value);
+        
+        testStepPass("Pass","Test-case is OK");
+        
+      }
+      else {
+        
+        write("PEV_Recorded: 0x%X << Test-case is NG >>", get_PEVRecorded_value);
+        
+        testStepFail("Fail","Test-case is NG");
+      }
+    }
+  }
+  else {
+    write("OWP recording hasn't started");
+    write("Stop measurement"); stop();
+  }  
+  
+  write("Run Capture_Graphics()"); Capture_Graphics();  
+  
+  Init();
+  
+  @panel::Switch_CGWNM = 0;
+  
+  write("=== FINISH CCS_009_4 ===");  
+}
+
+testcase CCS_009_5() {
+  testStep("Notifications","Start test-case CCS_009_5");
+  write("=== START CCS_009_5 ===");  
+  
+  Begin();  
+  
+  write("=== SETTING ===");
+  
+  Alarm_state = 0xE; //Not used 
+  
+  write("KEY ON"); KEY_state = 0x1; testWaitForTimeout(3000);
+  
+  do {
+    
+    Enter_BLTN_CAM(); testWaitForTimeout(3000);
+    
+    if ($BLTN_CAM_RecSet_OWP == 0x1) {write("OWP On"); @panel::LED_Ctrl_SetOWP = 1; testWaitForTimeout(500);}
+    if ($BLTN_CAM_RecSet_PEV == 0x1) {write("PEV On"); @panel::LED_Ctrl_SetPEV = 1; testWaitForTimeout(500);}
+    if ($BLTN_CAM_Set_PEV_AppNoti == 0x1) {write("App Noti On"); @panel::Button_AppNoti_PEV = 1; testWaitForTimeout(500);}
+    
+    Exit_BLTN_CAM(); testWaitForTimeout(3000);
+    flag_RecSet_error++;
+    
+  } while (($BLTN_CAM_RecSet_OWP == 0x1 || $BLTN_CAM_RecSet_PEV == 0x1 || $BLTN_CAM_Set_PEV_AppNoti == 0x1) && (flag_RecSet_error < 15));
+  
+  write("=== TESTING ===");
+  
+  write("KEY OFF"); KEY_state = 0x0;
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWP,10000) == 1) {
+    
+    write("OWP recording is started"); @panel::Switch_CGWNM = 1;
+    
+    Alarm_state = 0x2; //Arm
+    testWaitForTimeout(5000);
+    Alarm_state = 0xE; //Not used
+    testWaitForTimeout(5000);
+    
+    openPanel("Note");
+    
+    if (testWaitForSignalChange(BLTN_CAM_RecSta_PEV,20000) == 1) {
+      
+      write("PEV recording is started"); closePanel("Note");
+      
+      get_PEVRecorded_change = testWaitForSignalChange(BLTN_CAM_PEV_Recorded,10000);
+      
+      get_PEVRecorded_value = $BLTN_CAM_PEV_Recorded;
+      
+      if (get_PEVRecorded_change == 1 && get_PEVRecorded_value == 0x2) {
+        
+        write("PEV_Recorded: 0x%X << Test-case is OK >>", get_PEVRecorded_value);
+        
+        testStepPass("Pass","Test-case is OK");
+        
+      }
+      else {
+        
+        write("PEV_Recorded: 0x%X << Test-case is NG >>", get_PEVRecorded_value);
+        
+        testStepFail("Fail","Test-case is NG");
+      }
+    }
+  }
+  else {
+    write("OWP recording hasn't started");
+    write("Stop measurement"); stop();
+  }
+  
+  write("Run Capture_Graphics()"); Capture_Graphics();  
+  
+  Init();
+  
+  @panel::Switch_CGWNM = 0;
+  
+  write("=== FINISH CCS_009_5 ===");
+}
+
+testcase CCS_009_6() {
+  testStep("Notifications","Start test-case CCS_009_6");
+  write("=== START CCS_009_6 ==="); 
+  
+  Begin();  
+  
+  write("=== SETTING ===");
+  
+  Alarm_state = 0x0; //Not used
+  
+  write("KEY ON"); KEY_state = 0x1; testWaitForTimeout(3000);
+  
+  do {
+    
+    Enter_BLTN_CAM(); testWaitForTimeout(3000);
+    
+    if ($BLTN_CAM_RecSet_OWP == 0x1) {write("OWP On"); @panel::LED_Ctrl_SetOWP = 1; testWaitForTimeout(500);}
+    if ($BLTN_CAM_RecSet_PEV == 0x1) {write("PEV On"); @panel::LED_Ctrl_SetPEV = 1; testWaitForTimeout(500);}
+    if ($BLTN_CAM_Set_PEV_AppNoti == 0x1) {write("App Noti On"); @panel::Button_AppNoti_PEV = 1; testWaitForTimeout(500);}
+    
+    Exit_BLTN_CAM(); testWaitForTimeout(3000);
+    flag_RecSet_error++;
+    
+  } while (($BLTN_CAM_RecSet_OWP == 0x1 || $BLTN_CAM_RecSet_PEV == 0x1 || $BLTN_CAM_Set_PEV_AppNoti == 0x1) && (flag_RecSet_error < 15));
+  
+  write("=== TESTING ===");
+  
+  write("KEY OFF"); KEY_state = 0x0;
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWP,10000) == 1) {
+    
+    write("OWP recording is started"); @panel::Switch_CGWNM = 1;
+    
+    Alarm_state = 0x1; //DisArm
+    testWaitForTimeout(5000);
+    Alarm_state = 0xE; //Default
+    testWaitForTimeout(5000);
+    
+    openPanel("Note");
+    
+    if (testWaitForSignalChange(BLTN_CAM_RecSta_PEV,20000) == 1) {
+      
+      write("PEV recording is started"); closePanel("Note");
+      
+      get_PEVRecorded_change = testWaitForSignalChange(BLTN_CAM_PEV_Recorded,10000);
+      
+      get_PEVRecorded_value = $BLTN_CAM_PEV_Recorded;
+      
+      if (get_PEVRecorded_change != 1 && get_PEVRecorded_value == 0x0) {
+        
+        write("PEV_Recorded: 0x%X << Test-case is OK >>", get_PEVRecorded_value);
+        
+        testStepPass("Pass","Test-case is OK");
+        
+      }
+      else {
+        
+        write("PEV_Recorded: 0x%X << Test-case is NG >>", get_PEVRecorded_value);
+        
+        testStepFail("Fail","Test-case is NG");
+      }
+    }
+  }
+  else {
+    write("OWP recording hasn't started");
+    write("Stop measurement"); stop();
+  }  
+  
+  write("Run Capture_Graphics()"); Capture_Graphics();  
+  
+  Init();
+  
+  @panel::Switch_CGWNM = 0;
+  
+  write("=== FINISH CCS_009_6 ===");  
+}
+
+void MainTest() {
+  
+  Begin();
+  
+  KEY_state = 0x1; testWaitForTimeout(3000);
+  
+  if ($BLTN_CAM_RecSet_OWD == 0x1 || $BLTN_CAM_RecSet_OWP == 0x1 || $BLTN_CAM_RecSet_DEV == 0x1 || $BLTN_CAM_RecSet_PEV == 0x1) {
+    
+    write("Run Set_All_Recording_OFF()"); Set_All_Recording_OFF();
+  
+  }
+  else {
+    
+    write("All settings are set to Off");
+  
+  }
+  
+  KEY_state = 0x0;
+  
+  TestWaitForValueInput("Please enter the test ID (1/2/3/4/5/6/7)", 300000);
+  switch (TestGetValueInput()){
+    
+   case(1) : CCS_009_1(); break;
+   case(2) : CCS_009_2(); break;
+   case(3) : CCS_009_3(); break; 
+   case(4) : CCS_009_4(); break;
+   case(5) : CCS_009_5(); break;
+   case(6) : CCS_009_6(); break;
+   case(7) : CCS_008_1(); CCS_008_2(); CCS_008_3(); CCS_008_4(); CCS_008_5(); CCS_008_6(); break;  
+     
+  }      
+  
+}

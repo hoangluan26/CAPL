@@ -1,0 +1,28 @@
+/*@!Encoding:949*/
+includes
+{
+  
+}
+
+variables
+{
+  
+}
+
+on start
+{
+  setsignal(BMS_CERTI::Rdm_Val1, 0xD752);
+  setsignal(BMS_CERTI::Rdm_Val2, 0xD68D);
+  setsignal(BMS_CERTI::Rdm_Val3, 0xD76E);
+  setsignal(BMS_CERTI::Rdm_Val4, 0xD70D);
+}
+
+on key 'a'
+{
+  linGotoSleep();
+}
+
+on key 's'
+{
+  linWakeup();
+}

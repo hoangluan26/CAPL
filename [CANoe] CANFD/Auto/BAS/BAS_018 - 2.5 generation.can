@@ -1,0 +1,567 @@
+/*@!Encoding:1252*/
+// Preconditions: - ACC and IGN and ccNC/ccIC switch OFF state, AVN mode
+includes 
+{
+
+  #include "DeclarationFunction_Gen2.5.h"
+
+}
+
+variables
+{
+  // Message Declaration
+  // CAN FD 
+  message HU_BLTN_CAM_01_00ms _HU_BLTN_CAM_01_00ms;
+  message HU_BLTN_CAM_02_200ms _HU_BLTN_CAM_02_200ms;
+  message BDC_FD_SMK_03_200ms _BDC_FD_SMK_03_200ms;
+  message PDC_FD_10_200ms _PDC_FD_10_200ms;
+  message IAU_FD_04_200ms _IAU_FD_04_200ms;
+  //Global Variable Declaration
+  byte set_120h_value = 0x1; // For model using 120h parking but I turn OFF this setting 
+//  byte set_120h_value = 0x0;  // For model don't have 120h parking 
+  byte arr_RecSet[2] = {0x1,0x2};
+  byte arr_OWPTime[19] = {0x2,0x3,0x4,0x5,0x6,0x7,0x8,0x9,0xA,0xB,0xC,0xD,0xE,0xF,0x10,0x11,0x12,0x13,0x14}; 
+  byte arr_EVtime[3] = {0x0,0x5,0xA};
+  byte arr_TMLinterval[3] = {0x1,0x2,0x5};
+  byte arr_CAMAngle[10] = {0x1,0x2,0x3,0x4,0x5,0x11,0x12,0x13,0x14,0x15};
+  byte arr_EVSen[5] = {0x1,0x2,0x3,0x4,0x5};
+  byte arr_random_setting[21];
+  byte arr_get_setting[21];
+  byte arr_Profile_Guest_setting[21];
+  byte arr_Profile_Driver1_setting[21];
+  byte arr_Profile_Driver2_setting[21];
+  byte arr_Default_Setting[21] = {0x1,0x1,0x1,0x1,0x1,0x14,0x1,0x0,0x0,0x2,0x2,0x2,0x2,0x2,0x2,0x2,0x0,0x0,0x3,0x3,0x2}; 
+  int index;
+  int i;
+  int flag = 0;
+  int flag_RecSet_error = 0;
+  int condition1 = 0, condition2 = 0, condition3 = 0;
+  byte KEY_state = 0x0;
+  byte Profile_value = 0x0;
+  byte Mode_state = 0x0;
+  byte Bat_val = 0x50; // 80%
+  char PLBM_Battery[4] = {'P','L','B','M'};
+  char eAGM_Battery[4] = {'E','A','G','M'};
+  char answer[4];     
+  // Timer Declaration
+  msTimer send_SMK_TrmnlCtrlGrpStaBDC_timer;
+  msTimer send_ICU_PowerAutoCutModSta_timer;
+  msTimer send_IAU_ProfileIDRVal_timer;
+  msTimer send_ICU_BS2SoC_timer;
+}
+
+testcase BAS_018_1(){
+  testStep("Notifications","Start test-case BAS_018_1");
+  write("=== START BAS_018_1 ===");
+  
+  write("=== Create Recorded File ===");
+  
+  write("Set Battery"); Set_Battery();  
+  
+  write("Create_PRK_Recorded_vid"); Create_PRK_Recorded_vid();
+  
+  setSignal(ICU_PowerAutoCutModSta,0x0); write("Factory Mode");
+  
+  write("Create_DRV_Recorded_vid"); Create_DRV_Recorded_vid();
+  
+  write("=== Random Settings ===");
+  
+  Set_Profile_Guest();
+  
+  testReportAddWindowCapture("Profile Settings 2.5","","Profile Guest","./profile_setting.jpg");  
+  
+  testWaitForTimeout(5000);
+  
+  setSignal(ICU_PowerAutoCutModSta,0x2); write("Customer Mode");
+  
+  testWaitForTimeout(5000);
+  
+  if ($BLTN_CAM_RecSet_OWD == 0x1 && $BLTN_CAM_RecSet_OWP == 0x1 && $BLTN_CAM_RecSet_DEV == 0x1 && $BLTN_CAM_RecSet_PEV == 0x1) {
+    
+    write("All recording settings are turned Off");
+    
+    condition1 = 1;
+    
+  }
+      
+  if (testWaitForMessageBox("Turn ON ACC and IGN and ccNC/ccIC to check whether the recorded files are deleted",300000,"Choose Yes/No",4) == 6) {
+        
+    write("Recorded files are deleted");
+        
+    condition2 = 1;
+      
+  }
+  else {
+    
+    write("Recorded files aren't deleted");
+    
+  }
+  
+  if (condition1 == 1 && condition2 == 1) {
+    testStepPass("Pass","All conditions have met. Test-case is OK");
+    write("Test-case is OK");
+  }
+  else {
+    int arr[3];
+    
+    arr[0] = condition1;
+    arr[1] = condition2;
+    
+    testStepFail("Fail","Condition hasn't met. Test-case is NG");
+    
+    for (i = 0; i < 2; i++){
+      
+      if (arr[i] != 1){
+        
+        write("Condition %d is not met", i+1);
+        
+      }   
+    }
+  }
+  
+  Init();
+  @panel::Switch_CGWNM = 0;
+  
+  testStep("Notifications","Done test-case BAS_018_1");
+  write("=== FINISH BAS_018_1 ===");
+}
+
+testcase BAS_018_2(){
+  testStep("Notifications","Start test-case BAS_018_2");
+  write("=== START BAS_018_2 ===");
+  
+  write("=== Create Recorded File ===");
+  
+  write("Set Battery"); Set_Battery();  
+  
+  write("Create_PRK_Recorded_vid"); Create_PRK_Recorded_vid();
+  
+  setSignal(ICU_PowerAutoCutModSta,0x1); write("Dealer Mode");
+  
+  write("Create_DRV_Recorded_vid"); Create_DRV_Recorded_vid();
+  
+  write("=== Random Settings ===");
+  
+  Set_Profile_Guest();
+  
+  testReportAddWindowCapture("Profile Settings 2.5","","Profile Guest","./profile_setting.jpg");  
+  
+  testWaitForTimeout(5000);
+  
+  setSignal(ICU_PowerAutoCutModSta,0x2); write("Customer Mode");
+  
+  testWaitForTimeout(5000);
+  
+  if ($BLTN_CAM_RecSet_OWD == 0x1 && $BLTN_CAM_RecSet_OWP == 0x1 && $BLTN_CAM_RecSet_DEV == 0x1 && $BLTN_CAM_RecSet_PEV == 0x1) {
+    
+    write("All recording settings are turned Off");
+    
+    condition1 = 1;
+    
+  }
+      
+  if (testWaitForMessageBox("Turn ON ACC and IGN and ccNC/ccIC to check whether the recorded files are deleted",300000,"Choose Yes/No",4) == 6) {
+        
+    write("Recorded files are deleted");
+        
+    condition2 = 1;
+      
+  }
+  else {
+    
+    write("Recorded files aren't deleted");
+    
+  }
+  
+  if (condition1 == 1 && condition2 == 1) {
+    testStepPass("Pass","All conditions have met. Test-case is OK");
+    write("Test-case is OK");
+  }
+  else {
+    int arr[3];
+    
+    arr[0] = condition1;
+    arr[1] = condition2;
+    
+    testStepFail("Fail","Condition hasn't met. Test-case is NG");
+    
+    for (i = 0; i < 2; i++){
+      
+      if (arr[i] != 1){
+        
+        write("Condition %d is not met", i+1);
+        
+      }   
+    }
+  }
+  
+  Init();
+  @panel::Switch_CGWNM = 0;
+  
+  testStep("Notifications","Done test-case BAS_018_2");
+  write("=== FINISH BAS_018_2 ===");
+}
+
+testcase BAS_018_3(){
+  testStep("Notifications","Start test-case BAS_018_3");
+  write("=== START BAS_018_3 ===");
+  
+  write("=== Create Recorded File ===");
+  
+  write("Set Battery"); Set_Battery();  
+  
+  write("Create_PRK_Recorded_vid"); Create_PRK_Recorded_vid();
+  
+  write("Create_PRK_Recorded_vid"); Create_DRV_Recorded_vid();
+  
+  write("=== Random Settings ===");
+  
+  Set_Profile_Guest();
+  
+  testReportAddWindowCapture("Profile Settings 2.5","","Profile Guest","./profile_setting.jpg");  
+  
+  testWaitForTimeout(5000);
+  
+  write("KEY OFF"); KEY_OFF();
+  
+  setSignal(ICU_PowerAutoCutModSta,0x0); write("Factory Mode");
+  
+  testWaitForTimeout(5000);
+  
+  write("KEY_ON"); KEY_ON();
+  
+  testWaitForTimeout(4000);
+  
+  setSignal(ICU_PowerAutoCutModSta,0x2); write("Customer Mode");
+      
+  if (testWaitForMessageBox("Turn ON ACC and IGN and ccNC/ccIC to check whether the recorded files are deleted",300000,"Choose Yes/No",4) == 6) {
+    
+    testStepPass("Pass","Recorded files are deleted");
+    
+    write("Recorded files are deleted");
+        
+    condition1 = 1;
+      
+  }
+  else {
+    
+    testStepFail("Fail","Recorded files aren't deleted");
+    
+    write("Recorded files aren't deleted");
+    
+  }
+    
+  Init();
+  @panel::Switch_CGWNM = 0;
+  
+  testStep("Notifications","Done test-case BAS_018_3");
+  write("=== FINISH BAS_018_3 ===");
+}
+
+testcase BAS_018_4(){
+  testStep("Notifications","Start test-case BAS_018_4");
+  write("=== START BAS_018_4 ===");
+  
+  write("=== Create Recorded File ===");
+  
+  write("Set Battery"); Set_Battery();  
+  
+  write("Create_PRK_Recorded_vid"); Create_PRK_Recorded_vid();
+  
+  write("Create_PRK_Recorded_vid"); Create_DRV_Recorded_vid();
+  
+  write("=== Random Settings ===");
+  
+  Set_Profile_Guest();
+  
+  testReportAddWindowCapture("Profile Settings 2.5","","Profile Guest","./profile_setting.jpg");  
+  
+  testWaitForTimeout(5000);
+  
+  write("KEY OFF"); KEY_OFF();
+  
+  setSignal(ICU_PowerAutoCutModSta,0x1); write("Dealer Mode");
+  
+  testWaitForTimeout(5000);
+  
+  write("KEY_ON"); KEY_ON();
+  
+  testWaitForTimeout(4000);
+  
+  setSignal(ICU_PowerAutoCutModSta,0x2); write("Customer Mode");
+      
+  if (testWaitForMessageBox("Turn ON ACC and IGN and ccNC/ccIC to check whether the recorded files are deleted",300000,"Choose Yes/No",4) == 6) {
+    
+    testStepPass("Pass","Recorded files are deleted");
+    
+    write("Recorded files are deleted");
+        
+    condition1 = 1;
+      
+  }
+  else {
+    
+    testStepFail("Fail","Recorded files aren't deleted");
+    
+    write("Recorded files aren't deleted");
+    
+  }
+    
+  Init();
+  @panel::Switch_CGWNM = 0;
+  
+  testStep("Notifications","Done test-case BAS_018_4");
+  write("=== FINISH BAS_018_4 ===");
+}
+
+testcase BAS_018_5(){
+  testStep("Notifications","Start test-case BAS_018_5");
+  write("=== START BAS_018_5 ===");
+  
+  write("=== Create Recorded File ===");
+  
+  write("Set Battery"); Set_Battery();  
+  
+  write("Create_PRK_Recorded_vid"); Create_PRK_Recorded_vid();
+  
+  write("Create_PRK_Recorded_vid"); Create_DRV_Recorded_vid();
+  
+  write("=== Random Settings ===");
+  
+  Set_Profile_Guest();
+  
+  testReportAddWindowCapture("Profile Settings 2.5","","Profile Guest","./profile_setting.jpg");  
+  
+  testWaitForTimeout(5000);
+  
+  write("KEY OFF"); KEY_OFF();
+  
+  testWaitForTimeout(5000);  
+  
+  setSignal(ICU_PowerAutoCutModSta,0x0); write("Factory Mode");
+  
+  testWaitForTimeout(5000);
+  
+  write("ACC & IGN ON"); testWaitForMessageBox("Turn ON ACC and IGN",300000,"Choose Yes/No",0);
+  
+  testWaitForTimeout(1500);
+  
+  setSignal(ICU_PowerAutoCutModSta,0x2); write("Customer Mode");
+      
+  if (testWaitForMessageBox("Turn ON ACC and IGN and ccNC/ccIC to check whether the recorded files are deleted",300000,"Choose Yes/No",4) == 7) {
+    
+    testStepPass("Pass","Recorded files aren't deleted");
+    
+    write("Recorded files aren't deleted");
+        
+    condition1 = 1;
+      
+  }
+  else {
+    
+    testStepFail("Fail","Recorded files are deleted");
+    
+    write("Recorded files are deleted");
+    
+  }
+    
+  Init();
+  @panel::Switch_CGWNM = 0;
+  
+  testStep("Notifications","Done test-case BAS_018_5");
+  write("=== FINISH BAS_018_5 ===");
+}
+
+testcase BAS_018_6(){
+  testStep("Notifications","Start test-case BAS_018_6");
+  write("=== START BAS_018_6 ===");
+  
+  write("=== Create Recorded File ===");
+  
+  write("Set Battery"); Set_Battery();  
+  
+  write("Create_PRK_Recorded_vid"); Create_PRK_Recorded_vid();
+  
+  write("Create_PRK_Recorded_vid"); Create_DRV_Recorded_vid();
+  
+  write("=== Random Settings ===");
+  
+  Set_Profile_Guest();
+  
+  testReportAddWindowCapture("Profile Settings 2.5","","Profile Guest","./profile_setting.jpg");  
+  
+  testWaitForTimeout(5000);
+  
+  write("KEY OFF"); KEY_OFF();
+  
+  testWaitForTimeout(5000);  
+  
+  setSignal(ICU_PowerAutoCutModSta,0x1); write("Dealer Mode");
+  
+  testWaitForTimeout(5000);
+  
+  write("ACC & IGN ON"); testWaitForMessageBox("Turn ON ACC and IGN",300000,"Choose Yes/No",0);
+  
+  testWaitForTimeout(1500);
+  
+  setSignal(ICU_PowerAutoCutModSta,0x2); write("Customer Mode");
+      
+  if (testWaitForMessageBox("Turn ON ACC and IGN and ccNC/ccIC to check whether the recorded files are deleted",300000,"Choose Yes/No",4) == 7) {
+    
+    testStepPass("Pass","Recorded files aren't deleted");
+    
+    write("Recorded files aren't deleted");
+        
+    condition1 = 1;
+      
+  }
+  else {
+    
+    testStepFail("Fail","Recorded files are deleted");
+    
+    write("Recorded files are deleted");
+    
+  }
+    
+  Init();
+  @panel::Switch_CGWNM = 0;
+  
+  testStep("Notifications","Done test-case BAS_018_6");
+  write("=== FINISH BAS_018_6 ===");
+}
+
+testcase BAS_018_7(){
+  testStep("Notifications","Start test-case BAS_018_7");
+  write("=== START BAS_018_7 ===");
+  
+  write("=== Create Recorded File ===");
+  
+  write("Set Battery"); Set_Battery();  
+  
+  write("Create_PRK_Recorded_vid"); Create_PRK_Recorded_vid();
+  
+  write("Create_PRK_Recorded_vid"); Create_DRV_Recorded_vid();
+  
+  write("=== Random Settings ===");
+  
+  Set_Profile_Guest();
+  
+  testReportAddWindowCapture("Profile Setting","","Profile Guest","./profile_setting.jpg");  
+  
+  testWaitForTimeout(5000);
+  
+  write("KEY OFF"); KEY_OFF();
+  
+  testWaitForTimeout(5000);  
+  
+  setSignal(ICU_PowerAutoCutModSta,0x0); write("Factory Mode");
+  
+  testWaitForTimeout(5000);
+  
+  write("ACC ON"); testWaitForMessageBox("Turn ON ACC",300000,"Choose Yes/No",0);
+  
+  testWaitForTimeout(1500);
+  
+  setSignal(ICU_PowerAutoCutModSta,0x2); write("Customer Mode");
+      
+  if (testWaitForMessageBox("Turn ON ACC and IGN and ccNC/ccIC to check whether the recorded files are deleted",300000,"Choose Yes/No",4) == 7) {
+    
+    testStepPass("Pass","Recorded files aren't deleted");
+    
+    write("Recorded files aren't deleted");
+        
+    condition1 = 1;
+      
+  }
+  else {
+    
+    testStepFail("Fail","Recorded files are deleted");
+    
+    write("Recorded files are deleted");
+    
+  }
+    
+  Init();
+  @panel::Switch_CGWNM = 0;
+  
+  testStep("Notifications","Done test-case BAS_018_7");
+  write("=== FINISH BAS_018_7 ===");
+}
+
+testcase BAS_018_8(){
+  testStep("Notifications","Start test-case BAS_018_8");
+  write("=== START BAS_018_8 ===");
+  
+  write("=== Create Recorded File ===");
+  
+  write("Set Battery"); Set_Battery();  
+  
+  write("Create_PRK_Recorded_vid"); Create_PRK_Recorded_vid();
+  
+  write("Create_PRK_Recorded_vid"); Create_DRV_Recorded_vid();
+  
+  write("=== Random Settings ===");
+  
+  Set_Profile_Guest();
+  
+  testReportAddWindowCapture("Profile Settings 2.5","","Profile Guest","./profile_setting.jpg");  
+  
+  testWaitForTimeout(5000);
+  
+  write("KEY OFF"); KEY_OFF();
+  
+  testWaitForTimeout(5000);  
+  
+  setSignal(ICU_PowerAutoCutModSta,0x1); write("Dealer Mode");
+  
+  testWaitForTimeout(5000);
+  
+  write("ACC ON"); testWaitForMessageBox("Turn ON ACC",300000,"Choose Yes/No",0);
+  
+  testWaitForTimeout(1500);
+  
+  setSignal(ICU_PowerAutoCutModSta,0x2); write("Customer Mode");
+      
+  if (testWaitForMessageBox("Turn ON ACC and IGN and ccNC/ccIC to check whether the recorded files are deleted",300000,"Choose Yes/No",4) == 7) {
+    
+    testStepPass("Pass","Recorded files aren't deleted");
+    
+    write("Recorded files aren't deleted");
+        
+    condition1 = 1;
+      
+  }
+  else {
+    
+    testStepFail("Fail","Recorded files are deleted");
+    
+    write("Recorded files are deleted");
+    
+  }
+    
+  Init();
+  @panel::Switch_CGWNM = 0;
+  
+  testStep("Notifications","Done test-case BAS_018_8");
+  write("=== FINISH BAS_018_8 ===");
+}
+
+void MainTest(){
+  @panel::Switch_CGWNM = 1;  
+  
+  TestWaitForValueInput("Please enter the test ID (1/2/3/4/5/6/7/8)", 300000);
+  switch (TestGetValueInput()){
+    
+   case(1) : BAS_018_1(); break;
+   case(2) : BAS_018_2(); break;
+   case(3) : BAS_018_3(); break; 
+   case(4) : BAS_018_4(); break; 
+   case(5) : BAS_018_5(); break; 
+   case(6) : BAS_018_6(); break; 
+   case(7) : BAS_018_7(); break; 
+   case(8) : BAS_018_8(); break;      
+     
+  }
+  
+  @panel::Switch_CGWNM = 0;  
+}

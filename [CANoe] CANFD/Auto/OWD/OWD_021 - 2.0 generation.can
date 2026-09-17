@@ -1,0 +1,142 @@
+﻿/*@!Encoding:65001*/
+//Preconditions: - ACC and IGN and ccNC/ccIC switch OFF, AVN mode
+//Add signal to graphic 2: BLTN_CAM_HU_UI_Mode;BLTN_CAM_RecSta_MAR
+
+#include "DeclarationFunction_Gen2.5.h"
+
+byte value_Bfr = 0x0;
+byte value_Aft = 0x0;
+
+void Rec_Reset(){
+  @panel::Switch_CGWNM = 1; 
+  
+  KEY_ON();
+  
+  while (getSignal(BLTN_CAM_SD_Format_Op_State) != 0x1){
+    @panel::Button_RecReset = 1; 
+    testWaitForSignalChange(BLTN_CAM_SD_Format_Op_State,500);
+  }
+  
+  KEY_OFF();
+  
+  @panel::Switch_CGWNM = 0; 
+}
+
+testcase OWD_021_1(){
+  testStep("Notification","Start test OWD_021_1");
+  write("Start test OWD_021_1");
+  
+  @panel::Switch_CGWNM = 1;
+  
+  KEY_ON();
+  testWaitForTimeout(3000);
+  
+  @panel::Switch_CGWNM = 0;
+  
+  Enter_BLTN_CAM();
+  testWaitForTimeout(3000);
+
+  BLTN_CAM_Settings(1);
+  testWaitForTimeout(2000);
+  
+  @panel::Switch_Clock = 1;
+  
+  Exit_BLTN_CAM();
+
+  testWaitForTimeout(11000);
+  
+  @panel::Button_SwitchEvt = 0;
+  
+  testWaitForTimeout(500);
+  
+  @panel::Button_SwitchEvt = 1;  
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_MAR,10000) == 1){
+    write("MAR recording is started");
+    testStepPass("Pass", "Test-case is OK");
+  }
+  else{
+    write("Error: MAR recording hasn't started");
+    testStepFail("Fail","Test-case is NG");
+  }  
+  
+  testWaitForTimeout(10000);
+  
+  CaptureGraphics(); write("Run CaptureGraphics()");
+  
+  testWaitForTimeout(1000);
+
+  KEY_OFF(); write("Run KEY_OFF()");
+  
+  @panel::Switch_CGWNM = 0;
+  
+  testStep("Notifications","Finish OWD_021_1");
+  write("Finish OWD_021_1");
+}
+
+testcase OWD_021_2(){
+  testStep("Notification","Start test OWD_021_2");
+  write("Start test OWD_021_2");
+  
+  @panel::Switch_CGWNM = 1;
+  
+  KEY_ON();
+  testWaitForTimeout(3000);
+  
+  @panel::Switch_CGWNM = 0;
+  
+  Enter_BLTN_CAM();
+  testWaitForTimeout(3000);
+
+  BLTN_CAM_Settings(1);
+  testWaitForTimeout(2000);
+  
+  @panel::Button_SwitchEvt = 0;
+  
+  testWaitForTimeout(500);
+  
+  @panel::Button_SwitchEvt = 1;  
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_MAR,10000) == 1){
+    write("MAR recording is started");
+    testStepFail("Fail", "Test-case is NG");
+  }
+  else{
+    write("MAR recording hasn't started");
+    testStepPass("Pass","Test-case is OK");
+  }  
+
+  CaptureGraphics(); write("Run CaptureGraphics()");
+  
+  testWaitForTimeout(1000);
+  
+  KEY_OFF(); write("Run KEY_OFF()"); 
+  
+  @panel::Switch_CGWNM = 0;
+  
+  testStep("Notifications","Finish OWD_021_2");
+  write("Finish OWD_021_2");
+}
+
+void MainTest(){
+  write("Run Turn_OFF_RecSet()"); Turn_OFF_RecSet();
+  
+  write("Run Rec_Reset()"); Rec_Reset();
+  
+  TestWaitForValueInput("Please enter the ID testcase number: (1/2/3)",300000);
+  
+  switch (testGetValueInput()){
+    
+    case (1): OWD_021_1(); break;
+    
+    case (2): OWD_021_2(); break;
+    
+    case (3):
+      OWD_021_1();
+      
+      OWD_021_2();
+      
+      break;
+  }
+}
+

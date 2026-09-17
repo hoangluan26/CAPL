@@ -1,0 +1,511 @@
+/*@!Encoding:1252*/
+//Preconditions: - ACC and IGN and ccNC/ccIC switch OFF, AVN mode
+//Add signal to graphic 2: BLTN_CAM_RecSta_OWD
+variables{
+  //Message Declaration for CAN
+  message HU_BLTN_CAM_PE_00_200ms _HU_BLTN_CAM_PE_00_200ms;
+  message HU_BLTN_CAM_E_00 _HU_BLTN_CAM_E_00;
+  message HU_CLOCK_PE_02 _HU_CLOCK_PE_02;  
+  //Global Variable Declaration
+  int flag_RecSet_error = 0;
+}
+
+void SMK_TrmnlCtrlGrpStaBDC_ON(byte vehicle_Signal_value){
+  setSignal(SMK_TrmnlCtrlGrpStaBDC,vehicle_Signal_value);
+}
+
+void SMK_TrmnlCtrlGrpStaBDCEV_ON(byte vehicle_Signal_value){
+  setSignal(SMK_TrmnlCtrlGrpStaBDCEV,vehicle_Signal_value);
+}
+
+void KEY_OFF(){
+   setSignal(SMK_TrmnlCtrlGrpStaBDC,0x0);
+}
+
+void Enter_BLTN_CAM(){
+  // CAN
+  _HU_BLTN_CAM_PE_00_200ms.HU_BLTN_CAM_UI_Mode=0x1;
+  output(_HU_BLTN_CAM_PE_00_200ms); //Enter BLTN_CAM mode  
+}
+
+void Exit_BLTN_CAM(){
+  // CAN
+  _HU_BLTN_CAM_PE_00_200ms.HU_BLTN_CAM_UI_Mode=0x0;
+  output(_HU_BLTN_CAM_PE_00_200ms);//Exit BLTN_CAM Mode    
+}
+
+void CaptureGraphics_1(){
+  testWaitForTimeout(3000);
+  testReportAddWindowCapture("Graphics 2","SMK_TrmnlCtrlGrpStaBDC;BLTN_CAM_RecSta_OWD","Sreenshot","./Husign.jpg");
+}
+
+void CaptureGraphics_2(){
+  testWaitForTimeout(3000);
+  testReportAddWindowCapture("Graphics 2","SMK_TrmnlCtrlGrpStaBDCEV;BLTN_CAM_RecSta_OWD","Sreenshot","./Husign.jpg");
+}
+
+void Turn_OFF_RecSet(){
+  if (getSignal(BLTN_CAM_RecSet_OWD) == 0x2 || getSignal(BLTN_CAM_RecSet_OWP) == 0x2 || getSignal(BLTN_CAM_RecSet_DEV) == 0x2 || getSignal(BLTN_CAM_RecSet_PEV) == 0x2){
+    @panel::Switch_CGWNM = 1;
+  
+    KEY_ON();
+    testWaitForTimeout(3000);
+
+    do {
+      Enter_BLTN_CAM();
+      testWaitForTimeout(3000);
+      
+      if (getSignal(BLTN_CAM_RecSet_OWD) == 0x2){
+        write("OWD On"); @panel::LED_Ctrl_SetOWD = 1; testWaitForTimeout(1000);
+      } 
+      
+      else if (getSignal(BLTN_CAM_RecSet_OWP) == 0x2){
+        write("OWP On"); @panel::LED_Ctrl_SetOWP = 1; testWaitForTimeout(1000);
+      } 
+      
+      else if (getSignal(BLTN_CAM_RecSet_DEV) == 0x2){
+        write("DEV On"); @panel::LED_Ctrl_SetDEV = 1; testWaitForTimeout(1000);
+      } 
+      
+      else if (getSignal(BLTN_CAM_RecSet_PEV) == 0x2){
+        write("PEV On"); @panel::LED_Ctrl_SetPEV = 1; testWaitForTimeout(1000);
+      } 
+
+      Exit_BLTN_CAM();
+      
+      flag_RecSet_error++;
+      
+    } while((getSignal(BLTN_CAM_RecSet_OWD) == 0x2 || getSignal(BLTN_CAM_RecSet_OWP) == 0x2 || getSignal(BLTN_CAM_RecSet_DEV) == 0x2 || getSignal(BLTN_CAM_RecSet_PEV) == 0x2) && (flag_RecSet_error <= 15));
+    
+    flag_RecSet_error = 0; 
+    
+    testWaitForTimeout(3000); 
+    KEY_OFF();
+  }
+  else {
+    write("Notifications: All recording setting are turned OFF.");
+  }
+}
+
+void Setup_End_test(){
+  Enter_BLTN_CAM();
+  write("Run CaptureGraphics()"); CaptureGraphics();
+  
+  if ($BLTN_CAM_RecSet_OWD == 0x2){
+    write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+  }
+  
+  testWaitForTimeout(2000);
+  Exit_BLTN_CAM();
+  
+  while($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error <= 15){
+    Enter_BLTN_CAM();
+    testWaitForTimeout(3000);
+    write("Set OWD Off");
+    @panel::LED_Ctrl_SetOWD = 1;
+    testWaitForTimeout(2000);
+    flag_RecSet_error++;
+    Exit_BLTN_CAM();
+  }
+  
+  flag_RecSet_error = 0;
+}
+
+testcase BAT_007_2(){
+  testStep("Notification","Start test BAT_007_2");
+  write("=== START BAT_007_2 ===");
+  
+  write("===SETTING BEFORE TESTING===");
+  
+  Turn_OFF_RecSet();  write("Run Turn_OFF_RecSet()"); 
+  
+  write("===START TEST===");
+  
+  @panel::Switch_CGWNM = 1;
+  
+  SMK_TrmnlCtrlGrpStaBDC_ON(0x1);
+  testWaitForTimeout(3000);
+  
+  @panel::Switch_CGWNM = 0;
+  
+  do {
+  Enter_BLTN_CAM();
+  testWaitForTimeout(3000);
+
+  if ($BLTN_CAM_RecSet_OWD == 0x1) {write("OWD On"); @panel::LED_Ctrl_SetOWD = 1;}
+    
+  testWaitForTimeout(1000);
+  
+  Exit_BLTN_CAM();
+  } while ($BLTN_CAM_RecSet_OWD == 0x1);
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWD,100000) == 1){
+    write("OWD recording is in progress...");
+  }
+  else{
+    write("Error: OWD recording hasn't started. Stop test !!!");
+    
+    write("Run Setup_End_test"); Setup_End_test();
+    
+    write("Stop Measurement"); stop();
+  }    
+  
+  testWaitForTimeout(10000);
+  
+  CaptureGraphics_1();
+  
+  write("Run Setup_End_test"); Setup_End_test();
+  
+  testWaitForTimeout(1000);     
+  
+  KEY_OFF(); write("Run KEY_OFF()"); 
+  
+  testStepPass("Notifications","Finish BAT_007_2");
+  write("=== FINISH BAT_007_2 ===");  
+}
+
+testcase BAT_007_3(){
+  testStep("Notification","Start test BAT_007_3");
+  write("=== START BAT_007_3 ===");
+  
+  write("===SETTING BEFORE TESTING===");
+  
+  Turn_OFF_RecSet();  write("Run Turn_OFF_RecSet()"); 
+  
+  write("===START TEST===");
+  
+  @panel::Switch_CGWNM = 1;
+  
+  SMK_TrmnlCtrlGrpStaBDC_ON(0x2);
+  testWaitForTimeout(3000);
+  
+  @panel::Switch_CGWNM = 0;
+  
+  do {
+  Enter_BLTN_CAM();
+  testWaitForTimeout(3000);
+
+  if ($BLTN_CAM_RecSet_OWD == 0x1) {write("OWD On"); @panel::LED_Ctrl_SetOWD = 1;}
+    
+  testWaitForTimeout(1000);
+  
+  Exit_BLTN_CAM();
+  } while ($BLTN_CAM_RecSet_OWD == 0x1);
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWD,100000) == 1){
+    write("OWD recording is in progress...");
+  }
+  else{
+    write("Error: OWD recording hasn't started. Stop test !!!");
+    
+    write("Run Setup_End_test"); Setup_End_test();
+    
+    write("Stop Measurement"); stop();
+  }    
+  
+  testWaitForTimeout(10000);
+  
+  CaptureGraphics_1();
+  
+  write("Run Setup_End_test"); Setup_End_test();
+  
+  testWaitForTimeout(1000);     
+  
+  KEY_OFF(); write("Run KEY_OFF()"); 
+  
+  testStepPass("Notifications","Finish BAT_007_3");
+  write("=== FINISH BAT_007_3 ===");  
+}
+
+testcase BAT_007_4(){
+  testStep("Notification","Start test BAT_007_4");
+  write("=== START BAT_007_4 ===");
+  
+  write("===SETTING BEFORE TESTING===");
+  
+  Turn_OFF_RecSet();  write("Run Turn_OFF_RecSet()"); 
+  
+  write("===START TEST===");
+  
+  @panel::Switch_CGWNM = 1;
+  
+  SMK_TrmnlCtrlGrpStaBDC_ON(0x3);
+  testWaitForTimeout(3000);
+  
+  @panel::Switch_CGWNM = 0;
+  
+  do {
+  Enter_BLTN_CAM();
+  testWaitForTimeout(3000);
+
+  if ($BLTN_CAM_RecSet_OWD == 0x1) {write("OWD On"); @panel::LED_Ctrl_SetOWD = 1;}
+    
+  testWaitForTimeout(1000);
+  
+  Exit_BLTN_CAM();
+  } while ($BLTN_CAM_RecSet_OWD == 0x1);
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWD,100000) == 1){
+    write("OWD recording is in progress...");
+  }
+  else{
+    write("Error: OWD recording hasn't started. Stop test !!!");
+    
+    write("Run Setup_End_test"); Setup_End_test();
+    
+    write("Stop Measurement"); stop();
+  }    
+  
+  testWaitForTimeout(10000);
+  
+  CaptureGraphics_1();
+  
+  write("Run Setup_End_test"); Setup_End_test();
+  
+  testWaitForTimeout(1000);     
+  
+  KEY_OFF(); write("Run KEY_OFF()"); 
+  
+  testStepPass("Notifications","Finish BAT_007_4");
+  write("=== FINISH BAT_007_4 ===");  
+}
+
+testcase BAT_007_5(){
+  testStep("Notification","Start test BAT_007_5");
+  write("=== START BAT_007_5 ===");
+  
+  write("===SETTING BEFORE TESTING===");
+  
+  Turn_OFF_RecSet();  write("Run Turn_OFF_RecSet()"); 
+  
+  write("===START TEST===");
+  
+  @panel::Switch_CGWNM = 1;
+  
+  SMK_TrmnlCtrlGrpStaBDC_ON(0x4);
+  testWaitForTimeout(3000);
+  
+  @panel::Switch_CGWNM = 0;
+  
+  do {
+  Enter_BLTN_CAM();
+  testWaitForTimeout(3000);
+
+  if ($BLTN_CAM_RecSet_OWD == 0x1) {write("OWD On"); @panel::LED_Ctrl_SetOWD = 1;}
+    
+  testWaitForTimeout(1000);
+  
+  Exit_BLTN_CAM();
+  } while ($BLTN_CAM_RecSet_OWD == 0x1);
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWD,100000) == 1){
+    write("OWD recording is in progress...");
+  }
+  else{
+    write("Error: OWD recording hasn't started. Stop test !!!");
+    
+    write("Run Setup_End_test"); Setup_End_test();
+    
+    write("Stop Measurement"); stop();
+  }    
+  
+  testWaitForTimeout(10000);
+  
+  CaptureGraphics_1();
+  
+  write("Run Setup_End_test"); Setup_End_test();
+  
+  testWaitForTimeout(1000);     
+  
+  KEY_OFF(); write("Run KEY_OFF()"); 
+  
+  testStepPass("Notifications","Finish BAT_007_5");
+  write("=== FINISH BAT_007_5 ===");  
+}
+
+testcase BAT_007_6(){
+  testStep("Notification","Start test BAT_007_6");
+  write("=== START BAT_007_6 ===");
+  
+  write("===SETTING BEFORE TESTING===");
+  
+  Turn_OFF_RecSet();  write("Run Turn_OFF_RecSet()"); 
+  
+  write("===START TEST===");
+  
+  @panel::Switch_CGWNM = 1;
+  
+  SMK_TrmnlCtrlGrpStaBDCEV_ON(0x1);
+  testWaitForTimeout(3000);
+  
+  @panel::Switch_CGWNM = 0;
+  
+  do {
+  Enter_BLTN_CAM();
+  testWaitForTimeout(3000);
+
+  if ($BLTN_CAM_RecSet_OWD == 0x1) {write("OWD On"); @panel::LED_Ctrl_SetOWD = 1;}
+    
+  testWaitForTimeout(1000);
+  
+  Exit_BLTN_CAM();
+  } while ($BLTN_CAM_RecSet_OWD == 0x1);
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWD,100000) == 1){
+    write("OWD recording is in progress...");
+  }
+  else{
+    write("Error: OWD recording hasn't started. Stop test !!!");
+    
+    write("Run Setup_End_test"); Setup_End_test();
+    
+    write("Stop Measurement"); stop();
+  }    
+  
+  testWaitForTimeout(10000);
+  
+  CaptureGraphics_2();
+  
+  write("Run Setup_End_test"); Setup_End_test();
+  
+  testWaitForTimeout(1000);     
+  
+  KEY_OFF(); write("Run KEY_OFF()"); 
+  
+  testStepPass("Notifications","Finish BAT_007_6");
+  write("=== FINISH BAT_007_6 ===");  
+}
+
+testcase BAT_007_7(){
+  testStep("Notification","Start test BAT_007_7");
+  write("=== START BAT_007_7 ===");
+  
+  write("===SETTING BEFORE TESTING===");
+  
+  Turn_OFF_RecSet();  write("Run Turn_OFF_RecSet()"); 
+  
+  write("===START TEST===");
+  
+  @panel::Switch_CGWNM = 1;
+  
+  SMK_TrmnlCtrlGrpStaBDCEV_ON(0x2);
+  testWaitForTimeout(3000);
+  
+  @panel::Switch_CGWNM = 0;
+  
+  do {
+  Enter_BLTN_CAM();
+  testWaitForTimeout(3000);
+
+  if ($BLTN_CAM_RecSet_OWD == 0x1) {write("OWD On"); @panel::LED_Ctrl_SetOWD = 1;}
+    
+  testWaitForTimeout(1000);
+  
+  Exit_BLTN_CAM();
+  } while ($BLTN_CAM_RecSet_OWD == 0x1);
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWD,100000) == 1){
+    write("OWD recording is in progress...");
+  }
+  else{
+    write("Error: OWD recording hasn't started. Stop test !!!");
+    
+    write("Run Setup_End_test"); Setup_End_test();
+    
+    write("Stop Measurement"); stop();
+  }    
+  
+  testWaitForTimeout(10000);
+  
+  CaptureGraphics_2();
+  
+  write("Run Setup_End_test"); Setup_End_test();
+  
+  testWaitForTimeout(1000);     
+  
+  KEY_OFF(); write("Run KEY_OFF()"); 
+  
+  testStepPass("Notifications","Finish BAT_007_7");
+  write("=== FINISH BAT_007_7 ===");  
+}
+
+testcase BAT_007_8(){
+  testStep("Notification","Start test BAT_007_8");
+  write("=== START BAT_007_8 ===");
+  
+  write("===SETTING BEFORE TESTING===");
+  
+  Turn_OFF_RecSet();  write("Run Turn_OFF_RecSet()"); 
+  
+  write("===START TEST===");
+  
+  @panel::Switch_CGWNM = 1;
+  
+  SMK_TrmnlCtrlGrpStaBDCEV_ON(0x3);
+  testWaitForTimeout(3000);
+  
+  @panel::Switch_CGWNM = 0;
+  
+  do {
+  Enter_BLTN_CAM();
+  testWaitForTimeout(3000);
+
+  if ($BLTN_CAM_RecSet_OWD == 0x1) {write("OWD On"); @panel::LED_Ctrl_SetOWD = 1;}
+    
+  testWaitForTimeout(1000);
+  
+  Exit_BLTN_CAM();
+  } while ($BLTN_CAM_RecSet_OWD == 0x1);
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWD,100000) == 1){
+    write("OWD recording is in progress...");
+  }
+  else{
+    write("Error: OWD recording hasn't started. Stop test !!!");
+    
+    write("Run Setup_End_test"); Setup_End_test();
+    
+    write("Stop Measurement"); stop();
+  }    
+  
+  testWaitForTimeout(10000);
+  
+  CaptureGraphics_2();
+  
+  write("Run Setup_End_test"); Setup_End_test();
+  
+  testWaitForTimeout(1000);     
+  
+  KEY_OFF(); write("Run KEY_OFF()"); 
+  
+  testStepPass("Notifications","Finish BAT_007_8");
+  write("=== FINISH BAT_007_8 ===");  
+}
+
+void MainTest(){
+  TestWaitForValueInput("Please enter the test ID", 300000);
+  switch (TestGetValueInput()){
+   case(1) :
+   BAT_007_2(); break;
+   case(2) :
+   BAT_007_3(); break;    
+   case(3) :
+   BAT_007_4(); break;        
+   case(4) :
+   BAT_007_5(); break; 
+   case(5) :
+   BAT_007_6(); break;
+   case(6) :
+   BAT_007_7(); break;  
+   case(7) :
+   BAT_007_8(); break;  
+   case(8) :
+    BAT_007_2();
+    BAT_007_3();
+    BAT_007_4();
+    BAT_007_5();
+    BAT_007_6();
+    BAT_007_7();
+    BAT_007_8();   
+  }
+}

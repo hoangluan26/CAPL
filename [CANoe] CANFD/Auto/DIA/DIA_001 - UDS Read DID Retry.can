@@ -1,0 +1,413 @@
+/*@!Encoding:65001*/
+
+includes
+{
+  #include "..\DeclarationFunction_Gen2.5.h"
+}
+
+/*
+  Test Case: DIA_001
+  Title: Read five UDS data identifiers with bounded retries
+
+  Verification items:
+    - Step 1: Send 22 F1 EF, retry after each 5-second timeout for up to 5 minutes.
+    - Step 2: Send 22 F1 C1, retry after each 5-second timeout for up to 30 minutes.
+    - Step 3: Send 22 F1 87, retry after each 5-second timeout for up to 5 minutes.
+    - Step 4: Send 22 F1 B0, retry after each 5-second timeout for up to 5 minutes.
+    - Step 5: Send 22 F1 B1, retry after each 5-second timeout for up to 5 minutes.
+    - Every received diagnostic response is written directly to the Vector Test Report.
+
+  Preconditions:
+    - The ECU is online and permits ReadDataByIdentifier in the active session.
+    - CANoe diagnostic target DVRS is configured with the project CDD.
+
+  Channel note:
+    - The current project binds DVRS to logical network CAN1. Hardware-channel mapping
+      is controlled by the CANoe configuration, not by this CAPL test module.
+    - To use CAN2 / hardware channel 3, bind a diagnostic target to CAN2 in CANoe first.
+*/
+
+variables
+{
+  const long DIAG_RESPONSE_TIMEOUT_MS = 5000;
+  const long STANDARD_MAX_DURATION_MS = 300000;
+  const long F1C1_MAX_DURATION_MS = 1800000;
+  const int MAX_LOGGED_RESPONSE_BYTES = 64;
+
+  int diagnostic_target_ready = 0;
+  int step1_passed = 0;
+  int step2_passed = 0;
+  int step3_passed = 0;
+  int step4_passed = 0;
+  int step5_passed = 0;
+}
+
+void log_diagnostic_response(diagRequest *request, word did)
+{
+  long response_size;
+  long logged_size;
+  long index;
+  long value;
+
+  response_size = diagGetRespPrimitiveSize(request);
+  write("[RX 62 %02X %02X] Response length = %d byte(s)",
+        (did >> 8) & 0xFF, did & 0xFF, response_size);
+
+  if (response_size < 0)
+  {
+    write("[RX] Cannot read response bytes, API return = %d", response_size);
+    return;
+  }
+
+  logged_size = response_size;
+  if (logged_size > MAX_LOGGED_RESPONSE_BYTES)
+  {
+    logged_size = MAX_LOGGED_RESPONSE_BYTES;
+  }
+
+  for (index = 0; index < logged_size; index++)
+  {
+    value = diagGetRespPrimitiveByte(request, index);
+    write("[RX] byte[%d] = 0x%02X", index, value);
+  }
+
+  if (response_size > logged_size)
+  {
+    write("[RX] %d additional byte(s) omitted from Write window",
+          response_size - logged_size);
+  }
+}
+
+int is_expected_positive_response(diagRequest *request, word did)
+{
+  long response_size;
+  byte sid;
+  byte did_high;
+  byte did_low;
+
+  response_size = diagGetRespPrimitiveSize(request);
+  if (response_size < 3)
+  {
+    write("[CHECK] Response is too short: %d byte(s), expected at least 3", response_size);
+    return 0;
+  }
+
+  sid = (byte)diagGetRespPrimitiveByte(request, 0);
+  did_high = (byte)diagGetRespPrimitiveByte(request, 1);
+  did_low = (byte)diagGetRespPrimitiveByte(request, 2);
+
+  if (sid == 0x62 && did_high == ((did >> 8) & 0xFF) && did_low == (did & 0xFF))
+  {
+    return 1;
+  }
+
+  if (sid == 0x7F && response_size >= 3)
+  {
+    write("[CHECK] Negative response: original SID=0x%02X, NRC=0x%02X",
+          did_high, did_low);
+  }
+  else
+  {
+    write("[CHECK] Unexpected response header: %02X %02X %02X",
+          sid, did_high, did_low);
+  }
+
+  return 0;
+}
+
+int send_read_did_with_retry(
+  diagRequest *request,
+  word did,
+  long max_duration_ms)
+{
+  int64 start_time_ns;
+  long result;
+  long elapsed_ms;
+  long wait_timeout_ms;
+  int attempt;
+
+  result = diagResize(request, 3);
+  if (result < 0)
+  {
+    write("[CONFIG] diagResize failed, return = %d", result);
+    return -1;
+  }
+
+  if (diagSetPrimitiveByte(request, 0, 0x22) < 0 ||
+      diagSetPrimitiveByte(request, 1, (did >> 8) & 0xFF) < 0 ||
+      diagSetPrimitiveByte(request, 2, did & 0xFF) < 0)
+  {
+    write("[CONFIG] Failed to create raw request 22 %02X %02X",
+          (did >> 8) & 0xFF, did & 0xFF);
+    return -1;
+  }
+
+  start_time_ns = timeNowInt64();
+  attempt = 0;
+  while (1)
+  {
+    elapsed_ms = (timeNowInt64() - start_time_ns) / 1000000;
+    if (elapsed_ms >= max_duration_ms)
+    {
+      write("[TIME LIMIT] Reached the %d ms retry limit", max_duration_ms);
+      break;
+    }
+
+    attempt++;
+    write("[TX] Attempt %d: send 22 %02X %02X on target DVRS",
+          attempt, (did >> 8) & 0xFF, did & 0xFF);
+
+    result = diagSendRequest(request);
+    if (result < 0)
+    {
+      write("[TX] diagSendRequest failed, return = %d", result);
+      return -1;
+    }
+
+    wait_timeout_ms = DIAG_RESPONSE_TIMEOUT_MS;
+    elapsed_ms = (timeNowInt64() - start_time_ns) / 1000000;
+    if (wait_timeout_ms > max_duration_ms - elapsed_ms)
+    {
+      wait_timeout_ms = max_duration_ms - elapsed_ms;
+    }
+
+    if (wait_timeout_ms <= 0)
+    {
+      write("[TIME LIMIT] No response-wait time remains");
+      break;
+    }
+
+    write("[WAIT] Waiting up to %d ms for diagnostic response...", wait_timeout_ms);
+    result = testWaitForDiagResponse(request, wait_timeout_ms);
+
+    if (result == 1)
+    {
+      write("[REPORT] Writing the received diagnostic response to Vector Test Report");
+      TestReportWriteDiagResponse(request);
+      log_diagnostic_response(request, did);
+      if (is_expected_positive_response(request, did) == 1)
+      {
+        write("[CHECK] Positive response 62 %02X %02X received on attempt %d",
+              (did >> 8) & 0xFF, did & 0xFF, attempt);
+        return 1;
+      }
+
+      write("[RETRY] Response was not the expected positive response");
+    }
+    else if (result == 0)
+    {
+      write("[TIMEOUT] No response within %d ms", wait_timeout_ms);
+    }
+    else
+    {
+      write("[WAIT] testWaitForDiagResponse error, return = %d", result);
+    }
+
+    write("[RETRY] Sending the same DID again now");
+  }
+
+  write("[FAIL] No expected positive response within %d ms (%d attempt(s))",
+        max_duration_ms, attempt);
+  return 0;
+}
+
+testcase DIA_001_Init()
+{
+  long result;
+
+  Send_Value_To_COM(40100);
+  write("========================================");
+  write("=== START TEST DIA_001              ===");
+  write("=== UDS Read DID with retry         ===");
+  write("========================================");
+  testStep("Notification", "Start DIA_001 and select diagnostic target DVRS");
+
+  result = diagSetTarget("DVRS");
+  if (result == 0)
+  {
+    diagnostic_target_ready = 1;
+    write("[CONFIG] Target DVRS selected successfully");
+    write("[CONFIG] Current project binding: DVRS -> CAN1");
+    testStepPass("Init", "Diagnostic target DVRS is ready");
+  }
+  else
+  {
+    diagnostic_target_ready = 0;
+    write("[CONFIG] diagSetTarget(DVRS) failed, return = %d", result);
+    testStepFail("Init", "Cannot select diagnostic target DVRS, return=%d", result);
+  }
+
+  Send_Value_To_COM(44);
+}
+
+testcase DIA_001_1()
+{
+  int result;
+  diagRequest DVRS.* request;
+
+  Send_Value_To_COM(40101);
+  SetTestStep("Buoc 1 - DIA_001");
+  StartTestTimer();
+  write("=== STEP 1: Read DID F1EF, retry for up to 5 minutes ===");
+  testStep("Step1", "Send 22 F1 EF and retry for up to 5 minutes");
+
+  result = 0;
+  if (diagnostic_target_ready == 1)
+  {
+    result = send_read_did_with_retry(request, 0xF1EF, STANDARD_MAX_DURATION_MS);
+  }
+
+  step1_passed = (result == 1);
+  if (step1_passed == 1)
+  {
+    testStepPass("Step1", "Received positive response for DID F1EF");
+  }
+  else
+  {
+    testStepFail("Step1", "No positive response for DID F1EF within 5 minutes");
+  }
+
+  write("=== FINISH STEP 1 ===");
+  StopTestTimer();
+  Send_Value_To_COM(44);
+}
+
+testcase DIA_001_2()
+{
+  int result;
+  diagRequest DVRS.* request;
+
+  Send_Value_To_COM(40102);
+  SetTestStep("Buoc 2 - DIA_001");
+  StartTestTimer();
+  write("=== STEP 2: Read DID F1C1, retry for up to 30 minutes ===");
+  testStep("Step2", "Send 22 F1 C1; retry after each 5-second response timeout");
+
+  result = 0;
+  if (diagnostic_target_ready == 1)
+  {
+    result = send_read_did_with_retry(request, 0xF1C1, F1C1_MAX_DURATION_MS);
+  }
+
+  step2_passed = (result == 1);
+  if (step2_passed == 1)
+  {
+    testStepPass("Step2", "Received positive response for DID F1C1");
+  }
+  else
+  {
+    testStepFail("Step2", "No positive response for DID F1C1 within the retry limit");
+  }
+
+  write("=== FINISH STEP 2 ===");
+  StopTestTimer();
+  Send_Value_To_COM(44);
+}
+
+testcase DIA_001_3()
+{
+  int result;
+  diagRequest DVRS.* request;
+
+  Send_Value_To_COM(40103);
+  SetTestStep("Buoc 3 - DIA_001");
+  StartTestTimer();
+  write("=== STEP 3: Read DID F187, retry for up to 5 minutes ===");
+  testStep("Step3", "Send 22 F1 87 and retry for up to 5 minutes");
+
+  result = 0;
+  if (diagnostic_target_ready == 1)
+  {
+    result = send_read_did_with_retry(request, 0xF187, STANDARD_MAX_DURATION_MS);
+  }
+
+  step3_passed = (result == 1);
+  if (step3_passed == 1)
+  {
+    testStepPass("Step3", "Received positive response for DID F187");
+  }
+  else
+  {
+    testStepFail("Step3", "No positive response for DID F187 within 5 minutes");
+  }
+
+  write("=== FINISH STEP 3 ===");
+  StopTestTimer();
+  Send_Value_To_COM(44);
+}
+
+testcase DIA_001_4()
+{
+  int result;
+  diagRequest DVRS.* request;
+
+  Send_Value_To_COM(40104);
+  SetTestStep("Buoc 4 - DIA_001");
+  StartTestTimer();
+  write("=== STEP 4: Read DID F1B0, retry for up to 5 minutes ===");
+  testStep("Step4", "Send 22 F1 B0 and retry for up to 5 minutes");
+
+  result = 0;
+  if (diagnostic_target_ready == 1)
+  {
+    result = send_read_did_with_retry(request, 0xF1B0, STANDARD_MAX_DURATION_MS);
+  }
+
+  step4_passed = (result == 1);
+  if (step4_passed == 1)
+  {
+    testStepPass("Step4", "Received positive response for DID F1B0");
+  }
+  else
+  {
+    testStepFail("Step4", "No positive response for DID F1B0 within 5 minutes");
+  }
+
+  write("=== FINISH STEP 4 ===");
+  StopTestTimer();
+  Send_Value_To_COM(44);
+}
+
+testcase DIA_001_5()
+{
+  int result;
+  diagRequest DVRS.* request;
+
+  Send_Value_To_COM(40105);
+  SetTestStep("Buoc 5 - DIA_001");
+  StartTestTimer();
+  write("=== STEP 5: Read DID F1B1, retry for up to 5 minutes ===");
+  testStep("Step5", "Send 22 F1 B1 and retry for up to 5 minutes");
+
+  result = 0;
+  if (diagnostic_target_ready == 1)
+  {
+    result = send_read_did_with_retry(request, 0xF1B1, STANDARD_MAX_DURATION_MS);
+  }
+
+  step5_passed = (result == 1);
+  if (step5_passed == 1)
+  {
+    testStepPass("Step5", "Received positive response for DID F1B1");
+  }
+  else
+  {
+    testStepFail("Step5", "No positive response for DID F1B1 within 5 minutes");
+  }
+
+  write("=== FINISH STEP 5 ===");
+  StopTestTimer();
+  Send_Value_To_COM(44);
+}
+
+void MainTest()
+{
+  testReportFileName("TestReports\\DIA_001 - UDS Read DID Retry_report");
+
+  DIA_001_Init();
+  DIA_001_1();
+  DIA_001_2();
+  DIA_001_3();
+  DIA_001_4();
+  DIA_001_5();
+}

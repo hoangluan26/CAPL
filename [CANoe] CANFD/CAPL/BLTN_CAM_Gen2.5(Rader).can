@@ -1,0 +1,146 @@
+/*@!Encoding:949*/
+includes
+{
+  
+}
+
+variables
+{
+  message HU_BLTN_CAM_01_00ms _HU_BLTN_CAM_01_00ms;
+  
+  long PMDRanSetValue;
+  long PMDMaxRanSetValue;
+  
+  msTimer get_PMD_MaxRanSetValue;
+}
+
+on sysvar_update panel_Rader::LED_Ctrl_Set_Ran_PMDR
+{
+  if($BLTN_CAM_RanSet_PMDR == 0x2)
+    _HU_BLTN_CAM_01_00ms.BLTN_CAM_Ran_PMDR_NvalueSet = 0x1;
+  else
+    _HU_BLTN_CAM_01_00ms.BLTN_CAM_Ran_PMDR_NvalueSet = 0x2;
+    
+    output(_HU_BLTN_CAM_01_00ms);
+}
+
+on sysvar_update panel_Rader::LED_Ctrl_Set_PMD
+{
+  if($BLTN_CAM_Set_PMD == 0x2)
+    _HU_BLTN_CAM_01_00ms.BLTN_CAM_PMD_NvalueSet = 0x1;
+  else
+    _HU_BLTN_CAM_01_00ms.BLTN_CAM_PMD_NvalueSet = 0x2;
+    
+    output(_HU_BLTN_CAM_01_00ms);
+}
+
+on sysvar_update panel_Rader::LED_Ctrl_Set_PMDEV
+{
+  if($BLTN_CAM_Set_PMDEV == 0x2)
+    _HU_BLTN_CAM_01_00ms.BLTN_CAM_PMDEV_NvalueSet = 0x1;
+  else
+    _HU_BLTN_CAM_01_00ms.BLTN_CAM_PMDEV_NvalueSet = 0x2;
+    
+    output(_HU_BLTN_CAM_01_00ms);
+}
+
+on sysvar_update panel_Rader::LED_Ctrl_Set_PMDTime
+{
+  if($BLTN_CAM_Set_PMDTime == 0x2)
+    _HU_BLTN_CAM_01_00ms.BLTN_CAM_PMD_NvalueSet = 0x1;
+  else
+    _HU_BLTN_CAM_01_00ms.BLTN_CAM_PMD_NvalueSet = 0x2;
+    
+    output(_HU_BLTN_CAM_01_00ms);
+}
+
+on sysvar_update panel_Rader::TrackBar_PMD_RanSet
+{
+  PMDRanSetValue = $BLTN_CAM_RanSet_PMDR;
+  
+  if(@panel_Rader::TrackBar_PMD_RanSet != PMDRanSetValue)
+  {
+    valueSet_HU_BLTN_CAM_01_00ms();
+    
+    switch (@panel_Rader::TrackBar_PMD_RanSet) {
+      case 1 : _HU_BLTN_CAM_01_00ms.BLTN_CAM_Ran_PMDR_NvalueSet = 0x1; output(_HU_BLTN_CAM_01_00ms); break;
+      case 2 : _HU_BLTN_CAM_01_00ms.BLTN_CAM_Ran_PMDR_NvalueSet = 0x2; output(_HU_BLTN_CAM_01_00ms); break;
+      case 3 : _HU_BLTN_CAM_01_00ms.BLTN_CAM_Ran_PMDR_NvalueSet = 0x3; output(_HU_BLTN_CAM_01_00ms); break;
+      case 4 : _HU_BLTN_CAM_01_00ms.BLTN_CAM_Ran_PMDR_NvalueSet = 0x4; output(_HU_BLTN_CAM_01_00ms); break;
+      case 5 : _HU_BLTN_CAM_01_00ms.BLTN_CAM_Ran_PMDR_NvalueSet = 0x5; output(_HU_BLTN_CAM_01_00ms); break;
+      default : write("TrackBar_PMD_RanSet default"); break;
+    }
+     write("PMDRanSetValue");
+  }
+}
+
+
+void get_PMDMaxRanSetValue() 
+{
+  PMDMaxRanSetValue = $BLTN_CAM_MaxRanSet_PMDR;
+  
+  @panel_Rader::TrackBar_PMD_MaxRanSet = PMDMaxRanSetValue;
+  
+}
+
+on timer get_PMD_MaxRanSetValue 
+{
+  get_PMDMaxRanSetValue();
+}
+
+on sysvar_update panel_Rader::TrackBar_PMD_MaxRanSet
+{
+  get_PMD_MaxRanSetValue.set(10);
+  
+  if (@panel_Rader::TrackBar_PMD_MaxRanSet != $BLTN_CAM_MaxRanSet_PMDR) {
+    @panel_Rader::TrackBar_PMD_MaxRanSet = PMDMaxRanSetValue;
+  }
+    
+}
+
+void valueSet_HU_BLTN_CAM_01_00ms()
+{
+  message HU_BLTN_CAM_01_00ms _init;
+  _HU_BLTN_CAM_01_00ms = _init;
+//    
+//  _HU_BLTN_CAM_01_00ms = 
+//  
+//  _HU_BLTN_CAM_01_00ms.BLTN_CAM_AudRec_Set = $BLTN_CAM_AudRec_Set;
+//  _HU_BLTN_CAM_01_00ms.BLTN_CAM_FD_AlvCnt2Val = $BLTN_CAM_FD_AlvCnt2Val
+//  _HU_BLTN_CAM_01_00ms.BLTN_CAM_FD_Crc2Val = $BLTN_CAM_FD_Crc2Val
+//  _HU_BLTN_CAM_01_00ms.BLTN_CAM_File_DEL_CPY_NumTot = $BLTN_CAM_File_DEL_CPY_NumTot
+//  _HU_BLTN_CAM_01_00ms.BLTN_CAM_File_DEL_CPY_Op_State = $BLTN_CAM_File_DEL_CPY_Op_State
+//  _HU_BLTN_CAM_01_00ms.BLTN_CAM_File_DEL_CPYed_Num = $BLTN_CAM_File_DEL_CPYed_Num
+//  _HU_BLTN_CAM_01_00ms.BLTN_CAM_MaxRanSet_PMDR = $BLTN_CAM_MaxRanSet_PMDR
+//  _HU_BLTN_CAM_01_00ms.BLTN_CAM_RanSet_PMDR = $BLTN_CAM_RanSet_PMDR
+//  _HU_BLTN_CAM_01_00ms.BLTN_CAM_RecSet_DEV = $BLTN_CAM_RecSet_DEV
+//  _HU_BLTN_CAM_01_00ms.BLTN_CAM_RecSet_OWD = $BLTN_CAM_RecSet_OWD
+//  _HU_BLTN_CAM_01_00ms.BLTN_CAM_RecSet_OWP = $BLTN_CAM_RecSet_OWP
+//  _HU_BLTN_CAM_01_00ms.BLTN_CAM_RecSet_PEV = $BLTN_CAM_RecSet_PEV
+//  _HU_BLTN_CAM_01_00ms.BLTN_CAM_SenSet_DEV = $BLTN_CAM_SenSet_DEV
+//  _HU_BLTN_CAM_01_00ms.BLTN_CAM_SenSet_PEV = $BLTN_CAM_SenSet_PEV
+//  _HU_BLTN_CAM_01_00ms.BLTN_CAM_Set_AclBrk_Stm = $BLTN_CAM_Set_AclBrk_Stm
+//  _HU_BLTN_CAM_01_00ms.BLTN_CAM_Set_Drv_TML_Int = $BLTN_CAM_Set_Drv_TML_Int
+//  _HU_BLTN_CAM_01_00ms.BLTN_CAM_Set_EV_AftTime = $BLTN_CAM_Set_EV_AftTime
+//  _HU_BLTN_CAM_01_00ms.BLTN_CAM_Set_EV_BfrTime = $BLTN_CAM_Set_EV_BfrTime
+//  _HU_BLTN_CAM_01_00ms.BLTN_CAM_Set_EV_RecMaxTime         BLTN_CAM_Set_EV_RecMaxTime
+//  _HU_BLTN_CAM_01_00ms.BLTN_CAM_Set_EVSen_Stm             BLTN_CAM_Set_EVSen_Stm
+//  _HU_BLTN_CAM_01_00ms.BLTN_CAM_Set_FR_Ver_Pos            BLTN_CAM_Set_FR_Ver_Pos
+//  _HU_BLTN_CAM_01_00ms.BLTN_CAM_Set_GearPos_Stm           BLTN_CAM_Set_GearPos_Stm
+//  _HU_BLTN_CAM_01_00ms.BLTN_CAM_Set_Locatn_Stm            BLTN_CAM_Set_Locatn_Stm
+//  _HU_BLTN_CAM_01_00ms.BLTN_CAM_Set_PEV_AppNoti           BLTN_CAM_Set_PEV_AppNoti
+//  _HU_BLTN_CAM_01_00ms.BLTN_CAM_Set_PMD                   BLTN_CAM_Set_PMD
+//  _HU_BLTN_CAM_01_00ms.BLTN_CAM_Set_PMDEV                 BLTN_CAM_Set_PMDEV
+//  _HU_BLTN_CAM_01_00ms.BLTN_CAM_Set_PMDTime               BLTN_CAM_Set_PMDTime
+//  _HU_BLTN_CAM_01_00ms.BLTN_CAM_Set_PrkTime               BLTN_CAM_Set_PrkTime
+//  _HU_BLTN_CAM_01_00ms.BLTN_CAM_Set_RR_Ver_Pos            BLTN_CAM_Set_RR_Ver_Pos
+//  _HU_BLTN_CAM_01_00ms.BLTN_CAM_Set_Spd_Stm               BLTN_CAM_Set_Spd_Stm
+//  _HU_BLTN_CAM_01_00ms.BLTN_CAM_Set_StrAngl_Stm           BLTN_CAM_Set_StrAngl_Stm
+//  _HU_BLTN_CAM_01_00ms.BLTN_CAM_Set_Tim_Stm               BLTN_CAM_Set_Tim_Stm
+//  _HU_BLTN_CAM_01_00ms.BLTN_CAM_Set_TrnSig_Stm            BLTN_CAM_Set_TrnSig_Stm
+//  _HU_BLTN_CAM_01_00ms.BLTN_CAM_Set_WiFi_AutoOn           BLTN_CAM_Set_WiFi_AutoOn
+//  _HU_BLTN_CAM_01_00ms.BLTN_CAM_StrgPropSet               BLTN_CAM_StrgPropSet
+  
+  _HU_BLTN_CAM_01_00ms.BLTN_CAM_Ran_PMDR_NvalueSet = $BLTN_CAM_RanSet_PMDR;
+}
+

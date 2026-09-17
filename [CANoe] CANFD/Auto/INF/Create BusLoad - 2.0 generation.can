@@ -1,0 +1,447 @@
+﻿/*@!Encoding:65001*/
+/*@!Encoding:1252*/
+
+variables
+{
+  // CAN Message Declaration
+  message NM_ALBCU _1;
+  message NM_ARS _2;
+  message NM_ASAU _3;
+  message NM_ATS _4;
+  message NM_DSAU _5;
+  message NM_EMCU _6;
+  message NM_FCS _7;
+  message NM_GW_APSU _8;
+  message NM_GW_DLBCU _9;
+  message NM_GW_DPSU _10;
+  message NM_GW_RLPSU _11;
+  message NM_GW_RRPSU _12;
+  message NM_HOD _13;
+  message NM_OHCL _14;
+  message NM_PFSU _15;
+  message NM_PSB _16;
+  message NM_RCM _17;
+  message NM_RCS _18;
+  message NM_RLHV _19;
+  message NM_RRHV _20;
+  message NM_RWPC _21;
+  message NM_SCM _22;
+  message NM_SGU _23;
+  message NM_SHVU_FR _24;
+  message NM_SHVU_RR _25;
+  message NM_SLB _26;
+  message NM_SWRC _27;
+  message NM_WPC _28;
+  message NM_WPC2 _29;
+  
+  // Global Variable Declaration
+  int get_BusLoad_value;
+  int count = 0;
+  int i;
+  int current_timer_active = 29;
+  int current_timer_deactive = 29;
+  int active1, active2, active3, active4, active5, active6, active7, active8, active9, active10, 
+      active11, active12, active13, active14, active15, active16, active17,active18, active19, active20, 
+      active21, active22, active23, active24, active25, active26, active27, active28, active29;
+  // Timer Declaration
+  msTimer timer1,timer2,timer3,timer4,timer5,timer6,timer7,timer8,timer9,timer10,
+          timer11,timer12,timer13,timer14,timer15,timer16,timer17,timer18, timer19, timer20, 
+          timer21, timer22, timer23, timer24, timer25, timer26, timer27, timer28, timer29;
+  timer BusLoadCheck_timer;
+}
+
+on sysvar_update Sysvar_testcase::Switch_CreateBL
+{
+  if(@Sysvar_testcase::Switch_CreateBL == 1 && (@Sysvar_testcase::get_BL >= 60 && @Sysvar_testcase::get_BL <=65))
+  {
+    active1 = active2 = active3 = active4 = active5 = active6 = active7 = active8 = active9 = active10 = active11 = active12 = 1;
+    active13 = active14 = active15 = active16 = active17 = active18 = active19 = active20 = active21 = active22 = active23 = active24 = active25 = active26 = active27 = active28 = active29 = 0; 
+  
+    write("=== CREATE BUS LOAD ===");
+  
+    timer1.set(10);
+    timer2.set(10);
+    timer3.set(10);
+    timer4.set(10);
+    timer5.set(10);
+    timer6.set(10);
+    timer7.set(10);
+    timer8.set(10);
+    timer9.set(10);
+    timer10.set(10);
+    timer11.set(10);
+    timer12.set(10);
+  
+    BusLoadCheck_timer.set(5);
+  }
+}
+
+on timer timer1 {
+  if(active1) {
+    output(_1);
+    timer1.set(10);
+  }
+}
+
+on timer timer2 {
+  if(active2) {
+    output(_2);
+    timer2.set(10);
+  }
+}
+
+on timer timer3 {
+  if(active3) {
+    output(_3);
+    timer3.set(10);
+  }
+}
+
+on timer timer4 {
+  if(active4) {
+    output(_4);
+    timer4.set(10);
+  }
+}
+
+on timer timer5 {
+  if(active5) {
+    output(_5);
+    timer5.set(10);
+  }
+}
+
+on timer timer6 {
+  if(active6) {
+    output(_6);
+    timer6.set(10);
+  }
+}
+
+on timer timer7 {
+  if(active7) {
+    output(_7);
+    timer7.set(10);
+  }
+}
+
+on timer timer8 {
+  if(active8) {
+    output(_8);
+    timer8.set(10);
+  }
+}
+
+on timer timer9 {
+  if(active9) {
+    output(_9);
+    timer9.set(10);
+  }
+}
+
+on timer timer10 {
+  if(active10) {
+    output(_10);
+    timer10.set(10);
+  }
+}
+
+on timer timer11 {
+  if(active11) {
+    output(_11);
+    timer11.set(10);
+  }
+}
+
+on timer timer12 {
+  if(active12) {
+    output(_12);
+    timer12.set(10);
+  }
+}
+
+on timer timer13 {
+  if(active13) {
+    output(_13);
+    timer13.set(50);
+  }
+}
+
+on timer timer14 {
+  if(active14) {
+    output(_14);
+    timer14.set(50);
+  }
+}
+
+on timer timer15 {
+  if(active15) {
+    output(_15);
+    timer15.set(50);
+  }
+}
+
+on timer timer16 {
+  if(active16) {
+    output(_16);
+    timer16.set(50);
+  }
+}
+
+on timer timer17 {
+  if(active17) {
+    output(_17);
+    timer17.set(50);
+  }
+}
+
+on timer timer18 {
+  if(active18) {
+    output(_18);
+    timer18.set(50);
+  }
+}
+
+on timer timer19 {
+  if(active19) {
+    output(_19);
+    timer19.set(50);
+  }
+}
+
+on timer timer20 {
+  if(active20) {
+    output(_20);
+    timer20.set(50);
+  }
+}
+
+on timer timer21 {
+  if(active21) {
+    output(_21);
+    timer21.set(50);
+  }
+}
+
+on timer timer22 {
+  if(active22) {
+    output(_22);
+    timer22.set(50);
+  }
+}
+
+on timer timer23 {
+  if(active23) {
+    output(_23);
+    timer23.set(50);
+  }
+}
+
+on timer timer24 {
+  if(active24) {
+    output(_24);
+    timer24.set(50);
+  }
+}
+
+on timer timer25 {
+  if(active25) {
+    output(_25);
+    timer25.set(50);
+  }
+}
+
+on timer timer26 {
+  if(active26) {
+    output(_26);
+    timer26.set(50);
+  }
+}
+
+on timer timer27 {
+  if(active27) {
+    output(_27);
+    timer27.set(50);
+  }
+}
+
+on timer timer28 {
+  if(active28) {
+    output(_28);
+    timer28.set(50);
+  }
+}
+
+on timer timer29 {
+  if(active29) {
+    output(_29);
+    timer29.set(50);
+  }
+}
+
+void handler_deactive_message(){
+    switch (current_timer_deactive) {
+      case 29: if (active29 == 0) {current_timer_deactive = 28; break;}
+               else { write("Unsend Msg29"); active29 = 0; current_timer_deactive = 28; timer29.cancel(); } break;     
+      case 28: if (active28 == 0) {current_timer_deactive = 27; break;}
+               else { write("Unsend Msg28"); active28 = 0; current_timer_deactive = 27; timer28.cancel(); } break;
+      case 27: if (active27 == 0) {current_timer_deactive = 26; break;}
+               else { write("Unsend Msg27"); active27 = 0; current_timer_deactive = 26; timer27.cancel(); } break;
+      case 26: if (active26 == 0) {current_timer_deactive = 25; break;}
+               else { write("Unsend Msg26"); active26 = 0; current_timer_deactive = 25; timer26.cancel(); } break;
+      case 25: if (active25 == 0) {current_timer_deactive = 24; break;}
+               else { write("Unsend Msg25"); active25 = 0; current_timer_deactive = 24; timer25.cancel(); } break;
+      case 24: if (active24 == 0) {current_timer_deactive = 23; break;}
+               else { write("Unsend Msg24"); active24 = 0; current_timer_deactive = 23; timer24.cancel(); } break;
+      case 23: if (active23 == 0) {current_timer_deactive = 22; break;}
+               else { write("Unsend Msg23"); active23 = 0; current_timer_deactive = 22; timer23.cancel(); } break;
+      case 22: if (active22 == 0) {current_timer_deactive = 21; break;}
+               else { write("Unsend Msg22"); active22 = 0; current_timer_deactive = 21; timer22.cancel(); } break;
+      case 21: if (active21 == 0) {current_timer_deactive = 20; break;}
+               else { write("Unsend Msg21"); active21 = 0; current_timer_deactive = 20; timer21.cancel(); } break;
+      case 20: if (active20 == 0) {current_timer_deactive = 19; break;}
+               else { write("Unsend Msg20"); active20 = 0; current_timer_deactive = 19; timer20.cancel(); } break;
+      case 19: if (active19 == 0) {current_timer_deactive = 18; break;}
+               else { write("Unsend Msg19"); active19 = 0; current_timer_deactive = 18; timer19.cancel(); } break;
+      case 18: if (active18 == 0) {current_timer_deactive = 17; break;}
+               else { write("Unsend Msg18"); active18 = 0; current_timer_deactive = 17; timer18.cancel(); } break;
+      case 17: if (active17 == 0) {current_timer_deactive = 16; break;}
+               else { write("Unsend Msg17"); active17 = 0; current_timer_deactive = 16; timer17.cancel(); } break;
+      case 16: if (active16 == 0) {current_timer_deactive = 15; break;}
+               else { write("Unsend Msg16"); active16 = 0; current_timer_deactive = 15; timer16.cancel(); } break;
+      case 15: if (active15 == 0) {current_timer_deactive = 14; break;}
+               else { write("Unsend Msg15"); active15 = 0; current_timer_deactive = 14; timer15.cancel(); } break;
+      case 14: if (active14 == 0) {current_timer_deactive = 13; break;}
+               else { write("Unsend Msg14"); active14 = 0; current_timer_deactive = 13; timer14.cancel(); } break;
+      case 13: if (active13 == 0) {current_timer_deactive = 12; break;}
+               else { write("Unsend Msg13"); active13 = 0; current_timer_deactive = 12; timer13.cancel(); } break;
+      case 12: if (active12 == 0) {current_timer_deactive = 11; break;}
+               else { write("Unsend Msg12"); active12 = 0; current_timer_deactive = 11; timer12.cancel(); } break;
+      case 11: if (active11 == 0) {current_timer_deactive = 10; break;}
+               else { write("Unsend Msg11"); active11 = 0; current_timer_deactive = 10; timer11.cancel(); } break;
+      case 10: if (active10 == 0) {current_timer_deactive = 9; break;}
+               else { write("Unsend Msg10"); active10 = 0; current_timer_deactive = 9; timer10.cancel(); } break;
+      case 9:  if (active9  == 0) {current_timer_deactive = 8; break;}
+               else { write("Unsend Msg9");  active9  = 0; current_timer_deactive = 8; timer9.cancel(); } break;
+      case 8:  if (active8  == 0) {current_timer_deactive = 7; break;}
+               else { write("Unsend Msg8");  active8  = 0; current_timer_deactive = 7; timer8.cancel(); } break;
+      case 7:  if (active7  == 0) {current_timer_deactive = 6; break;}
+               else { write("Unsend Msg7");  active7  = 0; current_timer_deactive = 6; timer7.cancel(); } break;
+      case 6:  if (active6  == 0) {current_timer_deactive = 5; break;}
+               else { write("Unsend Msg6");  active6  = 0; current_timer_deactive = 5; timer6.cancel(); } break;
+      case 5:  if (active5  == 0) {current_timer_deactive = 4; break;}
+               else { write("Unsend Msg5");  active5  = 0; current_timer_deactive = 4; timer5.cancel(); } break;
+      case 4:  if (active4  == 0) {current_timer_deactive = 3; break;}
+               else { write("Unsend Msg4");  active4  = 0; current_timer_deactive = 3; timer4.cancel(); } break;
+      case 3:  if (active3  == 0) {current_timer_deactive = 2; break;}
+               else { write("Unsend Msg3");  active3  = 0; current_timer_deactive = 2; timer3.cancel(); } break;
+      case 2:  if (active2  == 0) {current_timer_deactive = 1; break;}
+               else { write("Unsend Msg2");  active2  = 0; current_timer_deactive = 1; timer2.cancel(); } break;
+      case 1:  if (active1  == 0) {current_timer_deactive = 0 ;break;}
+               else { write("Unsend Msg1");  active1  = 0;current_timer_deactive = 0; timer1.cancel(); } break;
+      default: write("All messages have been inactivated, cannot decrease further!"); current_timer_deactive = 29;
+    }  
+}
+
+void handler_active_message(){
+    switch (current_timer_active) {
+      case 29: if(active29 == 1) {current_timer_active = 28; break;}
+               else {write("Send mes29"); active29 = 1; current_timer_active = 28; timer29.set(10);} break;      
+      case 28: if(active28 == 1) {current_timer_active = 27; break;}
+               else {write("Send mes28"); active28 = 1; current_timer_active = 27; timer28.set(10);} break;
+      case 27: if(active27 == 1) {current_timer_active = 26; break;}
+               else {write("Send mes27"); active27 = 1; current_timer_active = 26; timer27.set(10);} break;
+      case 26: if(active26 == 1) {current_timer_active = 25; break;}
+               else {write("Send mes26"); active26 = 1; current_timer_active = 25; timer26.set(10);} break;
+      case 25: if(active25 == 1) {current_timer_active = 24; break;}
+               else {write("Send mes25"); active25 = 1; current_timer_active = 24; timer25.set(10);} break;
+      case 24: if(active24 == 1) {current_timer_active = 23; break;}
+               else {write("Send mes24"); active24 = 1; current_timer_active = 23; timer24.set(10);} break;
+      case 23: if(active23 == 1) {current_timer_active = 22; break;}
+               else {write("Send mes23"); active23 = 1; current_timer_active = 22; timer23.set(10);} break;
+      case 22: if(active22 == 1) {current_timer_active = 21; break;}
+               else {write("Send mes22"); active22 = 1; current_timer_active = 21; timer22.set(10);} break;
+      case 21: if(active21 == 1) {current_timer_active = 20; break;}
+               else {write("Send mes21"); active21 = 1; current_timer_active = 20; timer21.set(10);} break;
+      case 20: if(active20 == 1) {current_timer_active = 19; break;}
+               else {write("Send mes20"); active20 = 1; current_timer_active = 19; timer20.set(10);} break;
+      case 19: if(active19 == 1) {current_timer_active = 18; break;}
+               else {write("Send mes19"); active19 = 1; current_timer_active = 18; timer19.set(10);} break;
+      case 18: if(active18 == 1) {current_timer_active = 17; break;}
+               else {write("Send mes18"); active18 = 1; current_timer_active = 17; timer18.set(10);} break;
+      case 17: if(active17 == 1) {current_timer_active = 16; break;}
+               else {write("Send mes17"); active17 = 1; current_timer_active = 16; timer17.set(10);} break;
+      case 16: if(active16 == 1) {current_timer_active = 15; break;}
+               else {write("Send mes16"); active16 = 1; current_timer_active = 15; timer16.set(10);} break;
+      case 15: if(active15 == 1) {current_timer_active = 14; break;}
+               else {write("Send mes15"); active15 = 1; current_timer_active = 14; timer15.set(10);} break;
+      case 14: if(active14 == 1) {current_timer_active = 13; break;}
+               else {write("Send mes14"); active14 = 1; current_timer_active = 13; timer14.set(10);} break;
+      case 13: if(active13 == 1) {current_timer_active = 12; break;}
+               else {write("Send mes13"); active13 = 1; current_timer_active = 12; timer13.set(10);} break;
+      case 12: if(active12 == 1) {current_timer_active = 11; break;}
+               else {write("Send mes12"); active12 = 1; current_timer_active = 11; timer12.set(10);} break;
+      case 11: if(active11 == 1) {current_timer_active = 10; break;}
+               else {write("Send mes11"); active11 = 1; current_timer_active = 10; timer11.set(10);} break;
+      case 10: if(active10 == 1) {current_timer_active = 9; break;}
+               else {write("Send mes10"); active10 = 1; current_timer_active = 9; timer10.set(10);} break;
+      case 9:  if(active9  == 1) {current_timer_active = 8; break;}
+               else {write("Send mes9");  active9  = 1; current_timer_active = 8; timer9.set(10);} break;
+      case 8:  if(active8  == 1) {current_timer_active = 7; break;}
+               else {write("Send mes8");  active8  = 1; current_timer_active = 7; timer8.set(10);} break;
+      case 7:  if(active7  == 1) {current_timer_active = 6; break;}
+               else {write("Send mes7");  active7  = 1; current_timer_active = 6; timer7.set(10);} break;
+      case 6:  if(active6  == 1) {current_timer_active = 5; break;}
+               else {write("Send mes6");  active6  = 1; current_timer_active = 5; timer6.set(10);} break;
+      case 5:  if(active5  == 1) {current_timer_active = 4; break;}
+               else {write("Send mes5");  active5  = 1; current_timer_active = 4; timer5.set(10);} break;
+      case 4:  if(active4  == 1) {current_timer_active = 3; break;}
+               else {write("Send mes4");  active4  = 1; current_timer_active = 3; timer4.set(10);} break;
+      case 3:  if(active3  == 1) {current_timer_active = 2; break;}
+               else {write("Send mes3");  active3  = 1; current_timer_active = 2; timer3.set(10);} break;
+      case 2:  if(active2  == 1) {current_timer_active = 1; break;}
+               else {write("Send mes2");  active2  = 1; current_timer_active = 1; timer2.set(10);} break;
+      case 1:  if(active1  == 1) {current_timer_active = 0; break;}
+               else {write("Send mes1");  active1  = 1; current_timer_active = 0; timer1.set(10);} break;
+      default: write("All message have been actived, cannot increase further!"); current_timer_active = 29; break; 
+    }  
+}
+
+on timer BusLoadCheck_timer {
+  get_BusLoad_value = canGetBusLoad(2);
+  
+  @Sysvar_testcase::get_BL = get_BusLoad_value;
+  
+  if (get_BusLoad_value < @Sysvar_testcase::expected_BL) {
+
+    write("Low BusLoad: %d%% -> Send more messages!", get_BusLoad_value);
+    
+    handler_active_message();
+  
+  }
+  else if (get_BusLoad_value > @Sysvar_testcase::expected_BL + 1){
+    
+    write("High BusLoad: %d%% -> Unsend some messages!", get_BusLoad_value);
+    
+    if (active29 == 0 && active28 == 0 && active27 == 0 && active26 == 0 && active25 == 0 && active24 == 0 && active23 == 0 && active22 == 0 && active21 == 0 && active20 == 0 && active19 == 0 && active18 == 0 && active17 == 0 && active16 == 0 && active15 == 0 && active14 == 0 && active13 == 0)
+    {
+      current_timer_deactive = 12 - count;
+      
+      handler_deactive_message();
+      
+    }
+    else {
+      
+      count = 0; 
+    
+      handler_deactive_message();
+    }
+  }
+  else {
+    write("Current BusLoad: %d%%", get_BusLoad_value);
+  }
+  
+  BusLoadCheck_timer.set(3);  // Check after 3s
+}
+
+

@@ -1,0 +1,225 @@
+<?xml version="1.0"?>
+<Panel Type="Vector.CANalyzer.Panels.PanelSerializer, Vector.CANalyzer.Panels.Serializer, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null">
+  <Object Type="Vector.CANalyzer.Panels.Runtime.Panel, Vector.CANalyzer.Panels.Common, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="Panel" Children="Controls" ControlName="ControlPowerSupply">
+    <Object Type="Vector.CANalyzer.Panels.Design.GroupBoxControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="GroupBoxControl5" Children="Controls" ControlName="Group Box 5">
+      <Object Type="Vector.CANalyzer.Panels.Design.ButtonControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="ButtonControl3" Children="Controls" ControlName="Button 3">
+        <Property Name="Name">ButtonControl3</Property>
+        <Property Name="Size">124, 41</Property>
+        <Property Name="Location">140, 12</Property>
+        <Property Name="Text">Output OFF</Property>
+        <Property Name="SymbolConfiguration">8;16;ControlPowerSupply;;;Button_OutputOFF;1;;;-1;;;;;;0</Property>
+        <Property Name="TabIndex">30</Property>
+      </Object>
+      <Object Type="Vector.CANalyzer.Panels.Design.ButtonControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="ButtonControl4" Children="Controls" ControlName="Button 4">
+        <Property Name="Name">ButtonControl4</Property>
+        <Property Name="Size">128, 41</Property>
+        <Property Name="Location">6, 12</Property>
+        <Property Name="Text">Output ON</Property>
+        <Property Name="SymbolConfiguration">8;16;ControlPowerSupply;;;Button_OutputON;1;;;-1;;;;;;0</Property>
+        <Property Name="TabIndex">31</Property>
+      </Object>
+      <Property Name="Name">GroupBoxControl5</Property>
+      <Property Name="Size">271, 59</Property>
+      <Property Name="Location">8, 266</Property>
+      <Property Name="Text">
+      </Property>
+      <Property Name="TabIndex">32</Property>
+    </Object>
+    <Object Type="Vector.CANalyzer.Panels.Design.GroupBoxControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="GroupBoxControl4" Children="Controls" ControlName="Group Box 4">
+      <Object Type="Vector.CANalyzer.Panels.Design.RadioButtonControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="RadioButtonControl1" Children="Controls" ControlName="Radio Button 1">
+        <Property Name="Name">RadioButtonControl1</Property>
+        <Property Name="Size">88, 16</Property>
+        <Property Name="Location">15, 35</Property>
+        <Property Name="Text">TL305TP</Property>
+        <Property Name="SymbolConfiguration">8;16;ControlPowerSupply;;;RadioBtn_PwrSplyModel;1;;;-1;;;;;;0</Property>
+        <Property Name="TabIndex">22</Property>
+      </Object>
+      <Object Type="Vector.CANalyzer.Panels.Design.RadioButtonControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="RadioButtonControl2" Children="Controls" ControlName="Radio Button 2">
+        <Property Name="Name">RadioButtonControl2</Property>
+        <Property Name="Size">88, 16</Property>
+        <Property Name="Location">15, 55</Property>
+        <Property Name="Text">GPP2323</Property>
+        <Property Name="SwitchValueVTXml">&lt;Version&gt;2&lt;/Version&gt;&lt;LowerUpper&gt;Lower&lt;/LowerUpper&gt;&lt;RxValue&gt;2&lt;/RxValue&gt;</Property>
+        <Property Name="SwitchValueVT">1;Lower;2</Property>
+        <Property Name="SwitchValue">2</Property>
+        <Property Name="SymbolConfiguration">8;16;ControlPowerSupply;;;RadioBtn_PwrSplyModel;1;;;-1;;;;;;0</Property>
+        <Property Name="TabIndex">23</Property>
+      </Object>
+      <Object Type="Vector.CANalyzer.Panels.Design.RadioButtonControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="RadioButtonControl3" Children="Controls" ControlName="Radio Button 3">
+        <Property Name="Name">RadioButtonControl3</Property>
+        <Property Name="Size">88, 16</Property>
+        <Property Name="Location">15, 13</Property>
+        <Property Name="Text">OPE-305QI</Property>
+        <Property Name="SwitchValueVTXml">&lt;Version&gt;2&lt;/Version&gt;&lt;LowerUpper&gt;Lower&lt;/LowerUpper&gt;&lt;RxValue&gt;0&lt;/RxValue&gt;</Property>
+        <Property Name="SwitchValueVT">1;Lower;0</Property>
+        <Property Name="SwitchValue">0</Property>
+        <Property Name="SymbolConfiguration">8;16;ControlPowerSupply;;;RadioBtn_PwrSplyModel;1;;;-1;;;;;;0</Property>
+        <Property Name="TabIndex">24</Property>
+      </Object>
+      <Property Name="Name">GroupBoxControl4</Property>
+      <Property Name="Size">111, 77</Property>
+      <Property Name="Location">168, 1</Property>
+      <Property Name="Text">
+      </Property>
+      <Property Name="TabIndex">27</Property>
+    </Object>
+    <Object Type="Vector.CANalyzer.Panels.Design.GroupBoxControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="GroupBoxControl3" Children="Controls" ControlName="Group Box 3">
+      <Object Type="Vector.CANalyzer.Panels.Design.NumericUpDownControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="NumericUpDownControl1" Children="Controls" ControlName="Numeric Up/Down 1">
+        <Property Name="Name">NumericUpDownControl1</Property>
+        <Property Name="Size">47, 23</Property>
+        <Property Name="Location">70, 20</Property>
+        <Property Name="Font">굴림, 10pt</Property>
+        <Property Name="TextAlign">Right</Property>
+        <Property Name="SymbolConfiguration">8;16;ControlPowerSupply;;;Numeric_PortNum;1;;;-1;;;;;;0</Property>
+        <Property Name="TabIndex">0</Property>
+      </Object>
+      <Object Type="Vector.CANalyzer.Panels.Design.ButtonControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="ButtonControl5" Children="Controls" ControlName="Button 5">
+        <Property Name="Name">ButtonControl5</Property>
+        <Property Name="Size">120, 34</Property>
+        <Property Name="Location">142, 14</Property>
+        <Property Name="FlatStyle">Flat</Property>
+        <Property Name="Font">굴림, 9pt, style=Bold</Property>
+        <Property Name="BackColor">LimeGreen</Property>
+        <Property Name="Text">Connect</Property>
+        <Property Name="SymbolConfiguration">8;16;ControlPowerSupply;;;Button_Connect;1;;;-1;;;;;;0</Property>
+        <Property Name="TabIndex">0</Property>
+      </Object>
+      <Object Type="Vector.CANalyzer.Panels.Design.StaticTextControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="StaticTextControl4" Children="Controls" ControlName="Static Text 4">
+        <Property Name="Name">StaticTextControl4</Property>
+        <Property Name="Size">47, 15</Property>
+        <Property Name="Location">21, 21</Property>
+        <Property Name="Font">굴림, 11pt</Property>
+        <Property Name="Text">PORT</Property>
+      </Object>
+      <Property Name="Name">GroupBoxControl3</Property>
+      <Property Name="Size">271, 54</Property>
+      <Property Name="Location">8, 75</Property>
+      <Property Name="Text">
+      </Property>
+      <Property Name="TabIndex">19</Property>
+    </Object>
+    <Object Type="Vector.CANalyzer.Panels.Design.GroupBoxControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="GroupBoxControl2" Children="Controls" ControlName="Group Box 2">
+      <Object Type="Vector.CANalyzer.Panels.Design.NumericUpDownControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="NumericUpDownControl4" Children="Controls" ControlName="Numeric Up/Down 4">
+        <Property Name="Name">NumericUpDownControl4</Property>
+        <Property Name="Size">47, 25</Property>
+        <Property Name="Location">16, 25</Property>
+        <Property Name="DecimalPlaces">1</Property>
+        <Property Name="Maximum">5</Property>
+        <Property Name="Font">굴림, 11.25pt, style=Bold</Property>
+        <Property Name="TextAlign">Right</Property>
+        <Property Name="Increment">0.1</Property>
+        <Property Name="SymbolConfiguration">8;16;ControlPowerSupply;;;Numeric_Curr_CH2;1;;;-1;;;;;;0</Property>
+        <Property Name="TabIndex">0</Property>
+      </Object>
+      <Object Type="Vector.CANalyzer.Panels.Design.NumericUpDownControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="NumericUpDownControl5" Children="Controls" ControlName="Numeric Up/Down 5">
+        <Property Name="Name">NumericUpDownControl5</Property>
+        <Property Name="Size">56, 25</Property>
+        <Property Name="Location">98, 25</Property>
+        <Property Name="DecimalPlaces">1</Property>
+        <Property Name="Maximum">30</Property>
+        <Property Name="Font">굴림, 11.25pt, style=Bold</Property>
+        <Property Name="TextAlign">Right</Property>
+        <Property Name="Increment">0.1</Property>
+        <Property Name="SymbolConfiguration">8;16;ControlPowerSupply;;;Numeric_Volt_CH2;1;;;-1;;;;;;0</Property>
+        <Property Name="TabIndex">0</Property>
+      </Object>
+      <Object Type="Vector.CANalyzer.Panels.Design.StaticTextControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="StaticTextControl3" Children="Controls" ControlName="Static Text 3">
+        <Property Name="Name">StaticTextControl3</Property>
+        <Property Name="Size">37, 17</Property>
+        <Property Name="Location">62, 29</Property>
+        <Property Name="Font">굴림, 12.75pt, style=Bold</Property>
+        <Property Name="Text">[A]</Property>
+      </Object>
+      <Object Type="Vector.CANalyzer.Panels.Design.StaticTextControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="StaticTextControl2" Children="Controls" ControlName="Static Text 2">
+        <Property Name="Name">StaticTextControl2</Property>
+        <Property Name="Size">37, 17</Property>
+        <Property Name="Location">152, 29</Property>
+        <Property Name="Font">굴림, 12.75pt, style=Bold</Property>
+        <Property Name="Text">[V]</Property>
+      </Object>
+      <Object Type="Vector.CANalyzer.Panels.Design.ButtonControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="ButtonControl1" Children="Controls" ControlName="Button 1">
+        <Property Name="Name">ButtonControl1</Property>
+        <Property Name="Size">67, 32</Property>
+        <Property Name="Location">195, 21</Property>
+        <Property Name="Text">Set</Property>
+        <Property Name="SymbolConfiguration">8;16;ControlPowerSupply;;;Button_Set_CH2;1;;;-1;;;;;;0</Property>
+        <Property Name="TabIndex">3</Property>
+      </Object>
+      <Property Name="Name">GroupBoxControl2</Property>
+      <Property Name="Size">271, 61</Property>
+      <Property Name="Location">8, 199</Property>
+      <Property Name="Text">CH2 (Main B+)</Property>
+      <Property Name="TabIndex">16</Property>
+    </Object>
+    <Object Type="Vector.CANalyzer.Panels.Design.GroupBoxControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="GroupBoxControl1" Children="Controls" ControlName="Group Box 1">
+      <Object Type="Vector.CANalyzer.Panels.Design.NumericUpDownControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="NumericUpDownControl3" Children="Controls" ControlName="Numeric Up/Down 3">
+        <Property Name="Name">NumericUpDownControl3</Property>
+        <Property Name="Size">47, 25</Property>
+        <Property Name="Location">16, 21</Property>
+        <Property Name="DecimalPlaces">1</Property>
+        <Property Name="Maximum">5</Property>
+        <Property Name="Font">굴림, 11.25pt, style=Bold</Property>
+        <Property Name="TextAlign">Right</Property>
+        <Property Name="Increment">0.1</Property>
+        <Property Name="SymbolConfiguration">8;16;ControlPowerSupply;;;Numeric_Curr_CH1;1;;;-1;;;;;;0</Property>
+        <Property Name="TabIndex">0</Property>
+      </Object>
+      <Object Type="Vector.CANalyzer.Panels.Design.NumericUpDownControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="NumericUpDownControl2" Children="Controls" ControlName="Numeric Up/Down 2">
+        <Property Name="Name">NumericUpDownControl2</Property>
+        <Property Name="Size">56, 25</Property>
+        <Property Name="Location">98, 21</Property>
+        <Property Name="DecimalPlaces">1</Property>
+        <Property Name="Maximum">30</Property>
+        <Property Name="Font">굴림, 11.25pt, style=Bold</Property>
+        <Property Name="TextAlign">Right</Property>
+        <Property Name="Increment">0.1</Property>
+        <Property Name="SymbolConfiguration">8;16;ControlPowerSupply;;;Numeric_Volt_CH1;1;;;-1;;;;;;0</Property>
+        <Property Name="TabIndex">0</Property>
+      </Object>
+      <Object Type="Vector.CANalyzer.Panels.Design.StaticTextControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="StaticTextControl6" Children="Controls" ControlName="Static Text 6">
+        <Property Name="Name">StaticTextControl6</Property>
+        <Property Name="Size">37, 17</Property>
+        <Property Name="Location">62, 25</Property>
+        <Property Name="Font">굴림, 12.75pt, style=Bold</Property>
+        <Property Name="Text">[A]</Property>
+      </Object>
+      <Object Type="Vector.CANalyzer.Panels.Design.StaticTextControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="StaticTextControl8" Children="Controls" ControlName="Static Text 8">
+        <Property Name="Name">StaticTextControl8</Property>
+        <Property Name="Size">37, 17</Property>
+        <Property Name="Location">152, 25</Property>
+        <Property Name="Font">굴림, 12.75pt, style=Bold</Property>
+        <Property Name="Text">[V]</Property>
+      </Object>
+      <Object Type="Vector.CANalyzer.Panels.Design.ButtonControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="ButtonControl2" Children="Controls" ControlName="Button 2">
+        <Property Name="Name">ButtonControl2</Property>
+        <Property Name="Size">67, 32</Property>
+        <Property Name="Location">195, 17</Property>
+        <Property Name="Text">Set</Property>
+        <Property Name="SymbolConfiguration">8;16;ControlPowerSupply;;;Button_Set_CH1;1;;;-1;;;;;;0</Property>
+        <Property Name="TabIndex">3</Property>
+      </Object>
+      <Property Name="Name">GroupBoxControl1</Property>
+      <Property Name="Size">271, 58</Property>
+      <Property Name="Location">8, 135</Property>
+      <Property Name="Text">CH1 (Aux Batt B+)</Property>
+      <Property Name="TabIndex">16</Property>
+    </Object>
+    <Object Type="Vector.CANalyzer.Panels.Design.StaticTextControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="StaticTextControl5" Children="Controls" ControlName="Static Text 5">
+      <Property Name="Name">StaticTextControl5</Property>
+      <Property Name="Size">69, 15</Property>
+      <Property Name="Location">50, 44</Property>
+      <Property Name="Font">굴림, 11pt</Property>
+      <Property Name="Text">Controller</Property>
+    </Object>
+    <Object Type="Vector.CANalyzer.Panels.Design.StaticTextControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="StaticTextControl1" Children="Controls" ControlName="Static Text 1">
+      <Property Name="Name">StaticTextControl1</Property>
+      <Property Name="Size">98, 15</Property>
+      <Property Name="Location">32, 23</Property>
+      <Property Name="Font">굴림, 11pt</Property>
+      <Property Name="Text">Power Supply</Property>
+    </Object>
+    <Property Name="Name">Panel</Property>
+    <Property Name="Size">288, 329</Property>
+    <Property Name="BackColor">White</Property>
+  </Object>
+</Panel>

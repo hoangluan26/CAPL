@@ -1,0 +1,791 @@
+<?xml version="1.0"?>
+<Panel Type="Vector.CANalyzer.Panels.PanelSerializer, Vector.CANalyzer.Panels.Serializer, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null">
+  <Object Type="Vector.CANalyzer.Panels.Runtime.Panel, Vector.CANalyzer.Panels.Common, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="Panel" Children="Controls" ControlName="PLBM Simulation">
+    <Object Type="Vector.CANalyzer.Panels.Design.VectorTabControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="VectorTabControl1" Children="Controls" ControlName="Tab">
+      <Object Type="Vector.CANalyzer.Panels.Design.VectorTabPage, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="VectorTabPage1" Children="Controls" ControlName="Tab">
+        <Object Type="Vector.CANalyzer.Panels.Design.ComboBoxControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="ComboBoxControl8" Children="Controls" ControlName="Combo Box 8">
+          <Property Name="Name">ComboBoxControl8</Property>
+          <Property Name="Size">231, 37</Property>
+          <Property Name="Location">3, 289</Property>
+          <Property Name="DropDownWidth">249</Property>
+          <Property Name="BackColor">Window</Property>
+          <Property Name="ForeColor">WindowText</Property>
+          <Property Name="TextBackColor">White</Property>
+          <Property Name="DisplayLabel">Top</Property>
+          <Property Name="DescriptionText">BLTN_CAM_Prk_Oped_Time:</Property>
+          <Property Name="DescriptionSize">231, 17</Property>
+          <Property Name="SymbolConfiguration">8;2;FD_B2;BLTN_CAM_FD;BLTN_CAM_FD_STAT_01_200ms;BLTN_CAM_Prk_Oped_Time;1;CAN2;;-1;;;;;;0</Property>
+          <Property Name="TabIndex">219</Property>
+          <Property Name="TabStopActive">False</Property>
+          <Property Name="ReadOnlyControl">True</Property>
+        </Object>
+        <Object Type="Vector.CANalyzer.Panels.Design.ComboBoxControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="ComboBoxControl1" Children="Controls" ControlName="Combo Box 1">
+          <Property Name="Name">ComboBoxControl1</Property>
+          <Property Name="Size">266, 20</Property>
+          <Property Name="Location">247, 172</Property>
+          <Property Name="DropDownWidth">206</Property>
+          <Property Name="BackColor">Window</Property>
+          <Property Name="ForeColor">WindowText</Property>
+          <Property Name="TextBackColor">White</Property>
+          <Property Name="DisplayLabel">Left</Property>
+          <Property Name="DescriptionText">BLTN_CAM_End_Request:</Property>
+          <Property Name="DescriptionSize">154, 20</Property>
+          <Property Name="SymbolConfiguration">8;2;GN7_PLBM_LIN_DB_A_01;Slave1;BMS_INFO_03;BLTN_CAM_End_Request;1;LIN;;-1;;;;;;0</Property>
+          <Property Name="TabIndex">214</Property>
+        </Object>
+        <Object Type="Vector.CANalyzer.Panels.Design.CAPLOutputViewControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="CAPLOutputViewControl1" Children="Controls" ControlName="CAPL Output View 1">
+          <Property Name="Name">CAPLOutputViewControl1</Property>
+          <Property Name="Size">231, 84</Property>
+          <Property Name="Location">3, 51</Property>
+          <Property Name="Description">P-LBM 시뮬레이션</Property>
+          <Property Name="BoxBackgroundColor">White</Property>
+          <Property Name="OutputMode">Overwrite</Property>
+          <Property Name="TabIndex">195</Property>
+        </Object>
+        <Object Type="Vector.CANalyzer.Panels.Design.GroupBoxControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="GroupBoxControl4" Children="Controls" ControlName="Group Box 4">
+          <Object Type="Vector.CANalyzer.Panels.Design.ButtonControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="ButtonControl4" Children="Controls" ControlName="Button_LINWakeUp">
+            <Property Name="Name">ButtonControl4</Property>
+            <Property Name="Size">50, 54</Property>
+            <Property Name="Location">67, 14</Property>
+            <Property Name="Text">Wake up</Property>
+            <Property Name="SymbolConfiguration">8;16;ControlPowerSupply;;;Button_WakeUp;1;;;-1;;;;;;0</Property>
+            <Property Name="TabIndex">210</Property>
+          </Object>
+          <Object Type="Vector.CANalyzer.Panels.Design.RadioButtonControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="RadioButtonControl2" Children="Controls" ControlName="Radio Button 2">
+            <Property Name="Name">RadioButtonControl2</Property>
+            <Property Name="Size">54, 16</Property>
+            <Property Name="Location">7, 43</Property>
+            <Property Name="Text">Slave</Property>
+            <Property Name="SwitchValueVTXml">&lt;Version&gt;2&lt;/Version&gt;&lt;LowerUpper&gt;Lower&lt;/LowerUpper&gt;&lt;RxValue&gt;0&lt;/RxValue&gt;</Property>
+            <Property Name="SwitchValueVT">1;Lower;0</Property>
+            <Property Name="SwitchValue">0</Property>
+            <Property Name="SymbolConfiguration">8;16;ControlPowerSupply;;;RadioBtn_SetMasterSlave;1;;;-1;;;;;;0</Property>
+            <Property Name="TabIndex">0</Property>
+          </Object>
+          <Object Type="Vector.CANalyzer.Panels.Design.RadioButtonControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="RadioButtonControl1" Children="Controls" ControlName="Radio Button 1">
+            <Property Name="Name">RadioButtonControl1</Property>
+            <Property Name="Size">62, 16</Property>
+            <Property Name="Location">7, 23</Property>
+            <Property Name="Text">Master</Property>
+            <Property Name="SymbolConfiguration">8;16;ControlPowerSupply;;;RadioBtn_SetMasterSlave;1;;;-1;;;;;;0</Property>
+            <Property Name="TabIndex">0</Property>
+          </Object>
+          <Property Name="Name">GroupBoxControl4</Property>
+          <Property Name="Size">123, 74</Property>
+          <Property Name="Location">242, 31</Property>
+          <Property Name="Text">LIN Node</Property>
+          <Property Name="TabIndex">209</Property>
+        </Object>
+        <Object Type="Vector.CANalyzer.Panels.Design.GroupBoxControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="GroupBoxControl3" Children="Controls" ControlName="Group Box 3">
+          <Object Type="Vector.CANalyzer.Panels.Design.ButtonControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="ButtonControl3" Children="Controls" ControlName="Button 3">
+            <Property Name="Name">ButtonControl3</Property>
+            <Property Name="Size">55, 54</Property>
+            <Property Name="Location">81, 14</Property>
+            <Property Name="Text">Set</Property>
+            <Property Name="SymbolConfiguration">8;16;ControlPowerSupply;;;Button_PLBM_SetValue;1;;;-1;;;;;;0</Property>
+            <Property Name="TabIndex">210</Property>
+          </Object>
+          <Object Type="Vector.CANalyzer.Panels.Design.RadioButtonControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="RadioButtonControl4" Children="Controls" ControlName="Radio Button 4">
+            <Property Name="Name">RadioButtonControl4</Property>
+            <Property Name="Size">60, 16</Property>
+            <Property Name="Location">11, 43</Property>
+            <Property Name="Text">28.8Ah</Property>
+            <Property Name="SymbolConfiguration">8;16;ControlPowerSupply;;;RadioBtn_SelcectPLBM;1;;;-1;;;;;;0</Property>
+            <Property Name="TabIndex">0</Property>
+          </Object>
+          <Object Type="Vector.CANalyzer.Panels.Design.RadioButtonControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="RadioButtonControl3" Children="Controls" ControlName="Radio Button 3">
+            <Property Name="Name">RadioButtonControl3</Property>
+            <Property Name="Size">60, 16</Property>
+            <Property Name="Location">11, 23</Property>
+            <Property Name="Text">19.2Ah</Property>
+            <Property Name="SwitchValueVTXml">&lt;Version&gt;2&lt;/Version&gt;&lt;LowerUpper&gt;Lower&lt;/LowerUpper&gt;&lt;RxValue&gt;0&lt;/RxValue&gt;</Property>
+            <Property Name="SwitchValueVT">1;Lower;0</Property>
+            <Property Name="SwitchValue">0</Property>
+            <Property Name="SymbolConfiguration">8;16;ControlPowerSupply;;;RadioBtn_SelcectPLBM;1;;;-1;;;;;;0</Property>
+            <Property Name="TabIndex">0</Property>
+          </Object>
+          <Property Name="Name">GroupBoxControl3</Property>
+          <Property Name="Size">141, 74</Property>
+          <Property Name="Location">371, 31</Property>
+          <Property Name="Text">P-LBM Capa</Property>
+          <Property Name="TabIndex">207</Property>
+        </Object>
+        <Object Type="Vector.CANalyzer.Panels.Design.GroupBoxControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="GroupBoxControl2" Children="Controls" ControlName="Group Box 2">
+          <Object Type="Vector.CANalyzer.Panels.Design.TextBoxControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="TextBoxControl2" Children="Controls" ControlName="Input/Output Box 2">
+            <Property Name="Name">TextBoxControl2</Property>
+            <Property Name="Size">189, 21</Property>
+            <Property Name="Location">12, 77</Property>
+            <Property Name="AlarmUpperTextColor">WindowText</Property>
+            <Property Name="ValueDecimalPlaces">0</Property>
+            <Property Name="AlarmLowerBkgColor">Salmon</Property>
+            <Property Name="BoxTextAlign">Right</Property>
+            <Property Name="TextBackColor">White</Property>
+            <Property Name="ValueDisplay">Decimal</Property>
+            <Property Name="AlarmUpperBkgColor">IndianRed</Property>
+            <Property Name="AlarmLowerTextColor">WindowText</Property>
+            <Property Name="BoxFont">굴림체, 12pt</Property>
+            <Property Name="AlarmUpperFont">굴림체, 12pt</Property>
+            <Property Name="AlarmLowerFont">굴림체, 12pt</Property>
+            <Property Name="AlarmGeneralSettings">1;0;0;100</Property>
+            <Property Name="DisplayLabel">Left</Property>
+            <Property Name="TextFont">굴림체, 12pt</Property>
+            <Property Name="DescriptionText">BLTN_CAM_AuxBat</Property>
+            <Property Name="ValueType">RawValue</Property>
+            <Property Name="BoxBorderStyle">None</Property>
+            <Property Name="DescriptionSize">129, 21</Property>
+            <Property Name="SymbolConfiguration">8;2;FD_B2;BLTN_CAM_FD;BLTN_CAM_FD_STAT_01_200ms;BLTN_CAM_AuxBat_CapPer;1;CAN2;;-1;;;;;;0</Property>
+            <Property Name="TabIndex">206</Property>
+          </Object>
+          <Object Type="Vector.CANalyzer.Panels.Design.StaticTextControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="StaticTextControl7" Children="Controls" ControlName="Static Text 7">
+            <Property Name="Name">StaticTextControl7</Property>
+            <Property Name="Size">15, 16</Property>
+            <Property Name="Location">205, 81</Property>
+            <Property Name="BackColor">White</Property>
+            <Property Name="Font">굴림체, 12pt</Property>
+            <Property Name="Text">%</Property>
+          </Object>
+          <Object Type="Vector.CANalyzer.Panels.Design.TextBoxControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="TextBoxControl1" Children="Controls" ControlName="Input/Output Box 1">
+            <Property Name="Name">TextBoxControl1</Property>
+            <Property Name="Size">189, 21</Property>
+            <Property Name="Location">12, 109</Property>
+            <Property Name="AlarmUpperTextColor">WindowText</Property>
+            <Property Name="ValueDecimalPlaces">0</Property>
+            <Property Name="AlarmLowerBkgColor">Salmon</Property>
+            <Property Name="BoxTextAlign">Right</Property>
+            <Property Name="TextBackColor">White</Property>
+            <Property Name="ValueDisplay">Symbolic</Property>
+            <Property Name="AlarmUpperBkgColor">IndianRed</Property>
+            <Property Name="AlarmLowerTextColor">WindowText</Property>
+            <Property Name="BoxFont">굴림체, 12pt</Property>
+            <Property Name="AlarmUpperFont">굴림체, 12pt</Property>
+            <Property Name="AlarmLowerFont">굴림체, 12pt</Property>
+            <Property Name="AlarmGeneralSettings">1;0;0;100</Property>
+            <Property Name="DisplayLabel">Left</Property>
+            <Property Name="TextFont">굴림체, 12pt</Property>
+            <Property Name="DescriptionText">Prk_Oprable_Time</Property>
+            <Property Name="ValueType">RawValue</Property>
+            <Property Name="BoxBorderStyle">None</Property>
+            <Property Name="DescriptionSize">138, 21</Property>
+            <Property Name="SymbolConfiguration">8;2;FD_B2;BLTN_CAM_FD;BLTN_CAM_FD_STAT_01_200ms;BLTN_CAM_Prk_Oprable_Time;1;CAN2;;-1;;;;;;0</Property>
+            <Property Name="TabIndex">197</Property>
+          </Object>
+          <Object Type="Vector.CANalyzer.Panels.Design.NumericUpDownControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="NumericUpDownControl2" Children="Controls" ControlName="Numeric Up/Down 2">
+            <Property Name="Name">NumericUpDownControl2</Property>
+            <Property Name="Size">39, 21</Property>
+            <Property Name="Location">162, 46</Property>
+            <Property Name="Maximum">255</Property>
+            <Property Name="SymbolConfiguration">8;2;GN7_PLBM_LIN_DB_A_01;Slave1;BMS_INFO_02;BAT_SOC_for_BLTN_CAM;1;LIN;;-1;;;;;;0</Property>
+            <Property Name="TabIndex">170</Property>
+          </Object>
+          <Object Type="Vector.CANalyzer.Panels.Design.StaticTextControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="StaticTextControl1" Children="Controls" ControlName="Static Text 1">
+            <Property Name="Name">StaticTextControl1</Property>
+            <Property Name="Size">87, 16</Property>
+            <Property Name="Location">12, 17</Property>
+            <Property Name="BackColor">White</Property>
+            <Property Name="Font">굴림체, 12pt</Property>
+            <Property Name="Text">ICUBS2 SoC</Property>
+          </Object>
+          <Object Type="Vector.CANalyzer.Panels.Design.StaticTextControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="StaticTextControl4" Children="Controls" ControlName="Static Text 4">
+            <Property Name="Name">StaticTextControl4</Property>
+            <Property Name="Size">23, 16</Property>
+            <Property Name="Location">205, 110</Property>
+            <Property Name="BackColor">White</Property>
+            <Property Name="Font">굴림체, 12pt</Property>
+            <Property Name="Text">Hr</Property>
+          </Object>
+          <Object Type="Vector.CANalyzer.Panels.Design.StaticTextControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="StaticTextControl2" Children="Controls" ControlName="Static Text 2">
+            <Property Name="Name">StaticTextControl2</Property>
+            <Property Name="Size">15, 16</Property>
+            <Property Name="Location">205, 17</Property>
+            <Property Name="BackColor">White</Property>
+            <Property Name="Font">굴림체, 12pt</Property>
+            <Property Name="Text">%</Property>
+          </Object>
+          <Object Type="Vector.CANalyzer.Panels.Design.StaticTextControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="StaticTextControl3" Children="Controls" ControlName="Static Text 3">
+            <Property Name="Name">StaticTextControl3</Property>
+            <Property Name="Size">15, 16</Property>
+            <Property Name="Location">205, 52</Property>
+            <Property Name="BackColor">White</Property>
+            <Property Name="Font">굴림체, 12pt</Property>
+            <Property Name="Text">%</Property>
+          </Object>
+          <Object Type="Vector.CANalyzer.Panels.Design.NumericUpDownControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="NumericUpDownControl1" Children="Controls" ControlName="Numeric Up/Down 1">
+            <Property Name="Name">NumericUpDownControl1</Property>
+            <Property Name="Size">39, 21</Property>
+            <Property Name="Location">162, 14</Property>
+            <Property Name="Maximum">255</Property>
+            <Property Name="SymbolConfiguration">8;2;FD_B2;CGW_CCU;PDC_FD_11_200ms;ICU_BS2SoC;1;CAN2;;-1;;;;;;0</Property>
+            <Property Name="TabIndex">165</Property>
+          </Object>
+          <Object Type="Vector.CANalyzer.Panels.Design.StaticTextControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="StaticTextControl13" Children="Controls" ControlName="Static Text 13">
+            <Property Name="Name">StaticTextControl13</Property>
+            <Property Name="Size">142, 16</Property>
+            <Property Name="Location">12, 46</Property>
+            <Property Name="BackColor">White</Property>
+            <Property Name="Font">굴림, 12pt</Property>
+            <Property Name="Text">(LIN) Aux Bat SOC</Property>
+          </Object>
+          <Property Name="Name">GroupBoxControl2</Property>
+          <Property Name="Size">231, 142</Property>
+          <Property Name="Location">3, 141</Property>
+          <Property Name="Text">
+          </Property>
+          <Property Name="TabIndex">206</Property>
+        </Object>
+        <Object Type="Vector.CANalyzer.Panels.Design.GroupBoxControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="GroupBoxControl1" Children="Controls" ControlName="Group Box 1">
+          <Object Type="Vector.CANalyzer.Panels.Design.StaticTextControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="StaticTextControl5" Children="Controls" ControlName="Static Text 5">
+            <Property Name="Name">StaticTextControl5</Property>
+            <Property Name="Size">30, 12</Property>
+            <Property Name="Location">28, 19</Property>
+            <Property Name="Text">PDC</Property>
+          </Object>
+          <Object Type="Vector.CANalyzer.Panels.Design.ComboBoxControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="ComboBoxControl34" Children="Controls" ControlName="Combo Box 34">
+            <Property Name="Name">ComboBoxControl34</Property>
+            <Property Name="Size">173, 37</Property>
+            <Property Name="Location">88, 9</Property>
+            <Property Name="DropDownWidth">206</Property>
+            <Property Name="BackColor">Window</Property>
+            <Property Name="ForeColor">WindowText</Property>
+            <Property Name="TextBackColor">White</Property>
+            <Property Name="DisplayLabel">Top</Property>
+            <Property Name="DescriptionText">SMK_TrmnlCtrlGrpStaBDC:</Property>
+            <Property Name="DescriptionSize">173, 17</Property>
+            <Property Name="SymbolConfiguration">8;2;FD_B2;CGW_CCU;BDC_FD_SMK_03_200ms;SMK_TrmnlCtrlGrpStaBDC;1;CAN2;;-1;;;;;;0</Property>
+            <Property Name="TabIndex">204</Property>
+          </Object>
+          <Object Type="Vector.CANalyzer.Panels.Design.SwitchControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="SwitchControl1" ControlName="Switch/Indicator 1">
+            <Property Name="Name">SwitchControl1</Property>
+            <Property Name="Size">35, 46</Property>
+            <Property Name="Location">23, 37</Property>
+            <Property Name="StateCnt">2</Property>
+            <Property Name="Activation">Left</Property>
+            <Property Name="SwitchValues">1;2;0;1</Property>
+            <Property Name="SwitchValuesRx">1;2;0;1</Property>
+            <Property Name="SwitchValuesVT">1;2;0/Lower/0;1/Lower/1</Property>
+            <Property Name="SwitchValuesVTXml">&lt;Version&gt;2&lt;/Version&gt;&lt;Count&gt;2&lt;/Count&gt;&lt;RxValue&gt;0&lt;/RxValue&gt;&lt;LowerUpper&gt;Lower&lt;/LowerUpper&gt;&lt;TxValue&gt;0&lt;/TxValue&gt;&lt;RxValue&gt;1&lt;/RxValue&gt;&lt;LowerUpper&gt;Lower&lt;/LowerUpper&gt;&lt;TxValue&gt;1&lt;/TxValue&gt;</Property>
+            <Property Name="SymbolConfiguration">8;16;panel;;;Switch_SubBattCharge;1;;;-1;;;;;;0</Property>
+            <Property Name="TabIndex">32</Property>
+          </Object>
+          <Object Type="Vector.CANalyzer.Panels.Design.ComboBoxControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="ComboBoxControl3" Children="Controls" ControlName="Combo Box 3">
+            <Property Name="Name">ComboBoxControl3</Property>
+            <Property Name="Size">173, 37</Property>
+            <Property Name="Location">87, 48</Property>
+            <Property Name="DropDownWidth">206</Property>
+            <Property Name="BackColor">Window</Property>
+            <Property Name="ForeColor">WindowText</Property>
+            <Property Name="TextBackColor">White</Property>
+            <Property Name="DisplayLabel">Top</Property>
+            <Property Name="DescriptionText">SMK_TrmnlCtrlGrpStaBDCEV:</Property>
+            <Property Name="DescriptionSize">173, 17</Property>
+            <Property Name="SymbolConfiguration">8;2;FD_B2;CGW_CCU;BDC_FD_SMK_03_200ms;SMK_TrmnlCtrlGrpStaBDCEV;1;CAN2;;-1;;;;;;0</Property>
+            <Property Name="TabIndex">31</Property>
+          </Object>
+          <Property Name="Name">GroupBoxControl1</Property>
+          <Property Name="Size">266, 90</Property>
+          <Property Name="Location">247, 200</Property>
+          <Property Name="Text">Charge Sub Batt</Property>
+          <Property Name="TabIndex">205</Property>
+        </Object>
+        <Object Type="Vector.CANalyzer.Panels.Design.CAPLOutputViewControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="CAPLOutputViewControl2" Children="Controls" ControlName="CAPL Output View 2">
+          <Property Name="Name">CAPLOutputViewControl2</Property>
+          <Property Name="Size">231, 50</Property>
+          <Property Name="Location">3, 28</Property>
+          <Property Name="Description">P-LBM 시뮬레이션</Property>
+          <Property Name="BoxBackgroundColor">White</Property>
+          <Property Name="OutputMode">Overwrite</Property>
+          <Property Name="TabIndex">195</Property>
+        </Object>
+        <Object Type="Vector.CANalyzer.Panels.Design.ComboBoxControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="ComboBoxControl33" Children="Controls" ControlName="Combo Box 33">
+          <Property Name="Name">ComboBoxControl33</Property>
+          <Property Name="Size">266, 20</Property>
+          <Property Name="Location">247, 110</Property>
+          <Property Name="DropDownWidth">102</Property>
+          <Property Name="BackColor">Window</Property>
+          <Property Name="ForeColor">WindowText</Property>
+          <Property Name="TextBackColor">White</Property>
+          <Property Name="DisplayLabel">Left</Property>
+          <Property Name="DescriptionText">BAT_Charge_Control:</Property>
+          <Property Name="DescriptionSize">128, 20</Property>
+          <Property Name="SymbolConfiguration">8;2;GN7_PLBM_LIN_DB_A_01;Master1;BMS_OPERATION_CONTROL;BAT_Charge_Control;1;LIN;;-1;;;;;;0</Property>
+          <Property Name="TabIndex">0</Property>
+          <Property Name="TabStopActive">False</Property>
+          <Property Name="ReadOnlyControl">True</Property>
+        </Object>
+        <Object Type="Vector.CANalyzer.Panels.Design.ComboBoxControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="ComboBoxControl4" Children="Controls" ControlName="Combo Box 4">
+          <Property Name="Name">ComboBoxControl4</Property>
+          <Property Name="Size">266, 20</Property>
+          <Property Name="Location">247, 141</Property>
+          <Property Name="DropDownWidth">102</Property>
+          <Property Name="BackColor">Window</Property>
+          <Property Name="ForeColor">WindowText</Property>
+          <Property Name="TextBackColor">White</Property>
+          <Property Name="DisplayLabel">Left</Property>
+          <Property Name="DescriptionText">BAT_Status:</Property>
+          <Property Name="DescriptionSize">74, 20</Property>
+          <Property Name="SymbolConfiguration">8;2;SB_BMS_V02_WO_DIAG;Slave1;BMS_INFO_03;BAT_Status;1;LIN;;-1;;;;;;0</Property>
+          <Property Name="TabIndex">0</Property>
+        </Object>
+        <Object Type="Vector.CANalyzer.Panels.Design.StaticTextControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="StaticTextControl6" Children="Controls" ControlName="Static Text 6">
+          <Property Name="Name">StaticTextControl6</Property>
+          <Property Name="Size">452, 24</Property>
+          <Property Name="Location">5, 6</Property>
+          <Property Name="Text">Connect the power supply to the ControlPowerSupply panel before use.</Property>
+        </Object>
+        <Property Name="Name">VectorTabPage1</Property>
+        <Property Name="Size">516, 346</Property>
+        <Property Name="Location">4, 22</Property>
+        <Property Name="Text">PLBM</Property>
+      </Object>
+      <Object Type="Vector.CANalyzer.Panels.Design.VectorTabPage, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="VectorTabPage2" Children="Controls" ControlName="Tab">
+        <Object Type="Vector.CANalyzer.Panels.Design.NumericUpDownControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="NumericUpDownControl4" Children="Controls" ControlName="Numeric Up/Down 4">
+          <Property Name="Name">NumericUpDownControl4</Property>
+          <Property Name="Size">39, 21</Property>
+          <Property Name="Location">211, 320</Property>
+          <Property Name="Maximum">255</Property>
+          <Property Name="Increment">0.1</Property>
+          <Property Name="SymbolConfiguration">8;2;GN7_PLBM_LIN_DB_A_01;Slave1;BMS_INFO_02;BAT_Volt;1;LIN;;-1;;;;;;0</Property>
+          <Property Name="TabIndex">166</Property>
+        </Object>
+        <Object Type="Vector.CANalyzer.Panels.Design.NumericUpDownControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="NumericUpDownControl8" Children="Controls" ControlName="Numeric Up/Down 8">
+          <Property Name="Name">NumericUpDownControl8</Property>
+          <Property Name="Size">39, 21</Property>
+          <Property Name="Location">212, 17</Property>
+          <Property Name="Maximum">255</Property>
+          <Property Name="Increment">0.1</Property>
+          <Property Name="SymbolConfiguration">8;2;GN7_PLBM_LIN_DB_A_01;Slave1;BMS_INFO_01;B_VOLTAGE;1;LIN;;-1;;;;;;0</Property>
+          <Property Name="TabIndex">166</Property>
+        </Object>
+        <Object Type="Vector.CANalyzer.Panels.Design.NumericUpDownControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="NumericUpDownControl7" Children="Controls" ControlName="Numeric Up/Down 7">
+          <Property Name="Name">NumericUpDownControl7</Property>
+          <Property Name="Size">39, 21</Property>
+          <Property Name="Location">211, 42</Property>
+          <Property Name="Maximum">255</Property>
+          <Property Name="Increment">0.1</Property>
+          <Property Name="SymbolConfiguration">8;2;GN7_PLBM_LIN_DB_A_01;Slave1;BMS_INFO_01;BAT_Capa_for_BLTN_CAM;1;LIN;;-1;;;;;;0</Property>
+          <Property Name="TabIndex">166</Property>
+        </Object>
+        <Object Type="Vector.CANalyzer.Panels.Design.NumericUpDownControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="NumericUpDownControl6" Children="Controls" ControlName="Numeric Up/Down 6">
+          <Property Name="Name">NumericUpDownControl6</Property>
+          <Property Name="Size">39, 21</Property>
+          <Property Name="Location">211, 67</Property>
+          <Property Name="Maximum">255</Property>
+          <Property Name="Increment">0.1</Property>
+          <Property Name="SymbolConfiguration">8;2;GN7_PLBM_LIN_DB_A_01;Slave1;BMS_INFO_01;BAT_Capa_Total;1;LIN;;-1;;;;;;0</Property>
+          <Property Name="TabIndex">166</Property>
+        </Object>
+        <Object Type="Vector.CANalyzer.Panels.Design.NumericUpDownControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="NumericUpDownControl11" Children="Controls" ControlName="Numeric Up/Down 11">
+          <Property Name="Name">NumericUpDownControl11</Property>
+          <Property Name="Size">39, 21</Property>
+          <Property Name="Location">474, 153</Property>
+          <Property Name="Maximum">255</Property>
+          <Property Name="Increment">0.1</Property>
+          <Property Name="SymbolConfiguration">8;2;GN7_PLBM_LIN_DB_A_01;Slave1;BMS_INFO_03;BLTM_CAM_Current;1;LIN;;-1;;;;;;0</Property>
+          <Property Name="TabIndex">166</Property>
+        </Object>
+        <Object Type="Vector.CANalyzer.Panels.Design.NumericUpDownControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="NumericUpDownControl10" Children="Controls" ControlName="Numeric Up/Down 10">
+          <Property Name="Name">NumericUpDownControl10</Property>
+          <Property Name="Size">39, 21</Property>
+          <Property Name="Location">211, 198</Property>
+          <Property Name="Maximum">255</Property>
+          <Property Name="Increment">0.1</Property>
+          <Property Name="SymbolConfiguration">8;2;GN7_PLBM_LIN_DB_A_01;Slave1;BMS_INFO_01;IGN_VOLTAGE;1;LIN;;-1;;;;;;0</Property>
+          <Property Name="TabIndex">166</Property>
+        </Object>
+        <Object Type="Vector.CANalyzer.Panels.Design.NumericUpDownControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="NumericUpDownControl9" Children="Controls" ControlName="Numeric Up/Down 9">
+          <Property Name="Name">NumericUpDownControl9</Property>
+          <Property Name="Size">39, 21</Property>
+          <Property Name="Location">211, 242</Property>
+          <Property Name="Maximum">255</Property>
+          <Property Name="SymbolConfiguration">8;2;GN7_PLBM_LIN_DB_A_01;Slave1;BMS_INFO_02;BAT_Current;1;LIN;;-1;;;;;;0</Property>
+          <Property Name="TabIndex">166</Property>
+        </Object>
+        <Object Type="Vector.CANalyzer.Panels.Design.NumericUpDownControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="NumericUpDownControl5" Children="Controls" ControlName="Numeric Up/Down 5">
+          <Property Name="Name">NumericUpDownControl5</Property>
+          <Property Name="Size">39, 21</Property>
+          <Property Name="Location">211, 270</Property>
+          <Property Name="Maximum">255</Property>
+          <Property Name="SymbolConfiguration">8;2;GN7_PLBM_LIN_DB_A_01;Slave1;BMS_INFO_02;BAT_SOC_for_BLTN_CAM;1;LIN;;-1;;;;;;0</Property>
+          <Property Name="TabIndex">166</Property>
+        </Object>
+        <Object Type="Vector.CANalyzer.Panels.Design.NumericUpDownControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="NumericUpDownControl3" Children="Controls" ControlName="Numeric Up/Down 3">
+          <Property Name="Name">NumericUpDownControl3</Property>
+          <Property Name="Size">39, 21</Property>
+          <Property Name="Location">211, 296</Property>
+          <Property Name="Maximum">255</Property>
+          <Property Name="Increment">0.1</Property>
+          <Property Name="SymbolConfiguration">8;2;GN7_PLBM_LIN_DB_A_01;Slave1;BMS_INFO_02;BAT_Temp;1;LIN;;-1;;;;;;0</Property>
+          <Property Name="TabIndex">166</Property>
+        </Object>
+        <Object Type="Vector.CANalyzer.Panels.Design.StaticTextControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="StaticTextControl14" Children="Controls" ControlName="Static Text 14">
+          <Property Name="Name">StaticTextControl14</Property>
+          <Property Name="Size">84, 12</Property>
+          <Property Name="Location">167, 225</Property>
+          <Property Name="Text">BMS_INFO_02</Property>
+        </Object>
+        <Object Type="Vector.CANalyzer.Panels.Design.StaticTextControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="StaticTextControl15" Children="Controls" ControlName="Static Text 15">
+          <Property Name="Name">StaticTextControl15</Property>
+          <Property Name="Size">84, 12</Property>
+          <Property Name="Location">429, 6</Property>
+          <Property Name="Text">BMS_INFO_03</Property>
+        </Object>
+        <Object Type="Vector.CANalyzer.Panels.Design.StaticTextControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="StaticTextControl11" Children="Controls" ControlName="Static Text 11">
+          <Property Name="Name">StaticTextControl11</Property>
+          <Property Name="Size">84, 12</Property>
+          <Property Name="Location">167, 3</Property>
+          <Property Name="Text">BMS_INFO_01</Property>
+        </Object>
+        <Object Type="Vector.CANalyzer.Panels.Design.ComboBoxControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="ComboBoxControl31" Children="Controls" ControlName="Combo Box 31">
+          <Property Name="Name">ComboBoxControl31</Property>
+          <Property Name="Size">251, 20</Property>
+          <Property Name="Location">262, 203</Property>
+          <Property Name="DropDownWidth">206</Property>
+          <Property Name="BackColor">Window</Property>
+          <Property Name="ForeColor">WindowText</Property>
+          <Property Name="TextBackColor">White</Property>
+          <Property Name="DisplayLabel">Left</Property>
+          <Property Name="DescriptionText">BMS_INFO_03_Reserved1:</Property>
+          <Property Name="DescriptionSize">157, 20</Property>
+          <Property Name="SymbolConfiguration">8;2;GN7_PLBM_LIN_DB_A_01;Slave1;BMS_INFO_03;BMS_INFO_03_Reserved1;1;LIN;;-1;;;;;;0</Property>
+          <Property Name="TabIndex">32</Property>
+        </Object>
+        <Object Type="Vector.CANalyzer.Panels.Design.ComboBoxControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="ComboBoxControl29" Children="Controls" ControlName="Combo Box 29">
+          <Property Name="Name">ComboBoxControl29</Property>
+          <Property Name="Size">206, 20</Property>
+          <Property Name="Location">262, 153</Property>
+          <Property Name="DropDownWidth">206</Property>
+          <Property Name="BackColor">Window</Property>
+          <Property Name="ForeColor">WindowText</Property>
+          <Property Name="TextBackColor">White</Property>
+          <Property Name="DisplayLabel">Left</Property>
+          <Property Name="DescriptionText">BLTM_CAM_Current:</Property>
+          <Property Name="DescriptionSize">122, 20</Property>
+          <Property Name="SymbolConfiguration">8;2;GN7_PLBM_LIN_DB_A_01;Slave1;BMS_INFO_03;BLTM_CAM_Current;1;LIN;;-1;;;;;;0</Property>
+          <Property Name="TabIndex">32</Property>
+        </Object>
+        <Object Type="Vector.CANalyzer.Panels.Design.ComboBoxControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="ComboBoxControl25" Children="Controls" ControlName="Combo Box 25">
+          <Property Name="Name">ComboBoxControl25</Property>
+          <Property Name="Size">244, 20</Property>
+          <Property Name="Location">256, 297</Property>
+          <Property Name="DropDownWidth">206</Property>
+          <Property Name="BackColor">Window</Property>
+          <Property Name="ForeColor">WindowText</Property>
+          <Property Name="TextBackColor">White</Property>
+          <Property Name="DisplayLabel">Left</Property>
+          <Property Name="DescriptionText">BMS_INFO_02_Reserved6:</Property>
+          <Property Name="DescriptionSize">157, 20</Property>
+          <Property Name="SymbolConfiguration">8;2;GN7_PLBM_LIN_DB_A_01;Slave1;BMS_INFO_02;BMS_INFO_02_Reserved6;1;LIN;;-1;;;;;;0</Property>
+          <Property Name="TabIndex">32</Property>
+        </Object>
+        <Object Type="Vector.CANalyzer.Panels.Design.ComboBoxControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="ComboBoxControl13" Children="Controls" ControlName="Combo Box 13">
+          <Property Name="Name">ComboBoxControl13</Property>
+          <Property Name="Size">244, 20</Property>
+          <Property Name="Location">6, 120</Property>
+          <Property Name="DropDownWidth">206</Property>
+          <Property Name="BackColor">Window</Property>
+          <Property Name="ForeColor">WindowText</Property>
+          <Property Name="TextBackColor">White</Property>
+          <Property Name="DisplayLabel">Left</Property>
+          <Property Name="DescriptionText">BAT_SOH:</Property>
+          <Property Name="DescriptionSize">65, 20</Property>
+          <Property Name="SymbolConfiguration">8;2;GN7_PLBM_LIN_DB_A_01;Slave1;BMS_INFO_01;BAT_SOH;1;LIN;;-1;;;;;;0</Property>
+          <Property Name="TabIndex">32</Property>
+        </Object>
+        <Object Type="Vector.CANalyzer.Panels.Design.ComboBoxControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="ComboBoxControl16" Children="Controls" ControlName="Combo Box 16">
+          <Property Name="Name">ComboBoxControl16</Property>
+          <Property Name="Size">244, 20</Property>
+          <Property Name="Location">6, 172</Property>
+          <Property Name="DropDownWidth">206</Property>
+          <Property Name="BackColor">Window</Property>
+          <Property Name="ForeColor">WindowText</Property>
+          <Property Name="TextBackColor">White</Property>
+          <Property Name="DisplayLabel">Left</Property>
+          <Property Name="DescriptionText">BMS_INFO_01_Reserved7:</Property>
+          <Property Name="DescriptionSize">157, 20</Property>
+          <Property Name="SymbolConfiguration">8;2;GN7_PLBM_LIN_DB_A_01;Slave1;BMS_INFO_01;BMS_INFO_01_Reserved7;1;LIN;;-1;;;;;;0</Property>
+          <Property Name="TabIndex">32</Property>
+        </Object>
+        <Object Type="Vector.CANalyzer.Panels.Design.ComboBoxControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="ComboBoxControl28" Children="Controls" ControlName="Combo Box 28">
+          <Property Name="Name">ComboBoxControl28</Property>
+          <Property Name="Size">251, 20</Property>
+          <Property Name="Location">262, 101</Property>
+          <Property Name="DropDownWidth">206</Property>
+          <Property Name="BackColor">Window</Property>
+          <Property Name="ForeColor">WindowText</Property>
+          <Property Name="TextBackColor">White</Property>
+          <Property Name="DisplayLabel">Left</Property>
+          <Property Name="DescriptionText">BAT_Status:</Property>
+          <Property Name="DescriptionSize">74, 20</Property>
+          <Property Name="SymbolConfiguration">8;2;GN7_PLBM_LIN_DB_A_01;Slave1;BMS_INFO_03;BAT_Status;1;LIN;;-1;;;;;;0</Property>
+          <Property Name="TabIndex">32</Property>
+        </Object>
+        <Object Type="Vector.CANalyzer.Panels.Design.ComboBoxControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="ComboBoxControl23" Children="Controls" ControlName="Combo Box 23">
+          <Property Name="Name">ComboBoxControl23</Property>
+          <Property Name="Size">200, 20</Property>
+          <Property Name="Location">6, 295</Property>
+          <Property Name="DropDownWidth">206</Property>
+          <Property Name="BackColor">Window</Property>
+          <Property Name="ForeColor">WindowText</Property>
+          <Property Name="ShowValues">Decimal</Property>
+          <Property Name="TextBackColor">White</Property>
+          <Property Name="DisplayLabel">Left</Property>
+          <Property Name="DescriptionText">BAT_Temp:</Property>
+          <Property Name="DescriptionSize">71, 20</Property>
+          <Property Name="SymbolConfiguration">8;2;GN7_PLBM_LIN_DB_A_01;Slave1;BMS_INFO_02;BAT_Temp;1;LIN;;-1;;;;;;0</Property>
+          <Property Name="TabIndex">32</Property>
+        </Object>
+        <Object Type="Vector.CANalyzer.Panels.Design.ComboBoxControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="ComboBoxControl11" Children="Controls" ControlName="Combo Box 11">
+          <Property Name="Name">ComboBoxControl11</Property>
+          <Property Name="Size">200, 20</Property>
+          <Property Name="Location">6, 68</Property>
+          <Property Name="DropDownWidth">206</Property>
+          <Property Name="BackColor">Window</Property>
+          <Property Name="ForeColor">WindowText</Property>
+          <Property Name="TextBackColor">White</Property>
+          <Property Name="DisplayLabel">Left</Property>
+          <Property Name="DescriptionText">BAT_Capa_Total:</Property>
+          <Property Name="DescriptionSize">103, 20</Property>
+          <Property Name="SymbolConfiguration">8;2;GN7_PLBM_LIN_DB_A_01;Slave1;BMS_INFO_01;BAT_Capa_Total;1;LIN;;-1;;;;;;0</Property>
+          <Property Name="TabIndex">32</Property>
+        </Object>
+        <Object Type="Vector.CANalyzer.Panels.Design.ComboBoxControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="ComboBoxControl27" Children="Controls" ControlName="Combo Box 27">
+          <Property Name="Name">ComboBoxControl27</Property>
+          <Property Name="Size">251, 20</Property>
+          <Property Name="Location">262, 23</Property>
+          <Property Name="DropDownWidth">206</Property>
+          <Property Name="BackColor">Window</Property>
+          <Property Name="ForeColor">WindowText</Property>
+          <Property Name="TextBackColor">White</Property>
+          <Property Name="DisplayLabel">Left</Property>
+          <Property Name="DescriptionText">BAT_Current_Fault_Info:</Property>
+          <Property Name="DescriptionSize">143, 20</Property>
+          <Property Name="SymbolConfiguration">8;2;GN7_PLBM_LIN_DB_A_01;Slave1;BMS_INFO_03;BAT_Current_Fault_Info;1;LIN;;-1;;;;;;0</Property>
+          <Property Name="TabIndex">32</Property>
+        </Object>
+        <Object Type="Vector.CANalyzer.Panels.Design.ComboBoxControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="ComboBoxControl15" Children="Controls" ControlName="Combo Box 15">
+          <Property Name="Name">ComboBoxControl15</Property>
+          <Property Name="Size">200, 20</Property>
+          <Property Name="Location">6, 198</Property>
+          <Property Name="DropDownWidth">206</Property>
+          <Property Name="BackColor">Window</Property>
+          <Property Name="ForeColor">WindowText</Property>
+          <Property Name="TextBackColor">White</Property>
+          <Property Name="DisplayLabel">Left</Property>
+          <Property Name="DescriptionText">IGN_VOLTAGE:</Property>
+          <Property Name="DescriptionSize">92, 20</Property>
+          <Property Name="SymbolConfiguration">8;2;GN7_PLBM_LIN_DB_A_01;Slave1;BMS_INFO_01;IGN_VOLTAGE;1;LIN;;-1;;;;;;0</Property>
+          <Property Name="TabIndex">32</Property>
+        </Object>
+        <Object Type="Vector.CANalyzer.Panels.Design.ComboBoxControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="ComboBoxControl26" Children="Controls" ControlName="Combo Box 26">
+          <Property Name="Name">ComboBoxControl26</Property>
+          <Property Name="Size">251, 20</Property>
+          <Property Name="Location">262, 127</Property>
+          <Property Name="DropDownWidth">206</Property>
+          <Property Name="BackColor">Window</Property>
+          <Property Name="ForeColor">WindowText</Property>
+          <Property Name="TextBackColor">White</Property>
+          <Property Name="DisplayLabel">Left</Property>
+          <Property Name="DescriptionText">BAT_Volt_Fault_Info:</Property>
+          <Property Name="DescriptionSize">123, 20</Property>
+          <Property Name="SymbolConfiguration">8;2;GN7_PLBM_LIN_DB_A_01;Slave1;BMS_INFO_03;BAT_Volt_Fault_Info;1;LIN;;-1;;;;;;0</Property>
+          <Property Name="TabIndex">32</Property>
+        </Object>
+        <Object Type="Vector.CANalyzer.Panels.Design.ComboBoxControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="ComboBoxControl21" Children="Controls" ControlName="Combo Box 21">
+          <Property Name="Name">ComboBoxControl21</Property>
+          <Property Name="Size">200, 20</Property>
+          <Property Name="Location">6, 321</Property>
+          <Property Name="DropDownWidth">206</Property>
+          <Property Name="BackColor">Window</Property>
+          <Property Name="ForeColor">WindowText</Property>
+          <Property Name="ShowValues">Decimal</Property>
+          <Property Name="TextBackColor">White</Property>
+          <Property Name="DisplayLabel">Left</Property>
+          <Property Name="DescriptionText">BAT_Volt:</Property>
+          <Property Name="DescriptionSize">60, 20</Property>
+          <Property Name="SymbolConfiguration">8;2;GN7_PLBM_LIN_DB_A_01;Slave1;BMS_INFO_02;BAT_Volt;1;LIN;;-1;;;;;;0</Property>
+          <Property Name="TabIndex">32</Property>
+        </Object>
+        <Object Type="Vector.CANalyzer.Panels.Design.ComboBoxControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="ComboBoxControl32" Children="Controls" ControlName="Combo Box 32">
+          <Property Name="Name">ComboBoxControl32</Property>
+          <Property Name="Size">251, 20</Property>
+          <Property Name="Location">262, 255</Property>
+          <Property Name="DropDownWidth">206</Property>
+          <Property Name="BackColor">Window</Property>
+          <Property Name="ForeColor">WindowText</Property>
+          <Property Name="TextBackColor">White</Property>
+          <Property Name="DisplayLabel">Left</Property>
+          <Property Name="DescriptionText">LBM_Maxdischr_Info:</Property>
+          <Property Name="DescriptionSize">127, 20</Property>
+          <Property Name="SymbolConfiguration">8;2;GN7_PLBM_LIN_DB_A_01;Slave1;BMS_INFO_03;LBM_Maxdischr_Info;1;LIN;;-1;;;;;;0</Property>
+          <Property Name="TabIndex">32</Property>
+        </Object>
+        <Object Type="Vector.CANalyzer.Panels.Design.ComboBoxControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="ComboBoxControl30" Children="Controls" ControlName="Combo Box 30">
+          <Property Name="Name">ComboBoxControl30</Property>
+          <Property Name="Size">251, 20</Property>
+          <Property Name="Location">262, 229</Property>
+          <Property Name="DropDownWidth">206</Property>
+          <Property Name="BackColor">Window</Property>
+          <Property Name="ForeColor">WindowText</Property>
+          <Property Name="TextBackColor">White</Property>
+          <Property Name="DisplayLabel">Left</Property>
+          <Property Name="DescriptionText">BMS_INFO_03_Reserved2:</Property>
+          <Property Name="DescriptionSize">157, 20</Property>
+          <Property Name="SymbolConfiguration">8;2;GN7_PLBM_LIN_DB_A_01;Slave1;BMS_INFO_03;BMS_INFO_03_Reserved2;1;LIN;;-1;;;;;;0</Property>
+          <Property Name="TabIndex">32</Property>
+        </Object>
+        <Object Type="Vector.CANalyzer.Panels.Design.ComboBoxControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="ComboBoxControl12" Children="Controls" ControlName="Combo Box 12">
+          <Property Name="Name">ComboBoxControl12</Property>
+          <Property Name="Size">244, 20</Property>
+          <Property Name="Location">6, 94</Property>
+          <Property Name="DropDownWidth">206</Property>
+          <Property Name="BackColor">Window</Property>
+          <Property Name="ForeColor">WindowText</Property>
+          <Property Name="TextBackColor">White</Property>
+          <Property Name="DisplayLabel">Left</Property>
+          <Property Name="DescriptionText">BAT_Option_Type:</Property>
+          <Property Name="DescriptionSize">111, 20</Property>
+          <Property Name="SymbolConfiguration">8;2;GN7_PLBM_LIN_DB_A_01;Slave1;BMS_INFO_01;BAT_Option_Type;1;LIN;;-1;;;;;;0</Property>
+          <Property Name="TabIndex">32</Property>
+        </Object>
+        <Object Type="Vector.CANalyzer.Panels.Design.ComboBoxControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="ComboBoxControl24" Children="Controls" ControlName="Combo Box 24">
+          <Property Name="Name">ComboBoxControl24</Property>
+          <Property Name="Size">251, 20</Property>
+          <Property Name="Location">262, 179</Property>
+          <Property Name="DropDownWidth">206</Property>
+          <Property Name="BackColor">Window</Property>
+          <Property Name="ForeColor">WindowText</Property>
+          <Property Name="TextBackColor">White</Property>
+          <Property Name="DisplayLabel">Left</Property>
+          <Property Name="DescriptionText">BLTN_CAM_End_Request:</Property>
+          <Property Name="DescriptionSize">154, 20</Property>
+          <Property Name="SymbolConfiguration">8;2;GN7_PLBM_LIN_DB_A_01;Slave1;BMS_INFO_03;BLTN_CAM_End_Request;1;LIN;;-1;;;;;;0</Property>
+          <Property Name="TabIndex">32</Property>
+        </Object>
+        <Object Type="Vector.CANalyzer.Panels.Design.ComboBoxControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="ComboBoxControl20" Children="Controls" ControlName="Combo Box 20">
+          <Property Name="Name">ComboBoxControl20</Property>
+          <Property Name="Size">244, 20</Property>
+          <Property Name="Location">256, 319</Property>
+          <Property Name="DropDownWidth">206</Property>
+          <Property Name="BackColor">Window</Property>
+          <Property Name="ForeColor">WindowText</Property>
+          <Property Name="TextBackColor">White</Property>
+          <Property Name="DisplayLabel">Left</Property>
+          <Property Name="DescriptionText">BMS_INFO_02_Reserved7:</Property>
+          <Property Name="DescriptionSize">157, 20</Property>
+          <Property Name="SymbolConfiguration">8;2;GN7_PLBM_LIN_DB_A_01;Slave1;BMS_INFO_02;BMS_INFO_02_Reserved7;1;LIN;;-1;;;;;;0</Property>
+          <Property Name="TabIndex">32</Property>
+        </Object>
+        <Object Type="Vector.CANalyzer.Panels.Design.ComboBoxControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="ComboBoxControl22" Children="Controls" ControlName="Combo Box 22">
+          <Property Name="Name">ComboBoxControl22</Property>
+          <Property Name="Size">251, 20</Property>
+          <Property Name="Location">262, 75</Property>
+          <Property Name="DropDownWidth">206</Property>
+          <Property Name="BackColor">Window</Property>
+          <Property Name="ForeColor">WindowText</Property>
+          <Property Name="TextBackColor">White</Property>
+          <Property Name="DisplayLabel">Left</Property>
+          <Property Name="DescriptionText">BAT_Fault_Info:</Property>
+          <Property Name="DescriptionSize">95, 20</Property>
+          <Property Name="SymbolConfiguration">8;2;GN7_PLBM_LIN_DB_A_01;Slave1;BMS_INFO_03;BAT_Fault_Info;1;LIN;;-1;;;;;;0</Property>
+          <Property Name="TabIndex">32</Property>
+        </Object>
+        <Object Type="Vector.CANalyzer.Panels.Design.ComboBoxControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="ComboBoxControl14" Children="Controls" ControlName="Combo Box 14">
+          <Property Name="Name">ComboBoxControl14</Property>
+          <Property Name="Size">244, 20</Property>
+          <Property Name="Location">6, 146</Property>
+          <Property Name="DropDownWidth">206</Property>
+          <Property Name="BackColor">Window</Property>
+          <Property Name="ForeColor">WindowText</Property>
+          <Property Name="TextBackColor">White</Property>
+          <Property Name="DisplayLabel">Left</Property>
+          <Property Name="DescriptionText">BAT_Type:</Property>
+          <Property Name="DescriptionSize">66, 20</Property>
+          <Property Name="SymbolConfiguration">8;2;GN7_PLBM_LIN_DB_A_01;Slave1;BMS_INFO_01;BAT_Type;1;LIN;;-1;;;;;;0</Property>
+          <Property Name="TabIndex">32</Property>
+        </Object>
+        <Object Type="Vector.CANalyzer.Panels.Design.ComboBoxControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="ComboBoxControl19" Children="Controls" ControlName="Combo Box 19">
+          <Property Name="Name">ComboBoxControl19</Property>
+          <Property Name="Size">200, 20</Property>
+          <Property Name="Location">6, 269</Property>
+          <Property Name="DropDownWidth">206</Property>
+          <Property Name="BackColor">Window</Property>
+          <Property Name="ForeColor">WindowText</Property>
+          <Property Name="TextBackColor">White</Property>
+          <Property Name="DisplayLabel">Left</Property>
+          <Property Name="DescriptionText">BAT_SOC_for_BLTN_CAM:</Property>
+          <Property Name="DescriptionSize">157, 20</Property>
+          <Property Name="SymbolConfiguration">8;2;GN7_PLBM_LIN_DB_A_01;Slave1;BMS_INFO_02;BAT_SOC_for_BLTN_CAM;1;LIN;;-1;;;;;;0</Property>
+          <Property Name="TabIndex">32</Property>
+        </Object>
+        <Object Type="Vector.CANalyzer.Panels.Design.ComboBoxControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="ComboBoxControl17" Children="Controls" ControlName="Combo Box 17">
+          <Property Name="Name">ComboBoxControl17</Property>
+          <Property Name="Size">251, 20</Property>
+          <Property Name="Location">262, 49</Property>
+          <Property Name="DropDownWidth">206</Property>
+          <Property Name="BackColor">Window</Property>
+          <Property Name="ForeColor">WindowText</Property>
+          <Property Name="TextBackColor">White</Property>
+          <Property Name="DisplayLabel">Left</Property>
+          <Property Name="DescriptionText">BAT_Dischrg_Time_Info</Property>
+          <Property Name="DescriptionSize">141, 20</Property>
+          <Property Name="SymbolConfiguration">8;2;GN7_PLBM_LIN_DB_A_01;Slave1;BMS_INFO_03;BAT_Discharging_Time_Info;1;LIN;;-1;;;;;;0</Property>
+          <Property Name="TabIndex">32</Property>
+        </Object>
+        <Object Type="Vector.CANalyzer.Panels.Design.ComboBoxControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="ComboBoxControl10" Children="Controls" ControlName="Combo Box 10">
+          <Property Name="Name">ComboBoxControl10</Property>
+          <Property Name="Size">200, 20</Property>
+          <Property Name="Location">6, 42</Property>
+          <Property Name="DropDownWidth">206</Property>
+          <Property Name="BackColor">Window</Property>
+          <Property Name="ForeColor">WindowText</Property>
+          <Property Name="TextBackColor">White</Property>
+          <Property Name="DisplayLabel">Left</Property>
+          <Property Name="DescriptionText">BAT_Capa_for_BLTNC</Property>
+          <Property Name="DescriptionSize">132, 20</Property>
+          <Property Name="SymbolConfiguration">8;2;GN7_PLBM_LIN_DB_A_01;Slave1;BMS_INFO_01;BAT_Capa_for_BLTN_CAM;1;LIN;;-1;;;;;;0</Property>
+          <Property Name="TabIndex">32</Property>
+        </Object>
+        <Object Type="Vector.CANalyzer.Panels.Design.ComboBoxControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="ComboBoxControl18" Children="Controls" ControlName="Combo Box 18">
+          <Property Name="Name">ComboBoxControl18</Property>
+          <Property Name="Size">200, 20</Property>
+          <Property Name="Location">6, 243</Property>
+          <Property Name="DropDownWidth">206</Property>
+          <Property Name="BackColor">Window</Property>
+          <Property Name="ForeColor">WindowText</Property>
+          <Property Name="TextBackColor">White</Property>
+          <Property Name="DisplayLabel">Left</Property>
+          <Property Name="DescriptionText">BAT_Current:</Property>
+          <Property Name="DescriptionSize">81, 20</Property>
+          <Property Name="SymbolConfiguration">8;2;GN7_PLBM_LIN_DB_A_01;Slave1;BMS_INFO_02;BAT_Current;1;LIN;;-1;;;;;;0</Property>
+          <Property Name="TabIndex">32</Property>
+        </Object>
+        <Object Type="Vector.CANalyzer.Panels.Design.ComboBoxControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="ComboBoxControl9" Children="Controls" ControlName="Combo Box 9">
+          <Property Name="Name">ComboBoxControl9</Property>
+          <Property Name="Size">200, 20</Property>
+          <Property Name="Location">6, 16</Property>
+          <Property Name="DropDownWidth">206</Property>
+          <Property Name="BackColor">Window</Property>
+          <Property Name="ForeColor">WindowText</Property>
+          <Property Name="TextBackColor">White</Property>
+          <Property Name="DisplayLabel">Left</Property>
+          <Property Name="DescriptionText">B_VOLTAGE:</Property>
+          <Property Name="DescriptionSize">79, 20</Property>
+          <Property Name="SymbolConfiguration">8;2;GN7_PLBM_LIN_DB_A_01;Slave1;BMS_INFO_01;B_VOLTAGE;1;LIN;;-1;;;;;;0</Property>
+          <Property Name="TabIndex">32</Property>
+        </Object>
+        <Property Name="Name">VectorTabPage2</Property>
+        <Property Name="Size">516, 346</Property>
+        <Property Name="Location">4, 22</Property>
+        <Property Name="Text">BMS_INFO</Property>
+      </Object>
+      <Property Name="Name">VectorTabControl1</Property>
+      <Property Name="Size">524, 372</Property>
+      <Property Name="Location">3, 6</Property>
+      <Property Name="SymbolConfiguration">
+      </Property>
+      <Property Name="TabIndex">193</Property>
+    </Object>
+    <Property Name="Name">Panel</Property>
+    <Property Name="Size">532, 382</Property>
+    <Property Name="BackColor">White</Property>
+  </Object>
+</Panel>

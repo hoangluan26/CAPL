@@ -1,0 +1,54 @@
+/*@!Encoding:949*/
+
+variables
+{
+  long channel =2;
+  message NM_CGW_CCU _NM_CGW_CCU;
+  
+  int Done = 0;
+  
+  msTimer timer_TEST;
+  int TIME_TEST = 35;
+}
+
+on preStart
+{
+  _NM_CGW_CCU.Destination_CGW_CCU = 0x68;
+  _NM_CGW_CCU.NMCommandCode_CGW_CCU = 0x2;
+  _NM_CGW_CCU.NMSleepFlag_CGW_CCU = 0x1;
+}
+
+on preStop
+{
+  @panel::Switch_CGWNM = 0;
+}
+
+void MainTest()
+{
+  TestWaitForMessageBox("KEY ON 상태에서 KEY OFF 후 Sleep 까지 대기 후 OK를 누르세요", 60000);
+}
+  
+on timer timer_TEST
+{
+    Wakeup_afterSleep_10ms();
+}
+
+
+on message NM_BLTN_CAM
+{
+  if($NM_BLTN_CAM::NMSleepFlag_BLTN_CAM == 0x1)
+  {
+    if(!Done)
+    {
+      timer_TEST.set(TIME_TEST);
+    }
+  }
+}
+
+testcase Wakeup_afterSleep_10ms()
+{
+  output(_NM_CGW_CCU);
+  @panel::Switch_CGWNM = 1;
+  
+  Done = 1;
+}

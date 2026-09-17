@@ -1,0 +1,123 @@
+/*@!Encoding:949*/
+variables
+{
+  // 아래 내용은 prDelayTestTime 시간 뒤 delayTime 마다 1% 충전 후 Sleep 하는 내용  //
+  // 반복하여 120시간 녹화하려면 Testnode Configration - Option 에서 반복 수행 설정 해야함 //
+  // prDelayTestTime = 12 * 3600 * 1000 로 세팅되어있으면 10회 반복하시키면 120시간 녹화함 ///
+  
+  //테스트 시작 전에 StartSOC = 80 수동으로 입력 후 시작해야함.
+  
+  //---------------------------사전설정 값---------------------------//
+  long prDelayTestTime = 12 * 3600 * 1000; // N시간 뒤에 시작
+  long judgeTime = 2 * 1000; // 판단 대기시간(초)
+  long delayTime = 2.3 * 60 * 1000; // 1%당 충전 소요시간(분)
+   
+  int StartSOC = 80; //80% 부터 테스트 시작
+  int EndSOC = 92; //92% 까지 테스트
+  int StartExpectedOperableTime = 12; // 시작 기댓값(80% = 12시간)
+  
+  //long loggingPreDleayTime = 1 * 60 * 1000 ;//N분 전 부터 로깅 시작
+  //long loggingPostDleayTime = 1 * 60 * 1000 ;//N분 후 까지 로깅
+  //---------------------------사전설정 값---------------------------//
+  
+  int isRecStaON = 1;
+  int isRecStaOFF = 0;
+  
+  int MeasuredOperableTime;
+  int MeasuredOWPSta;
+    
+  char titleString[200]; //Test Case Title
+  char resultString[200]; //Test Case Result
+  
+  //시간 기록용
+  long time[9];
+  long currentTime[7];
+  long Year1 = 20, Year2, Month, Day, Hour, Minute, Second;
+}
+
+void MainTest()
+{
+  testWaitForTimeout(prDelayTestTime); //N시간 뒤에 시작
+  
+  scenario_eAGM_charging();
+}
+
+
+// 주차녹화 중 CAN Wake-up 되고 eAGM 배터리를 충전 후 Network Sleep 하는 시나리오
+// ICU_BS2SoC = (StartSOC)% ~ (EndSOC)% 입력 후 주차녹화 가능시간(BLTN_CAM_Prk_Oprable_Time) 응답 확인
+void scenario_eAGM_charging()
+{
+  int inputSoc;
+  int expectedOperableTime;
+  
+  expectedOperableTime= StartExpectedOperableTime; //Test Case 반복 수행 시 초기화 필요하여 추가함.
+  
+  setsignal(ICU_BS2SoC, StartSOC);
+  
+  @panel::Switch_CGWNM = 1; //CAN Netwrok Wake up(CGW_NM 신호 입력 스위치 ON)
+  
+  for(inputSoc=StartSOC; inputSoc<EndSOC+1; inputSoc++)
+  {
+    if(expectedOperableTime != 6 && expectedOperableTime!=13) //6시간, 13시간은 미표기하는 것이 사양
+    {
+      TestCase_ICU_BS2SoC_Prk_OperableTime(inputSoc, expectedOperableTime);
+      testWaitForTimeout(delayTime);
+    }
+    
+    else//6시간, 13시간 일 경우 SoC 원복
+    {
+      inputSoc--;
+    }
+    
+    if(expectedOperableTime<20)//20시간까지만 확인
+      expectedOperableTime++;
+  }
+
+  @panel::Switch_CGWNM = 0; //CAN Netwrok Sleep(CGW_NM 신호 입력 스위치 OFF)
+}
+
+testCase TestCase_ICU_BS2SoC_Prk_OperableTime(int inputSoc, int expectedOperableTime)
+{
+  snprintf(titleString, elcount(titleString), "SoC: %d%, %d시간", inputSoc, expectedOperableTime);
+  testCaseTitle("",titleString);
+  testCaseDescription("eAGM 배터리 주차녹화 사양의 SoC 신호 입력에 따른 응답신호 확인");
+  
+  setsignal(ICU_BS2SoC, inputSoc);
+  
+  testWaitForTimeout(judgeTime);
+  
+  MeasuredOperableTime = $BLTN_CAM_Prk_Oprable_Time;
+  MeasuredOWPSta = $BLTN_CAM_RecSta_OWP;
+  
+  
+  //주차 상시녹화 상태 확인
+  if(MeasuredOWPSta == isRecStaON)
+    testStepPass("상세결과",  "주차녹화 ON(측정: %d) ", MeasuredOWPSta);
+  else
+    testStepFail("상세결과",  "주차녹화 OFF(측정: %d) ", MeasuredOWPSta);
+  
+  //주차녹화 가능시간 확인
+  if(MeasuredOperableTime == expectedOperableTime)
+    testStepPass("상세결과",  "입력값: %d%, 기대값: %d시간, 측정값: %d시간", inputSoc, expectedOperableTime, MeasuredOperableTime);
+  else
+    testStepFail("상세결과", "입력값: %d%, 기대값: %d시간, 측정값: %d시간", inputSoc, expectedOperableTime, MeasuredOperableTime);
+}
+
+void saveCurrentTime()
+{
+  getLocalTime(time);
+  Year2 = (time[5]+1900) - 2000;
+  Month = time[4]+1;
+  Day = time[3];
+  Hour = time[2];
+  Minute= time[1];
+  Second = time[0]; 
+  
+  currentTime[0] = Year1;
+  currentTime[1] = Year2;
+  currentTime[2] = Month;
+  currentTime[3] = Day;
+  currentTime[4] = Hour;
+  currentTime[5] = Minute;
+  currentTime[6] = Second;
+}

@@ -1,0 +1,259 @@
+/*@!Encoding:949*/
+includes
+{
+  //#include "../CAPL/Control_PowerSupply.can"
+  #include "../CAPL/DataTransform.h"
+}
+
+variables
+{
+  //정품인증s
+  /*#define CERTI_KEY_1 0xA7U
+  #define CERTI_KEY_2	0x12U
+  #define CERTI_KEY_3	0xC3U
+  #define CERTI_KEY_4	0x62U*/
+  
+  dword receiveRdmVal1;
+  dword receiveRdmVal2;
+  dword receiveRdmVal3;
+  dword receiveRdmVal4;
+  dword transmitRdmRval1;
+  dword transmitRdmRval2;
+  dword transmitRdmRval3;
+  dword transmitRdmRval4;
+    
+  dword receiveOperationControl;
+  dword transmitBmsStatus; 
+}
+
+on start
+{
+  //ConnectPowerSupply();
+}
+
+on preStop
+{
+  if(RS232Close(@ControlPowerSupply::Numeric_PortNum))
+  {
+    @ControlPowerSupply::isConectedPwrSply = 0;
+    SetControlBackColor("ControlPowerSupply", "Button 5", MakeRGB(50,205,50));
+    setControlProperty("ControlPowerSupply", "Button 5", "Text", "Connect");
+    write("Port is closed.");
+  }
+}
+
+on sysvar_update SimulationPLBM::RadioBtn_SetMasterSlave
+{
+  linSetChannelMasterMode(@SimulationPLBM::RadioBtn_SetMasterSlave);
+}
+
+on sysvar_update SimulationPLBM::Button_WakeUp
+{
+  if(@SimulationPLBM::Button_WakeUp == 1)//Pressed
+  {
+    //1000ms 간격으로 3번 날리기
+    linSendWakeup(1000, 3);
+
+    /*
+    if(linBusIsAwake())
+    {
+      //linGotoSleep();
+      //setControlProperty("Battery Control","Button_LINWakeUp","Text","Wake up");
+    }
+    else
+    {
+      //linWakeup(300, 1000, 1000);
+      //setControlProperty("Battery Control","Button_LINWakeUp","Text","Go to Sleep");
+    }
+    linWakeup(300, 10, 1000);
+    */
+  }
+}
+
+on sysvar_update SimulationPLBM::Button_Sleep
+{
+  if(@SimulationPLBM::Button_Sleep == 1)//Pressed
+  {
+    linGotoSleep();
+  }
+}
+
+on sysvar_update SimulationPLBM::Button_PLBM_SetValue
+{
+  if($BLTN_CAM_AuxBat_Conn_State == 0x1)
+  {
+    InitPLBM();
+  }
+  else
+  {
+    putValueToControl("Battery Control","CAPL Output View 2", "Auxiliary battery not recognized");
+  }
+}
+
+//on message BLTN_CAM_STAT_PE_00_200ms //CAN
+on message BLTN_CAM_FD_STAT_01_200ms //CANFD
+{
+  if($BLTN_CAM_AuxBat_Conn_State == 0x1)
+  {
+    putValueToControl("Battery Control","CAPL Output View 2", "Auxiliary battery recognized");
+  }
+  else if($BLTN_CAM_AuxBat_Conn_State == 0x2)
+  {
+    putValueToControl("Battery Control","CAPL Output View 2", "Auxiliary battery not recognized");
+  }
+  else if($BLTN_CAM_AuxBat_Conn_State == 0x3)
+  {
+    putValueToControl("Battery Control","CAPL Output View 2", "This specification does not allow the use of auxiliary batteries.");
+  }
+}
+
+/// <BMS_CERTI>
+on linFrame BMS_CERTI
+{
+  putValueToControl("Battery Control", "CAPL Output View 1", "receive BMS_CERTI");
+  
+  receiveRdmVal1 = getSignal(Rdm_Val1);
+  receiveRdmVal2 = getSignal(Rdm_Val2);
+  receiveRdmVal3 = getSignal(Rdm_Val3);
+  receiveRdmVal4 = getSignal(Rdm_Val4);
+  
+  transmitRdmRval1 = receiveRdmVal1 + 0xA0;
+  transmitRdmRval2 = receiveRdmVal2 + 0xB2;
+  transmitRdmRval3 = receiveRdmVal3 + 0xC1;
+  transmitRdmRval4 = receiveRdmVal4 + 0xD3;
+  
+  setSignal(Rdm_Rval1, transmitRdmRval1);
+  setSignal(Rdm_Rval2, transmitRdmRval2);
+  setSignal(Rdm_Rval3, transmitRdmRval3);
+  setSignal(Rdm_Rval4, transmitRdmRval4);
+  
+  InitPLBM();
+}
+
+/// <BMS_CERTI>
+/*on linFrame BMS_CERTI_CHECK
+{
+  putValueToControl("Battery Control", "CAPL Output View 1", "receive BMS_CERTI_CHECK");
+}*/
+
+
+on linFrame BMS_INFO_01
+{
+  if($BAT_Capa_for_BLTN_CAM == 0x0) putValueToControl("Battery Control","CAPL Output View 1", "★★Choose between 19.2Ah and 28.8Ah specifications★★");
+}
+//
+//on linFrame BMS_OPERATION_CONTROL
+//{
+//  //////////// <BMS_CERTI>
+//  receiveOperationControl = getSignal(BAT_Charge_Control);
+//  if(receiveOperationControl == 1)
+//  {
+//      transmitBmsStatus = 2;
+//  }
+//  else if(receiveOperationControl == 2)
+//  {
+//      transmitBmsStatus = 3;
+//  }
+//  else
+//  {
+//      transmitBmsStatus = 0;
+//  }
+//  setSignal(BAT_Status , transmitBmsStatus);
+//  /////////// <BMS_CERTI>
+//  
+//  if($BLTN_CAM_AuxBat_Conn_State == 0x1)//배터리 인증된 상태에서만 동작
+//  {   
+//    if(!@ControlPowerSupply::isConectedPwrSply) @ControlPowerSupply::Button_Connect = 1;
+//      
+//    if($BAT_Charge_Control == 0x2) //discharging 신호 수신 시
+//    {
+//      setSignal(BAT_Status, 0x3); //PLBM discharging 신호 셋
+//
+//      //보조배터리측 파워서플라이 전원 인가
+//      Switch(PowerSupplyModel)
+//      {
+//        case OPE305QI:
+//          strncpy(buffer[0], "INST OUTP1", 11); //CH1 선택
+//          strncpy(buffer[1], "Volt 12", 8);
+//          strncpy(buffer[2], "Curr 5", 7);
+//          
+//          //Interval 간격으로 날리기
+//          timer_RS232SendInterval.Set(TIME_RS232SendInterval); break;
+//
+//        case TL305TP:
+//          Rs232SendStirng(@ControlPowerSupply::Numeric_PortNum, TL305TP, "SET:000,VS:12.00,IS:5.000"); break;       
+//
+//        case GPP2323:
+//          Rs232SendStirng(@ControlPowerSupply::Numeric_PortNum, GPP2323, "VSET1:12"); break;
+//      }
+//      putValueToControl("Battery Control","CAPL Output View 1", "Discharge command received. Outputs auxiliary power from the power supply.");
+//    }
+//    
+//    else if($BAT_Charge_Control == 0x0) //stop 신허 수신 시
+//    {
+//      setSignal(BAT_Status, 0x0); //PLBM discharging 신호 셋
+//
+//      //보조배터리측 파워서플라이 전원 차단
+//      Switch(PowerSupplyModel)
+//      {
+//        case OPE305QI:
+//          strncpy(buffer[0], "INST OUTP1", 11); //CH1 선택
+//          strncpy(buffer[1], "Volt 0", 7);
+//          strncpy(buffer[2], "Curr 5", 7);
+//          
+//          //Interval 간격으로 날리기
+//          timer_RS232SendInterval.Set(TIME_RS232SendInterval); break;
+//          
+//        case TL305TP:
+//          Rs232SendStirng(@ControlPowerSupply::Numeric_PortNum, TL305TP, "SET:000,VS:0.00,IS:0.000"); break;       
+//
+//        case GPP2323:
+//          Rs232SendStirng(@ControlPowerSupply::Numeric_PortNum, GPP2323, "VSET1:0"); break;
+//      }
+//      
+//      putValueToControl("Battery Control","CAPL Output View 1", "Stop command received. Turn off the auxiliary power.");
+//    }
+//  }
+//}
+
+void InitPLBM()
+{
+    setsignal(BMS_INFO_01::BAT_Type, 1);
+    setsignal(BMS_INFO_01::BAT_Option_Type, 1);
+    setsignal(BMS_INFO_01::BAT_Capa_for_BLTN_CAM, 12);
+    setsignal(BMS_INFO_01::BAT_SOH, 100);
+    setsignal(BMS_INFO_01::B_VOLTAGE, 12);
+    setsignal(BMS_INFO_01::IGN_VOLTAGE, 12);
+    setsignal(BMS_INFO_01::BMS_INFO_01_Reserved7, 0);
+
+    setsignal(BMS_INFO_02::BAT_SOC_for_BLTN_CAM, 100);
+    setsignal(BMS_INFO_02::BAT_Volt, 10);
+    setsignal(BMS_INFO_02::BAT_Current, 0);
+    setsignal(BMS_INFO_02::BAT_Temp, 24.7);
+    setsignal(BMS_INFO_02::BMS_INFO_02_Reserved6, 0x0);
+    setsignal(BMS_INFO_02::BMS_INFO_02_Reserved7, 0x0);
+
+    setsignal(BMS_INFO_03::BAT_Status, 0x0);
+    setsignal(BMS_INFO_03::BAT_Volt_Fault_Info, 0x0);
+    setsignal(BMS_INFO_03::BAT_Current_Fault_Info, 0x0);
+    setsignal(BMS_INFO_03::BAT_Discharging_Time_Info, 0x0);
+    setsignal(BMS_INFO_03::BLTM_CAM_Current, 0x0);
+    setsignal(BMS_INFO_03::LBM_Maxdischr_Info, 0x0);
+    setsignal(BMS_INFO_03::BLTN_CAM_End_Request, 0x0);
+    setsignal(BMS_INFO_03::BMS_INFO_03_Reserved1, 0x0);
+    setsignal(BMS_INFO_03::BMS_INFO_03_Reserved2, 0x0);
+  
+  if(@SimulationPLBM::RadioBtn_SelcectPLBM == 0) //19Ah
+  {
+    setsignal(BMS_INFO_01::BAT_Capa_Total, 19.2);
+    putValueToControl("Battery Control","CAPL Output View 1", "NCM battery 19.2Ah specification applied. SOC = 100%");
+  }
+  
+  else //28.8Ah
+  {
+    setsignal(BMS_INFO_01::BAT_Capa_Total, 28.8);
+    putValueToControl("Battery Control","CAPL Output View 1", "NCM battery 28.8Ah specification applied. SOC = 100%");
+  }
+}
+
+

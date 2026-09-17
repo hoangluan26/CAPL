@@ -1,0 +1,114 @@
+<?xml version="1.0"?>
+<Panel Type="Vector.CANalyzer.Panels.PanelSerializer, Vector.CANalyzer.Panels.Serializer, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null">
+  <Object Type="Vector.CANalyzer.Panels.Runtime.Panel, Vector.CANalyzer.Panels.Common, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="Panel" Children="Controls" ControlName="ParkingRecordingInfo">
+    <Object Type="Vector.CANalyzer.Panels.Design.ComboBoxControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="ComboBoxControl8" Children="Controls" ControlName="Combo Box 8">
+      <Property Name="Name">ComboBoxControl8</Property>
+      <Property Name="Size">393, 20</Property>
+      <Property Name="Location">10, 206</Property>
+      <Property Name="BackColor">Window</Property>
+      <Property Name="ForeColor">WindowText</Property>
+      <Property Name="TextBackColor">White</Property>
+      <Property Name="DisplayLabel">Left</Property>
+      <Property Name="DescriptionText">BLTN_CAM_Prk_Oprable_Time_Max:</Property>
+      <Property Name="DescriptionSize">212, 20</Property>
+      <Property Name="SymbolConfiguration">8;2;FD_B2;BLTN_CAM_FD;BLTN_CAM_FD_STAT_01_200ms;BLTN_CAM_Prk_Oprable_Time_Max;1;CAN2;;-1;;;;;;0</Property>
+      <Property Name="TabIndex">148</Property>
+    </Object>
+    <Object Type="Vector.CANalyzer.Panels.Design.ComboBoxControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="ComboBoxControl1" Children="Controls" ControlName="Combo Box 1">
+      <Property Name="Name">ComboBoxControl1</Property>
+      <Property Name="Size">393, 20</Property>
+      <Property Name="Location">10, 69</Property>
+      <Property Name="BackColor">Window</Property>
+      <Property Name="ForeColor">WindowText</Property>
+      <Property Name="TextBackColor">White</Property>
+      <Property Name="DisplayLabel">Left</Property>
+      <Property Name="DescriptionText">BLTN_CAM_PMD_Oprable_Time:</Property>
+      <Property Name="DescriptionSize">191, 20</Property>
+      <Property Name="SymbolConfiguration">8;2;FD_B2;BLTN_CAM_FD;BLTN_CAM_FD_STAT_01_200ms;BLTN_CAM_PMD_Oprable_Time;1;CAN2;;-1;;;;;;0</Property>
+      <Property Name="TabIndex">147</Property>
+    </Object>
+    <Object Type="Vector.CANalyzer.Panels.Design.ComboBoxControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="ComboBoxControl7" Children="Controls" ControlName="Combo Box 7">
+      <Property Name="Name">ComboBoxControl7</Property>
+      <Property Name="Size">393, 20</Property>
+      <Property Name="Location">10, 128</Property>
+      <Property Name="BackColor">Window</Property>
+      <Property Name="ForeColor">WindowText</Property>
+      <Property Name="TextBackColor">White</Property>
+      <Property Name="DisplayLabel">Left</Property>
+      <Property Name="DescriptionText">BLTN_CAM_Prk_EV_Cnt:</Property>
+      <Property Name="DescriptionSize">144, 20</Property>
+      <Property Name="SymbolConfiguration">8;2;FD_B2;BLTN_CAM_FD;BLTN_CAM_FD_STAT_01_200ms;BLTN_CAM_Prk_EV_Cnt;1;CAN2;;-1;;;;;;0</Property>
+      <Property Name="TabIndex">149</Property>
+    </Object>
+    <Object Type="Vector.CANalyzer.Panels.Design.ComboBoxControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="ComboBoxControl2" Children="Controls" ControlName="Combo Box 2">
+      <Property Name="Name">ComboBoxControl2</Property>
+      <Property Name="Size">393, 20</Property>
+      <Property Name="Location">10, 95</Property>
+      <Property Name="BackColor">Window</Property>
+      <Property Name="ForeColor">WindowText</Property>
+      <Property Name="TextBackColor">White</Property>
+      <Property Name="DisplayLabel">Left</Property>
+      <Property Name="DescriptionText">BLTN_CAM_PMD_Oprable_Time_Max:</Property>
+      <Property Name="DescriptionSize">221, 20</Property>
+      <Property Name="SymbolConfiguration">8;2;FD_B2;BLTN_CAM_FD;BLTN_CAM_FD_STAT_01_200ms;BLTN_CAM_PMD_Oprable_Time_Max;1;CAN2;;-1;;;;;;0</Property>
+      <Property Name="TabIndex">148</Property>
+    </Object>
+    <Object Type="Vector.CANalyzer.Panels.Design.ComboBoxControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="ComboBoxControl6" Children="Controls" ControlName="Combo Box 6">
+      <Property Name="Name">ComboBoxControl6</Property>
+      <Property Name="Size">393, 20</Property>
+      <Property Name="Location">10, 154</Property>
+      <Property Name="DropDownWidth">145</Property>
+      <Property Name="BackColor">Window</Property>
+      <Property Name="ForeColor">WindowText</Property>
+      <Property Name="TextBackColor">White</Property>
+      <Property Name="DisplayLabel">Left</Property>
+      <Property Name="DescriptionText">BLTN_CAM_Prk_Oped_Time:</Property>
+      <Property Name="DescriptionSize">169, 20</Property>
+      <Property Name="SymbolConfiguration">8;2;FD_B2;BLTN_CAM_FD;BLTN_CAM_FD_STAT_01_200ms;BLTN_CAM_Prk_Oped_Time;1;CAN2;;-1;;;;;;0</Property>
+      <Property Name="TabIndex">146</Property>
+    </Object>
+    <Object Type="Vector.CANalyzer.Panels.Design.ComboBoxControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="ComboBoxControl5" Children="Controls" ControlName="Combo Box 5">
+      <Property Name="Name">ComboBoxControl5</Property>
+      <Property Name="Size">393, 20</Property>
+      <Property Name="Location">10, 180</Property>
+      <Property Name="BackColor">Window</Property>
+      <Property Name="ForeColor">WindowText</Property>
+      <Property Name="TextBackColor">White</Property>
+      <Property Name="DisplayLabel">Left</Property>
+      <Property Name="DescriptionText">BLTN_CAM_Prk_Oprable_Time:</Property>
+      <Property Name="DescriptionSize">183, 20</Property>
+      <Property Name="SymbolConfiguration">8;2;FD_B2;BLTN_CAM_FD;BLTN_CAM_FD_STAT_01_200ms;BLTN_CAM_Prk_Oprable_Time;1;CAN2;;-1;;;;;;0</Property>
+      <Property Name="TabIndex">147</Property>
+    </Object>
+    <Object Type="Vector.CANalyzer.Panels.Design.ComboBoxControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="ComboBoxControl3" Children="Controls" ControlName="Combo Box 3">
+      <Property Name="Name">ComboBoxControl3</Property>
+      <Property Name="Size">393, 20</Property>
+      <Property Name="Location">10, 17</Property>
+      <Property Name="DropDownWidth">145</Property>
+      <Property Name="BackColor">Window</Property>
+      <Property Name="ForeColor">WindowText</Property>
+      <Property Name="TextBackColor">White</Property>
+      <Property Name="DisplayLabel">Left</Property>
+      <Property Name="DescriptionText">BLTN_CAM_MaxRanSet_PMDR:</Property>
+      <Property Name="DescriptionSize">184, 20</Property>
+      <Property Name="SymbolConfiguration">8;2;FD_B2;BLTN_CAM_FD;BLTN_CAM_FD_02_200ms;BLTN_CAM_MaxRanSet_PMDR;1;CAN2;;-1;;;;;;0</Property>
+      <Property Name="TabIndex">146</Property>
+    </Object>
+    <Object Type="Vector.CANalyzer.Panels.Design.ComboBoxControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="ComboBoxControl4" Children="Controls" ControlName="Combo Box 4">
+      <Property Name="Name">ComboBoxControl4</Property>
+      <Property Name="Size">393, 20</Property>
+      <Property Name="Location">10, 43</Property>
+      <Property Name="BackColor">Window</Property>
+      <Property Name="ForeColor">WindowText</Property>
+      <Property Name="TextBackColor">White</Property>
+      <Property Name="DisplayLabel">Left</Property>
+      <Property Name="DescriptionText">BLTN_CAM_PMD_Count:</Property>
+      <Property Name="DescriptionSize">146, 20</Property>
+      <Property Name="SymbolConfiguration">8;2;FD_B2;BLTN_CAM_FD;BLTN_CAM_FD_HU_01_200ms;BLTN_CAM_PMD_Count;1;CAN2;;-1;;;;;;0</Property>
+      <Property Name="TabIndex">149</Property>
+    </Object>
+    <Property Name="Name">Panel</Property>
+    <Property Name="Size">416, 239</Property>
+    <Property Name="BackColor">White</Property>
+  </Object>
+</Panel>

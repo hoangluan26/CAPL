@@ -1,0 +1,10 @@
+1. HKMC_ASK_Server
+This is normal version of ASK library.
+
+2. HKMC_ASK_Server_Except_SFM
+This is additional version excluding Secure Flash library.
+If Secure Flash library crashes on your project, use this version.
+
+3. HKMC_ASK_Server_Except_Crypto
+This is additional version excluding Crypto library.
+If Crypto library crashes on your project, use this version.

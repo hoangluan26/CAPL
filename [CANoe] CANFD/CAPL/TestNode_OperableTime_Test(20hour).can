@@ -1,0 +1,51 @@
+/*@!Encoding:949*/
+variables
+{
+  long DelayTestTime = 1*3600*1000; //1시간 
+  long judgeTime = 1 * 1000; // 판단 대기시간(초)
+
+  
+  int isRecStaON = 1;
+  int isRecStaOFF = 0;
+  
+  int MeasuredOperableTime;
+  int MeasuredOWPSta;
+  
+  int RemainingOWPTime = 20; //남은 주차녹화 시간
+    
+  char titleString[200]; //Test Case Title
+  char resultString[200]; //Test Case Result
+
+}
+
+void MainTest()
+{
+  int i = 0;
+  
+  for(i = 0; i < 21; i++)
+  {
+    TestCase_Prk_OperableTime(i, RemainingOWPTime--);
+    testWaitForTimeout(DelayTestTime); //1시간 마다 확인하기
+  }
+}
+
+testCase TestCase_Prk_OperableTime(int testNum, int remainingOWPTime)
+{
+  snprintf(titleString, elcount(titleString), "%d시간 경과", testNum);
+  testCaseTitle("",titleString);
+  
+  @panel::Switch_CGWNM = 1; //CAN Netwrok Wake up(CGW_NM 신호 입력 스위치 ON)
+
+  testWaitForTimeout(judgeTime);
+  
+  MeasuredOperableTime = $BLTN_CAM_Prk_Oprable_Time;
+  MeasuredOWPSta = $BLTN_CAM_RecSta_OWP;
+  
+  //주차녹화 가능시간 확인
+  if(MeasuredOperableTime == remainingOWPTime)
+    testStepPass("상세결과",  "기대값: %d시간, 측정값: %d시간", remainingOWPTime, MeasuredOperableTime);
+  else
+    testStepFail("상세결과",  "기대값: %d시간, 측정값: %d시간", remainingOWPTime, MeasuredOperableTime);
+  
+  @panel::Switch_CGWNM = 0; //CAN Netwrok Wake up(CGW_NM 신호 입력 스위치 ON)
+}

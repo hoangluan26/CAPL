@@ -1,0 +1,51 @@
+﻿/*@!Encoding:65001*/
+includes
+{
+  
+}
+
+
+variables
+{ 
+
+  message HU_BLTN_CAM_02_200ms _HU_BLTN_CAM_02_200ms;
+  message HU_BLTN_CAM_01_00ms _HU_BLTN_CAM_01_00ms;
+  msTimer timer1;
+  message BDC_FD_04_200ms _BDC_FD_04_200ms;
+}
+
+void Enter_BLTN_CAM(){
+  // CAN
+  _HU_BLTN_CAM_02_200ms.HU_BLTN_CAM_UI_Mode=0x1;
+  output(_HU_BLTN_CAM_02_200ms); //Enter BLTN_CAM mode  
+}
+
+on key '1' {
+  Enter_BLTN_CAM();
+}
+
+void Exit_BLTN_CAM(){
+  // CAN
+  _HU_BLTN_CAM_02_200ms.HU_BLTN_CAM_UI_Mode=0x0;
+  output(_HU_BLTN_CAM_02_200ms);//Exit BLTN_CAM Mode    
+}
+
+on key '2' {
+  Exit_BLTN_CAM();
+}
+
+on key '3' {
+  _HU_BLTN_CAM_01_00ms.BLTN_CAM_Rec_OWD_NvalueSet = 0x2;
+  _HU_BLTN_CAM_01_00ms.BLTN_CAM_Rec_OWP_NvalueSet = 0x2;
+  _HU_BLTN_CAM_01_00ms.BLTN_CAM_Rec_DEV_NvalueSet = 0x2;
+  _HU_BLTN_CAM_01_00ms.BLTN_CAM_Rec_PEV_NvalueSet = 0x2;
+  output(_HU_BLTN_CAM_01_00ms);
+}
+
+on key '4' {
+  _HU_BLTN_CAM_01_00ms.BLTN_CAM_Rec_OWD_NvalueSet = 0x1;
+  _HU_BLTN_CAM_01_00ms.BLTN_CAM_Rec_OWP_NvalueSet = 0x1;
+  _HU_BLTN_CAM_01_00ms.BLTN_CAM_Rec_DEV_NvalueSet = 0x1;
+  _HU_BLTN_CAM_01_00ms.BLTN_CAM_Rec_PEV_NvalueSet = 0x1;
+  output(_HU_BLTN_CAM_01_00ms);
+}

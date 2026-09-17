@@ -1,0 +1,39 @@
+Encoding: iso-8859-1
+Detected dtd version 10.0.106
+VCANdelaPersistorImpl::GetFileVersion: DTD version '10.0.106' detected
+Detected dtd version 10.0.106
+VCANdelaPersistorImpl::GetFileVersion: DTD version '10.0.106' detected
+Loading 'D:\Tailieu\Built in CAM\tainguyen\CAN FD\[CANoe] CANFD\cdd\ES95486_02_DVRS_v5.65.cdd'...
+  dtd version: file 10.0.106, program 17.0.3
+Document supports the languages (en-US)
+Document contains the uptodate languages (en-US)
+Template: Qualifier : Door, SaveNo : 20, Label : --
+  template data loaded
+  variant 'CommonDiagnostics' loaded
+Migrate DIDs: ...
+Migrate DIDs: Diagnostic Class Template(s) with DID semantics:
+Migrate DIDs:  Identification (DID)
+Migrate DIDs:  I/O Control
+Migrate DIDs:  Periodic Data
+Migrate DIDs: Created new de-activated DID Diagnostic Instance "qpath:/CommonDiagnostics/Identification_DID/LocalRXSWINDataIdentifier_1" for the DID (no Diagnostic Instance) "LocalRXSWINDataIdentifier ", 0xF1EF
+Migrate DIDs:  Diagnostic Instance "qpath:/CommonDiagnostics/Identification_DID/LocalRXSWINDataIdentifier" has the same identifier
+Migrate DIDs:  Deactivated Check identifier uniqueness for this instance.
+Migrate DIDs: Number of created Diagnostic Instance(s) with deactivated check of identifier uniqueness: 1
+Migrate DIDs: Created attribute "qpath://[DIAGINSTDEFATTR]DIDQualifier17"
+Migrate DIDs: Created attribute "qpath://[DIAGINSTDEFATTR]DIDName17"
+Migrate DIDs: ...Done
+AUTOSAR fault memory migration, Read snapshots: there are no relevant protocol services.
+AUTOSAR fault memory migration, Read extended data records: migrating protocol service 1906 "($19) ReadDtcInformation - ReportDTCExtendedDataRecordByDTCNumber"...
+AUTOSAR fault memory migration, Read extended data records: ...Success
+AUTOSAR fault memory migration, Read extended data records: migrating protocol service 1910 "($19) ReadDtcInformation - ReportMirrorMemoryDTCExtendedDataRecordByDTCNumber"...
+AUTOSAR fault memory migration, Read extended data records: ...Success
+Document version: 00.00.04
+Done loading.
+Checking consistency of document. This may take a while, please be patient...
+Warning: Text table data type 'SID-RQ' contains 1 entries without any assigned text.
+Identifier out of bounds: ID 0x0011 is not supported by ID-defining TextTable 'Subfunctions of SecurityAccess' associated to diagnostic instance 'qpath:/CommonDiagnostics/Security_Access/RequestSeed_Unlock_Flash'. Please correct the identifier.
+Identifier out of bounds: ID 0x0012 is not supported by ID-defining TextTable 'Subfunctions of SecurityAccess' associated to diagnostic instance 'qpath:/CommonDiagnostics/Security_Access/SendKey_Unlock_Flash'. Please correct the identifier.
+Inconsistencies detected.
+ComParamMan: Unidentified ComParam UudtCanIdType
+Checking service prefixes in base variant "CommonDiagnostics" ... OK
+Non-fatal inconsistencies detected in document.

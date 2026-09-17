@@ -1,0 +1,740 @@
+/*---------GLOBAL DEFINITIONS-----------*/
+
+LIN_description_file;
+LIN_protocol_version = "2.1";
+LIN_language_version = "2.1";
+LIN_speed = 19.2 kbps;
+
+Nodes {
+  Master: Master1, 5 ms, 0.1 ms ;
+  Slaves: Slave1, Slave2 ;
+}
+
+Signals {
+  Rdm_Val1: 16, 0, Master1, Slave1 ;
+  Rdm_Val2: 16, 0, Master1, Slave1 ;
+  Rdm_Val3: 16, 0, Master1, Slave1 ;
+  Rdm_Val4: 16, 0, Master1, Slave1 ;
+  Rdm_Rval1: 16, 0, Slave1, Master1 ;
+  Rdm_Rval2: 16, 0, Slave1, Master1 ;
+  Rdm_Rval3: 16, 0, Slave1, Master1 ;
+  Rdm_Rval4: 16, 0, Slave1, Master1 ;
+  BAT_Type: 4, 0, Slave1, Master1 ;
+  BAT_Capa_for_BLTN_CAM: 8, 0, Slave1, Master1 ;
+  BAT_SOH: 8, 0, Slave1, Master1 ;
+  BAT_SOC_for_BLTN_CAM: 8, 0, Slave1, Master1 ;
+  BAT_Volt: 8, 0, Slave1, Master1 ;
+  BAT_Current: 16, 0, Slave1, Master1 ;
+  BAT_Temp: 16, 0, Slave1, Master1 ;
+  BAT_Status: 8, 0, Slave1, Master1 ;
+  BAT_Volt_Fault_Info: 8, 0, Slave1, Master1 ;
+  BAT_Fault_Info: 8, 0, Slave1, Master1 ;
+  BAT_Current_Fault_Info: 8, 0, Slave1, Master1 ;
+  BAT_Charge_Control: 8, 0, Master1, Slave1 ;
+  Cell_Temp_Ch1: 16, 0, Slave1 ;
+  Cell_Temp_Ch2: 16, 0, Slave1 ;
+  Charger_Temp: 16, 0, Slave1 ;
+  Cell1_V: 16, 0, Slave1 ;
+  Cell2_V: 16, 0, Slave1 ;
+  Cell3_V: 16, 0, Slave1 ;
+  Cell4_V: 16, 0, Slave1 ;
+  Cell5_V: 16, 0, Slave1 ;
+  CellMin_V: 16, 0, Slave1 ;
+  CellMax_V: 16, 0, Slave1 ;
+  CellMean_V: 16, 0, Slave1 ;
+  Cell_Bal_Ch1: 1, 0, Slave1 ;
+  Cell_Bal_Ch2: 1, 0, Slave1 ;
+  Cell_Bal_Ch3: 1, 0, Slave1 ;
+  Cell_Bal_Ch4: 1, 0, Slave1 ;
+  Cell_Bal_Ch5: 1, 0, Slave1 ;
+  ChargingFetState: 1, 0, Slave1 ;
+  DischargingFetState: 1, 0, Slave1 ;
+  Shutdown_Req0: 8, 255, Master1 ;
+  Shutdown_Req1: 8, 0, Master1 ;
+  Shutdown_Req2: 8, 255, Master1 ;
+  Shutdown_Req3: 8, 0, Master1 ;
+  Shutdown_Req4: 8, 255, Master1 ;
+  Shutdown_Req5: 8, 0, Master1 ;
+  Shutdown_Req6: 8, 255, Master1 ;
+  Shutdown_Req7: 8, 0, Master1 ;
+  Reserved1_8bit: 8, 255, Slave1 ;
+  B_VOLTAGE: 8, 0, Slave1, Master1 ;
+  BLTM_CAM_Current: 8, 0, Slave1, Master1 ;
+  BMS_INFO_02_Reserved7: 8, 255, Slave1, Master1 ;
+  Reserved23_16bit: 16, 65535, Slave1 ;
+  IGN_VOLTAGE: 8, 0, Slave1, Master1 ;
+  LBM_Maxdischr_Info: 2, 0, Slave1, Master1 ;
+  Reserved1M_8bit: 8, 255, Master1 ;
+  Reserved3M_8bit: 8, 255, Master1 ;
+  Reserved5M_8bit: 8, 255, Master1 ;
+  Reserved7M_8bit: 8, 255, Master1 ;
+  Reserved3M_16bit: 8, 255, Master1, Slave1 ;
+  Reserved45M_16bit: 16, 65535, Master1, Slave1 ;
+  Reserved67M_16bit: 16, 65535, Master1, Slave1 ;
+  Reserved: 16, 0, Slave1 ;
+  SOC_V: 16, 0, Slave1 ;
+  SOC_I: 16, 0, Slave1 ;
+  Manual_Cb_Ch1: 1, 0, Master1 ;
+  Manual_Cb_Ch2: 1, 0, Master1 ;
+  Manual_Cb_Ch3: 1, 0, Master1 ;
+  Manual_Cb_Ch4: 1, 0, Master1 ;
+  Manual_Cb_Ch5: 1, 0, Master1 ;
+  Cell_Temp_Sensor1_Fail: 1, 0, Slave1 ;
+  Cell_Temp_Sensor2_Fail: 1, 0, Slave1 ;
+  ChargerOnState: 1, 0, Slave1 ;
+  PreChargingState: 1, 0, Slave1 ;
+  BAT_Discharging_Time_Info: 8, 0, Slave1, Master1 ;
+  BAT_Discharging_Time: 8, 0, Master1, Slave1 ;
+  BMS_Shutdown_NewSignal: 64, {255, 255, 255, 255, 255, 255, 255, 255}, Master1 ;
+  SW_Version_L: 24, {0, 0, 0}, Slave1 ;
+  HW_Version_L: 24, {0, 0, 0}, Slave1 ;
+  VOLT_Battery: 16, 0, Slave1 ;
+  VOLT_Charger: 16, 0, Slave1 ;
+  VOLT_Pack: 16, 0, Slave1 ;
+  VOLT_Ign2: 16, 0, Slave1 ;
+  TotalUsedCapacity_L: 16, 0, Slave1 ;
+  TotalUsedCapacity_H: 16, 0, Slave1 ;
+  TotalUsedTime_L: 16, 0, Slave1 ;
+  TotalUsedTime_H: 16, 0, Slave1 ;
+  BalancingEnterDeviation: 8, 70, Master1 ;
+  BalancingExitDeviation: 8, 40, Master1 ;
+  BalancingTime: 8, 120, Master1 ;
+  RestTime: 8, 60, Master1 ;
+  Pack_OverVoltage_Alert: 1, 0, Slave1 ;
+  Pack_UnderVoltage_Alert: 1, 0, Slave1 ;
+  Cell_OverVoltage_Alert: 1, 0, Slave1 ;
+  Cell_UnderVoltage_Alert: 1, 0, Slave1 ;
+  Charging_Over_Temperature_Alert: 1, 0, Slave1 ;
+  Charging_OverCurrent_Alert: 1, 0, Slave1 ;
+  Discharging_OverCurrent_Alert: 1, 0, Slave1 ;
+  Charger_Temp_Sensor_Fail: 1, 0, Slave1 ;
+  Discharging_Fail: 1, 0, Slave1 ;
+  Charging_Fail: 1, 0, Slave1 ;
+  Rec_Cell_Temp_Sensor1_Fail: 1, 0, Slave1 ;
+  Rec_Cell_Temp_Sensor2_Fail: 1, 0, Slave1 ;
+  Rec_Pack_OverVoltage_Alert: 1, 0, Slave1 ;
+  Rec_Pack_UnderVoltage_Alert: 1, 0, Slave1 ;
+  Rec_Cell_OverVoltage_Alert: 1, 0, Slave1 ;
+  Rec_Cell_UnderVoltage_Alert: 1, 0, Slave1 ;
+  Rec_Cell_Over_Temperature_Alert: 1, 0, Slave1 ;
+  Rec_Charging_OverCurrent_Alert: 1, 0, Slave1 ;
+  Rec_Discharging_OverCurrent_Alert: 1, 0, Slave1 ;
+  Rec_Charger_Temp_Sensor_Fail: 1, 0, Slave1 ;
+  Rec_Discharging_Fail: 1, 0, Slave1 ;
+  Rec_Charging_Fail: 1, 0, Slave1 ;
+  Key_On_Off_Info: 8, 0, Master1, Slave1 ;
+  Charging_Under_Temperature_Alert: 1, 0, Slave1 ;
+  Discharging_Over_Temperature_Alert: 1, 0, Slave1 ;
+  Discharging_Under_Temperature_Alert: 1, 0, Slave1 ;
+  ChargerFET_Over_Temperature_Alert: 1, 0, Slave1 ;
+  Rec_Cell_Under_Temperature_Alert: 1, 0, Slave1 ;
+  Rec_Charger_Over_Temperature_Alert: 1, 0, Slave1 ;
+  Rec_Cell_Damaged_Fail: 1, 0, Slave1 ;
+  Rec_Charger_OverVoltage_Fail: 1, 0, Slave1 ;
+  ChargerFET_Under_Temperature_Alert: 1, 0, Slave1 ;
+  Cell_Deviation_Fail: 1, 0, Slave1 ;
+  Charger_OverVoltage_Fail: 1, 0, Slave1 ;
+  BAT_Temp_Fault_Info2: 4, 0, Slave1 ;
+  Charger_Over_Voltage_Fault: 1, 0, Slave1 ;
+  Charger_Temp_Sensor_Fault: 1, 0, Slave1 ;
+  Charger_Over_Temp_Fault: 1, 0, Slave1 ;
+  Charger_Under_Ig2Volt_Fault: 1, 0, Slave1 ;
+  Charger_Input_Open_Fail: 1, 0, Slave1 ;
+  Charging_Timeout: 1, 0, Slave1 ;
+  Pre_Charging_Timeout: 1, 0, Slave1 ;
+  Pre_Charging_OverCurrent_Fail: 1, 0, Slave1 ;
+  Pre_Charging_UnderCurrent_Fail: 1, 0, Slave1 ;
+  Charger_Timeout_Fault: 1, 0, Slave1 ;
+  Precharger_Timeout_Fault: 1, 0, Slave1 ;
+  Precharge_Current_Fault: 1, 0, Slave1 ;
+  Total_Charge_Capa: 32, {0, 0, 0, 0}, Slave1, Master1 ;
+  Cycle_Index: 16, 0, Slave1, Master1 ;
+  BLTN_CAM_End_Request: 2, 0, Slave1, Master1 ;
+  BAT_Capa_Total: 16, 0, Slave1, Master1 ;
+  BMS_INFO_01_Reserved7: 8, 255, Slave1, Master1 ;
+  Reserved6: 8, 255, Slave1, Master1 ;
+  Reserved7: 8, 255, Slave1, Master1 ;
+  BMS_VERSION_Reserved6: 8, 0, Slave1 ;
+  BMS_VERSION_Reserved7: 8, 0, Slave1 ;
+  Update_status: 8, 0, Master1 ;
+  Data_Length: 8, 0, Master1 ;
+  Data_Count: 16, {0, 0}, Master1 ;
+  Key_Value: 32, {0, 0, 0, 0}, Master1 ;
+  Update_Data_01: 8, 0, Master1 ;
+  Update_Data_02: 8, 0, Master1 ;
+  Update_Data_03: 8, 0, Master1 ;
+  Update_Data_04: 8, 0, Master1 ;
+  Update_Data_05: 8, 0, Master1 ;
+  Update_Data_06: 8, 0, Master1 ;
+  Update_Data_07: 8, 0, Master1 ;
+  Update_Data_08: 8, 0, Master1 ;
+  BMS_Update_Response: 8, 0, Slave1 ;
+  Seed_Key: 32, {0, 0, 0, 0}, Slave1 ;
+  BMS_UPDATE_CHECK_Reserved6: 8, 0, Slave1 ;
+  BMS_UPDATE_CHECK_Reserved7: 8, 0, Slave1 ;
+  BMS_UPDATE_CHECK_Reserved8: 8, 0, Slave1 ;
+  BAT_Option_Type: 4, 0, Slave1, Master1 ;
+  BMS_INFO_02_Reserved6: 8, 0, Slave1, Master1 ;
+  SW_Version: 32, {0, 0, 0, 0}, Slave1, Master1 ;
+  HW_Version: 32, {0, 0, 0, 0}, Slave1, Master1 ;
+  BMS_INFO_03_Reserved1: 4, 0, Slave1, Master1 ;
+  BMS_INFO_03_Reserved2: 8, 0, Slave1, Master1 ;
+}
+
+Diagnostic_signals {
+  MasterReqB0: 8, 0 ;
+  MasterReqB1: 8, 0 ;
+  MasterReqB2: 8, 0 ;
+  MasterReqB3: 8, 0 ;
+  MasterReqB4: 8, 0 ;
+  MasterReqB5: 8, 0 ;
+  MasterReqB6: 8, 0 ;
+  MasterReqB7: 8, 0 ;
+  SlaveRespB0: 8, 0 ;
+  SlaveRespB1: 8, 0 ;
+  SlaveRespB2: 8, 0 ;
+  SlaveRespB3: 8, 0 ;
+  SlaveRespB4: 8, 0 ;
+  SlaveRespB5: 8, 0 ;
+  SlaveRespB6: 8, 0 ;
+  SlaveRespB7: 8, 0 ;
+}
+
+
+
+Frames {
+  BMS_CERTI: 16, Master1, 8 {
+    Rdm_Val1, 0 ;
+    Rdm_Val2, 16 ;
+    Rdm_Val3, 32 ;
+    Rdm_Val4, 48 ;
+  }
+  BMS_CERTI_CHECK: 17, Slave1, 8 {
+    Rdm_Rval1, 0 ;
+    Rdm_Rval2, 16 ;
+    Rdm_Rval3, 32 ;
+    Rdm_Rval4, 48 ;
+  }
+  BMS_INFO_01: 18, Slave1, 8 {
+    BAT_Type, 0 ;
+    BAT_Capa_for_BLTN_CAM, 8 ;
+    BAT_SOH, 16 ;
+    B_VOLTAGE, 24 ;
+    IGN_VOLTAGE, 32 ;
+    BAT_Capa_Total, 40 ;
+    BMS_INFO_01_Reserved7, 56 ;
+    BAT_Option_Type, 4 ;
+  }
+  BMS_INFO_02: 19, Slave1, 8 {
+    BAT_SOC_for_BLTN_CAM, 0 ;
+    BAT_Volt, 8 ;
+    BAT_Current, 16 ;
+    BAT_Temp, 32 ;
+    BMS_INFO_02_Reserved7, 56 ;
+    BMS_INFO_02_Reserved6, 48 ;
+  }
+  BMS_INFO_03: 20, Slave1, 8 {
+    BAT_Status, 0 ;
+    BAT_Volt_Fault_Info, 8 ;
+    BAT_Fault_Info, 16 ;
+    BAT_Current_Fault_Info, 24 ;
+    LBM_Maxdischr_Info, 48 ;
+    BAT_Discharging_Time_Info, 32 ;
+    BLTM_CAM_Current, 40 ;
+    BLTN_CAM_End_Request, 50 ;
+    BMS_INFO_03_Reserved1, 52 ;
+    BMS_INFO_03_Reserved2, 56 ;
+  }
+  BMS_OPERATION_CONTROL: 21, Master1, 8 {
+    BAT_Charge_Control, 0 ;
+    Reserved3M_16bit, 24 ;
+    Reserved45M_16bit, 32 ;
+    Reserved67M_16bit, 48 ;
+    BAT_Discharging_Time, 8 ;
+    Key_On_Off_Info, 16 ;
+  }
+  LIBS_DATA_INFO_01: 22, Slave1, 8 {
+    Total_Charge_Capa, 0 ;
+    Cycle_Index, 32 ;
+    Reserved6, 48 ;
+    Reserved7, 56 ;
+  }
+  BMS_VERSION: 36, Slave1, 8 {
+    SW_Version, 0 ;
+    HW_Version, 32 ;
+  }
+}
+
+
+
+Diagnostic_frames {
+  MasterReq: 0x3c {
+    MasterReqB0, 0 ;
+    MasterReqB1, 8 ;
+    MasterReqB2, 16 ;
+    MasterReqB3, 24 ;
+    MasterReqB4, 32 ;
+    MasterReqB5, 40 ;
+    MasterReqB6, 48 ;
+    MasterReqB7, 56 ;
+  }
+  SlaveResp: 0x3d {
+    SlaveRespB0, 0 ;
+    SlaveRespB1, 8 ;
+    SlaveRespB2, 16 ;
+    SlaveRespB3, 24 ;
+    SlaveRespB4, 32 ;
+    SlaveRespB5, 40 ;
+    SlaveRespB6, 48 ;
+    SlaveRespB7, 56 ;
+  }
+}
+
+Node_attributes {
+  Slave1{
+    LIN_protocol = "2.1" ;
+    configured_NAD = 0x2 ;
+    initial_NAD = 0xB ;
+    product_id = 0x1F, 0x2, 1 ;
+    P2_min = 100 ms ;
+    ST_min = 20 ms ;
+    N_As_timeout = 1000 ms ;
+    N_Cr_timeout = 1000 ms ;
+    configurable_frames {
+      BMS_CERTI ;
+      BMS_CERTI_CHECK ;
+      BMS_INFO_01 ;
+      BMS_INFO_02 ;
+      BMS_INFO_03 ;
+      BMS_OPERATION_CONTROL ;
+      LIBS_DATA_INFO_01 ;
+      BMS_VERSION ;
+    }
+  }
+  Slave2{
+    LIN_protocol = "2.1" ;
+    configured_NAD = 0xFF ;
+    initial_NAD = 0xFF ;
+    product_id = 0x0, 0x0, 255 ;
+    P2_min = 50 ms ;
+    ST_min = 0 ms ;
+    N_As_timeout = 1000 ms ;
+    N_Cr_timeout = 1000 ms ;
+  }
+}
+
+Schedule_tables {
+ NormalTable {
+    BMS_CERTI delay 10 ms ;
+    BMS_CERTI_CHECK delay 10 ms ;
+    BMS_INFO_01 delay 240 ms ;
+    BMS_INFO_02 delay 240 ms ;
+    BMS_INFO_03 delay 240 ms ;
+    BMS_OPERATION_CONTROL delay 10 ms ;
+    LIBS_DATA_INFO_01 delay 240 ms ;
+    BMS_VERSION delay 10 ms ;
+  }
+}
+
+
+Signal_encoding_types {
+  ACU_Current_Encoding {
+    physical_value, 0, 0, 1, 0 ;
+    logical_value, 0, "PDC_ConverterReq != 0x3" ;
+    logical_value, 1, "PDC_ConverterReq == 0x3" ;
+  }
+  BAT_Capa_Encoding {
+    physical_value, 0, 254, 0.1, 0, "Ah" ;
+  }
+  BAT_Capa_Total_Encoding {
+    physical_value, 0, 65534, 0.1, 0, "Ah" ;
+  }
+  BAT_Charge_Control_Encoding {
+    physical_value, 0, 0, 1, 0 ;
+    logical_value, 0, "Stop" ;
+    logical_value, 1, "Charging Start" ;
+    logical_value, 2, "Discharging Start" ;
+  }
+  BAT_Current_Encoding {
+    physical_value, 0, 65534, 1, -32000, "mA" ;
+  }
+  BAT_Current_Fault_Info_Encoding {
+    physical_value, 0, 1, 1, 0 ;
+    logical_value, 0, "Normal" ;
+    logical_value, 1, "Over current" ;
+  }
+  BAT_Discharging_Time_Encoding {
+    physical_value, 0, 254, 1, 0, "Hour" ;
+    logical_value, 0, "Discharging Time 0 hour" ;
+    logical_value, 1, "Discharging Time 1 hour" ;
+    logical_value, 2, "Discharging Time 2hour" ;
+    logical_value, 3, "Discharging Time 3 hour" ;
+    logical_value, 4, "Discharging Time 4 hour" ;
+    logical_value, 5, "Discharging Time 5 hour" ;
+    logical_value, 6, "Discharging Time 6 hour" ;
+    logical_value, 7, "Discharging Time 7 hour" ;
+    logical_value, 8, "Discharging Time 8 hour" ;
+    logical_value, 9, "Discharging Time 9 hour" ;
+    logical_value, 10, "Discharging Time 10 hour" ;
+    logical_value, 11, "Discharging Time 11 hour" ;
+    logical_value, 12, "Discharging Time 12 hour" ;
+    logical_value, 13, "Discharging Time 13 hour" ;
+    logical_value, 14, "Discharging Time 14 hour" ;
+    logical_value, 15, "Discharging Time 15 hour" ;
+    logical_value, 16, "Discharging Time 16 hour" ;
+  }
+  BAT_Discharging_Time_Info_Encoding {
+    physical_value, 0, 254, 1, 0, "Hour" ;
+    logical_value, 0, "Discharging Time 0 hour" ;
+    logical_value, 1, "Discharging Time 1 hour" ;
+    logical_value, 2, "Discharging Time 2 hour" ;
+    logical_value, 3, "Discharging Time 3 hour" ;
+    logical_value, 4, "Discharging Time 4 hour" ;
+    logical_value, 5, "Discharging Time 5 hour" ;
+    logical_value, 6, "Discharging Time 6 hour" ;
+    logical_value, 7, "Discharging Time 7 hour" ;
+    logical_value, 8, "Discharging Time 8 hour" ;
+    logical_value, 9, "Discharging Time 9 hour" ;
+    logical_value, 10, "Discharging Time 10 hour" ;
+    logical_value, 11, "Discharging Time 11 hour" ;
+    logical_value, 12, "Discharging Time 12 hour" ;
+    logical_value, 13, "Discharging Time 13 hour" ;
+    logical_value, 14, "Discharging Time 14 hour" ;
+    logical_value, 15, "Discharging Time 15 hour" ;
+    logical_value, 16, "Discharging Time 16 hour" ;
+  }
+  BAT_Misc_Fault_Info_Encoding {
+    physical_value, 0, 64, 1, 0 ;
+    logical_value, 0, "Normal" ;
+    logical_value, 1, "Over Temperature" ;
+    logical_value, 2, "Under Temperature" ;
+    logical_value, 4, "Temp Sensor Fail" ;
+    logical_value, 8, "Cell Deviation Fault" ;
+    logical_value, 16, "Discharge Open" ;
+    logical_value, 32, "Pre charge Timeout Fault" ;
+    logical_value, 64, "Pre charge Current Fault" ;
+  }
+  BAT_Option_Type_Encoding {
+    physical_value, 0, 2, 1, 0 ;
+    logical_value, 0, "B-LBM" ;
+    logical_value, 1, "P-LBM" ;
+    logical_value, 2, "E-LBM" ;
+  }
+  BAT_SOC_Encoding {
+    physical_value, 0, 100, 1, 0, "%" ;
+  }
+  BAT_SOH_Encoding {
+    physical_value, 0, 100, 1, 0, "%" ;
+  }
+  BAT_Status_Encoding {
+    physical_value, 0, 4, 1, 0 ;
+    logical_value, 0, "Standby" ;
+    logical_value, 1, "Full charge" ;
+    logical_value, 2, "Charging" ;
+    logical_value, 3, "Discharging" ;
+    logical_value, 4, "Fault" ;
+  }
+  BAT_Temp_Encoding {
+    physical_value, 0, 1400, 0.1, -50, "deg.C" ;
+  }
+  BAT_Type_Encoding {
+    physical_value, 0, 3, 1, 0 ;
+    logical_value, 0, "LFP" ;
+    logical_value, 1, "NCM" ;
+    logical_value, 2, "LTO" ;
+    logical_value, 3, "Pb" ;
+  }
+  BAT_Volt_Encoding {
+    physical_value, 0, 254, 0.1, 0, "V" ;
+  }
+  BAT_Volt_Fault_Info_Encoding {
+    physical_value, 0, 2, 1, 0 ;
+    logical_value, 0, "Normal" ;
+    logical_value, 1, "Over charge Or Timeout 2" ;
+    logical_value, 2, "Over discharge" ;
+  }
+  BLTN_CAM_End_Request_Encoding {
+    logical_value, 0, "Normal" ;
+    logical_value, 1, "BLTN_CAM_END" ;
+  }
+  BMS_INFO_03_Reserved1_Encoding {
+    physical_value, 0, 255, 1, 0 ;
+  }
+  BMS_INFO_03_Reserved2_Encoding {
+    physical_value, 0, 255, 1, 0 ;
+  }
+  BMS_Shutdown_NewSignal_Encoding {
+    physical_value, 0, 0, 1, 0 ;
+  }
+  BMS_UPDATE_STATUS_NewSignal_Encoding {
+    physical_value, 0, 0, 1, 0 ;
+    logical_value, 0, "OPT_BATT_UPDATE_DEFAULT" ;
+    logical_value, 1, "OPT_BATT_UPDATE_START" ;
+    logical_value, 2, "OPT_BATT_UPDATING" ;
+    logical_value, 3, "OPT_BATT_UPDATE_END" ;
+    logical_value, 4, "OPT_BATT_UPDATE_CERTI" ;
+    logical_value, 5, "OPT_BATT_UPDATE_CANCEL" ;
+  }
+  BMS_Update_Response_Encoding {
+    physical_value, 0, 0, 1, 0 ;
+    logical_value, 0, "Default" ;
+    logical_value, 1, "OK" ;
+    logical_value, 2, "NG" ;
+    logical_value, 3, "Pending" ;
+  }
+  B_VOLTAGE_Encoding {
+    physical_value, 0, 256, 0.1, 0, "V" ;
+  }
+  BalancingEnterDeviation_Encoding {
+    physical_value, 0, 255, 1, 0, "mV" ;
+  }
+  BalancingExitDeviation_Encoding {
+    physical_value, 0, 255, 1, 0, "mV" ;
+  }
+  BalancingTime_Encoding {
+    physical_value, 0, 255, 1, 0, "Sec" ;
+  }
+  Board_Temp_Encoding {
+    physical_value, 0, 1400, 0.1, -50, "deg.C" ;
+  }
+  Cell1_V_Encoding {
+    physical_value, 0, 5000, 0.001, 0, "V" ;
+  }
+  Cell2_V_Encoding {
+    physical_value, 0, 5000, 0.001, 0, "V" ;
+  }
+  Cell3_V_Encoding {
+    physical_value, 0, 5000, 0.001, 0, "V" ;
+  }
+  Cell4_V_Encoding {
+    physical_value, 0, 5000, 0.001, 0, "V" ;
+  }
+  Cell5_V_Encoding {
+    physical_value, 0, 5000, 0.001, 0, "V" ;
+  }
+  CellMax_V_Encoding {
+    physical_value, 0, 5000, 0.001, 0, "V" ;
+  }
+  CellMean_V_Encoding {
+    physical_value, 0, 5000, 0.001, 0, "V" ;
+  }
+  CellMin_V_Encoding {
+    physical_value, 0, 5000, 0.001, 0, "V" ;
+  }
+  Cell_Bal_Ch1_Encoding {
+    logical_value, 0, "No balancing" ;
+    logical_value, 1, "Balancing" ;
+  }
+  Cell_Bal_Ch2_Encoding {
+    logical_value, 0, "No balancing" ;
+    logical_value, 1, "Balancing" ;
+  }
+  Cell_Bal_Ch3_Encoding {
+    logical_value, 0, "No balancing" ;
+    logical_value, 1, "Balancing" ;
+  }
+  Cell_Bal_Ch4_Encoding {
+    logical_value, 0, "No balancing" ;
+    logical_value, 1, "Balancing" ;
+  }
+  Cell_Bal_Ch5_Encoding {
+    logical_value, 0, "No balancing" ;
+    logical_value, 1, "Balancing" ;
+  }
+  Cell_Temp_Ch1_Encoding {
+    physical_value, 0, 1400, 0.1, -50, "deg.C" ;
+  }
+  Cell_Temp_Ch2_Encoding {
+    physical_value, 0, 1400, 0.1, -50, "deg.C" ;
+  }
+  ChargerOnState_Encoding {
+    physical_value, 0, 0, 1, 0, "Flag" ;
+    logical_value, 0, "Charger Off" ;
+    logical_value, 1, "Charger On" ;
+  }
+  Charger_Temp_Encoding {
+    physical_value, 0, 1400, 0.1, -50, "deg.C" ;
+  }
+  Cycle_Index_Encoding {
+    physical_value, 0, 65534, 1, 0 ;
+  }
+  DVRS_Current_Encoding {
+    physical_value, 0, 254, 100, 0, "mA" ;
+  }
+  DiagResult {
+    physical_value, 0, 1, 1, 0 ;
+    logical_value, 0, "OK" ;
+    logical_value, 1, "Fail" ;
+  }
+  HW_Version_Encoding {
+    ascii_value ;
+  }
+  HW_Version_Encoding_1 {
+    ascii_value ;
+  }
+  IGN_VOLTAGE_Encoding {
+    physical_value, 0, 256, 0.1, 0, "V" ;
+  }
+  Manual_Cb_Ch1_Encoding {
+    physical_value, 0, 1, 1, 0 ;
+  }
+  Manual_Cb_Ch2_Encoding {
+    physical_value, 0, 1, 1, 0 ;
+  }
+  Manual_Cb_Ch3_Encoding {
+    physical_value, 0, 1, 1, 0 ;
+  }
+  Manual_Cb_Ch4_Encoding {
+    physical_value, 0, 1, 1, 0 ;
+  }
+  Manual_Cb_Ch5_Encoding {
+    physical_value, 0, 1, 1, 0 ;
+  }
+  PreCharger_Timeout_Fault_Encoding {
+    physical_value, 0, 1, 1, 0 ;
+    logical_value, 0, "Normal" ;
+    logical_value, 1, "Precharger Time out" ;
+  }
+  PreChargingState_Encoding {
+    physical_value, 0, 1, 1, 0, "Flag" ;
+    logical_value, 0, "Pre-Charging Off" ;
+    logical_value, 1, "Pre-Charging On" ;
+  }
+  Precharge_Current_Fault_Encoding {
+    physical_value, 0, 1, 1, 0 ;
+    logical_value, 0, "Normal" ;
+    logical_value, 1, "Precharge Current Fault" ;
+  }
+  Reserved7_8bit_Encoding {
+    physical_value, 0, 0, 1, 0 ;
+  }
+  RestTime_Encoding {
+    physical_value, 0, 255, 1, 0, "Sec" ;
+  }
+  SOC_I_Encoding {
+    physical_value, 0, 10000, 0.01, 0, "%" ;
+  }
+  SOC_V_Encoding {
+    physical_value, 0, 10000, 0.01, 0, "%" ;
+  }
+  SW_Version_Encoding {
+    ascii_value ;
+  }
+  SW_Version_Encoding_1 {
+    ascii_value ;
+  }
+  TotalUsedCapacity_Encoding {
+    physical_value, 0, 65535, 1, 0 ;
+  }
+  TotalUsedCapacity_H_Encoding {
+    physical_value, 0, 65534, 1, 0 ;
+  }
+  TotalUsedTime_H_Encoding {
+    physical_value, 0, 65534, 1, 0 ;
+  }
+  TotalUsedTime_L_Encoding {
+    physical_value, 0, 65535, 1, 0 ;
+  }
+  Total_Charge_Capa_Encoding {
+    physical_value, 0, -2, 1, 0, "mAh" ;
+  }
+  VOLT_Battery_Encoding {
+    physical_value, 0, 65535, 0.001, 0, "V" ;
+  }
+  VOLT_Charger_Encoding {
+    physical_value, 0, 65535, 0.001, 0, "V" ;
+  }
+  VOLT_Ign2_Encoding {
+    physical_value, 0, 65535, 0.001, 0, "V" ;
+  }
+  VOLT_Pack_Encoding {
+    physical_value, 0, 65535, 0.001, 0, "V" ;
+  }
+  Product_ID_Encoding {
+    logical_value, 0, "DN8" ;
+    logical_value, 1, "YGPE" ;
+    logical_value, 2, "RG3" ;
+    logical_value, 3, "IGPE" ;
+    logical_value, 4, "JX1" ;
+  }
+  TotalUsedCapacity_L_Encoding {
+    physical_value, 0, 65535, 1, 0 ;
+  }
+}
+
+Signal_representation {
+  ACU_Current_Encoding: LBM_Maxdischr_Info ;
+  BAT_Capa_Encoding: BAT_Capa_for_BLTN_CAM ;
+  BAT_Capa_Total_Encoding: BAT_Capa_Total ;
+  BAT_Charge_Control_Encoding: BAT_Charge_Control ;
+  BAT_Current_Encoding: BAT_Current ;
+  BAT_Current_Fault_Info_Encoding: BAT_Current_Fault_Info ;
+  BAT_Discharging_Time_Encoding: BAT_Discharging_Time ;
+  BAT_Discharging_Time_Info_Encoding: BAT_Discharging_Time_Info ;
+  BAT_Misc_Fault_Info_Encoding: BAT_Fault_Info ;
+  BAT_Option_Type_Encoding: BAT_Option_Type ;
+  BAT_SOC_Encoding: BAT_SOC_for_BLTN_CAM ;
+  BAT_SOH_Encoding: BAT_SOH ;
+  BAT_Status_Encoding: BAT_Status ;
+  BAT_Temp_Encoding: BAT_Temp ;
+  BAT_Type_Encoding: BAT_Type ;
+  BAT_Volt_Encoding: BAT_Volt ;
+  BAT_Volt_Fault_Info_Encoding: BAT_Volt_Fault_Info ;
+  BLTN_CAM_End_Request_Encoding: BLTN_CAM_End_Request ;
+  BMS_INFO_03_Reserved1_Encoding: BMS_INFO_03_Reserved1 ;
+  BMS_INFO_03_Reserved2_Encoding: BMS_INFO_03_Reserved2 ;
+  BMS_Shutdown_NewSignal_Encoding: BMS_Shutdown_NewSignal ;
+  BMS_UPDATE_STATUS_NewSignal_Encoding: Update_status ;
+  BMS_Update_Response_Encoding: BMS_Update_Response ;
+  B_VOLTAGE_Encoding: B_VOLTAGE ;
+  BalancingEnterDeviation_Encoding: BalancingEnterDeviation ;
+  BalancingExitDeviation_Encoding: BalancingExitDeviation ;
+  BalancingTime_Encoding: BalancingTime ;
+  Board_Temp_Encoding: Charger_Temp ;
+  Cell1_V_Encoding: Cell1_V ;
+  Cell2_V_Encoding: Cell2_V ;
+  Cell3_V_Encoding: Cell3_V ;
+  Cell4_V_Encoding: Cell4_V ;
+  Cell5_V_Encoding: Cell5_V ;
+  CellMax_V_Encoding: CellMax_V ;
+  CellMean_V_Encoding: CellMean_V ;
+  CellMin_V_Encoding: CellMin_V ;
+  Cell_Bal_Ch1_Encoding: Cell_Bal_Ch1 ;
+  Cell_Bal_Ch2_Encoding: Cell_Bal_Ch2 ;
+  Cell_Bal_Ch3_Encoding: Cell_Bal_Ch3 ;
+  Cell_Bal_Ch4_Encoding: Cell_Bal_Ch4 ;
+  Cell_Bal_Ch5_Encoding: Cell_Bal_Ch5 ;
+  Cell_Temp_Ch1_Encoding: Cell_Temp_Ch1 ;
+  Cell_Temp_Ch2_Encoding: Cell_Temp_Ch2 ;
+  ChargerOnState_Encoding: ChargerOnState ;
+  Charger_Temp_Encoding: Reserved ;
+  Cycle_Index_Encoding: Cycle_Index ;
+  DVRS_Current_Encoding: BLTM_CAM_Current ;
+  DiagResult: Cell_Temp_Sensor1_Fail, Cell_Temp_Sensor2_Fail, Pack_OverVoltage_Alert, Pack_UnderVoltage_Alert, Cell_OverVoltage_Alert, Cell_UnderVoltage_Alert, Charging_Over_Temperature_Alert, Charging_OverCurrent_Alert, Discharging_OverCurrent_Alert, Charger_Temp_Sensor_Fail, Discharging_Fail, Charging_Fail, Rec_Cell_Temp_Sensor1_Fail, Rec_Cell_Temp_Sensor2_Fail, Rec_Pack_OverVoltage_Alert, Rec_Pack_UnderVoltage_Alert, Rec_Cell_OverVoltage_Alert, Rec_Cell_UnderVoltage_Alert, Rec_Cell_Over_Temperature_Alert, Rec_Charging_OverCurrent_Alert, Rec_Discharging_OverCurrent_Alert, Rec_Charger_Temp_Sensor_Fail, Rec_Discharging_Fail, Rec_Charging_Fail, Charging_Under_Temperature_Alert, Discharging_Over_Temperature_Alert, Discharging_Under_Temperature_Alert, ChargerFET_Over_Temperature_Alert, Rec_Cell_Under_Temperature_Alert, Rec_Charger_Over_Temperature_Alert, Rec_Cell_Damaged_Fail, Rec_Charger_OverVoltage_Fail, ChargerFET_Under_Temperature_Alert, Cell_Deviation_Fail, Charger_OverVoltage_Fail, Charger_Input_Open_Fail, Charging_Timeout, Pre_Charging_Timeout, Pre_Charging_OverCurrent_Fail, Pre_Charging_UnderCurrent_Fail ;
+  HW_Version_Encoding: HW_Version_L ;
+  HW_Version_Encoding_1: HW_Version ;
+  IGN_VOLTAGE_Encoding: IGN_VOLTAGE ;
+  Manual_Cb_Ch1_Encoding: Manual_Cb_Ch1 ;
+  Manual_Cb_Ch2_Encoding: Manual_Cb_Ch2 ;
+  Manual_Cb_Ch3_Encoding: Manual_Cb_Ch3 ;
+  Manual_Cb_Ch4_Encoding: Manual_Cb_Ch4 ;
+  Manual_Cb_Ch5_Encoding: Manual_Cb_Ch5 ;
+  PreCharger_Timeout_Fault_Encoding: Precharger_Timeout_Fault ;
+  PreChargingState_Encoding: PreChargingState ;
+  Precharge_Current_Fault_Encoding: Precharge_Current_Fault ;
+  Reserved7_8bit_Encoding: BMS_INFO_02_Reserved7 ;
+  RestTime_Encoding: RestTime ;
+  SOC_I_Encoding: SOC_I ;
+  SOC_V_Encoding: SOC_V ;
+  SW_Version_Encoding: SW_Version_L ;
+  SW_Version_Encoding_1: SW_Version ;
+  TotalUsedCapacity_Encoding: TotalUsedCapacity_L ;
+  TotalUsedCapacity_H_Encoding: TotalUsedCapacity_H ;
+  TotalUsedTime_H_Encoding: TotalUsedTime_H ;
+  TotalUsedTime_L_Encoding: TotalUsedTime_L ;
+  Total_Charge_Capa_Encoding: Total_Charge_Capa ;
+  VOLT_Battery_Encoding: VOLT_Battery ;
+  VOLT_Charger_Encoding: VOLT_Charger ;
+  VOLT_Ign2_Encoding: VOLT_Ign2 ;
+  VOLT_Pack_Encoding: VOLT_Pack ;
+}

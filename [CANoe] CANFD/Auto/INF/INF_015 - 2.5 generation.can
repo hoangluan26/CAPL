@@ -1,0 +1,2199 @@
+﻿/*@!Encoding:65001*/
+//Precondition: Simulation Setup -> Block CGW_CCU; ccNC/ccIC switch OFF; All recording setting OFF; Enter AVN mode
+//Add signal: BLTN_CAM_RecSta_OWD; VCU_GearPosSta;VCU_GearPosStaDisp
+//Note: Set the time range in graphic to 12s
+includes 
+{
+  #include "DeclarationFunction_Gen2.5.h"  
+}
+variables
+{ // Global Variable Declaration
+  byte i;
+  int flag_RecSet_error = 0;
+  byte KEY_STATE;
+  byte GearPos_value = 0x0;
+  byte Mode_state = 0x2;
+  byte Bat_value = 0x50;
+  dword speed_value  = 0x0;
+  byte spd_UnitTyp_value = 0x2;
+  byte gear_Pos_value = 0x0;
+  char arr_ICE_modeType[3] = {'I','C','E'};
+  char arr_HEV_modeType[3] = {'H','E','V'};
+  char arr_EV_modeType[2] = {'E','V'};  
+  char answer[3]; 
+  // Message Declaration
+  message HU_BLTN_CAM_02_200ms _HU_BLTN_CAM_02_200ms;
+  message HU_BLTN_CAM_01_00ms _HU_BLTN_CAM_01_00ms;
+  message TCU_01_10ms _TCU_01_10ms;
+  message HTCU_05_10ms _HTCU_05_10ms;
+  message HTCU_04_10ms _HTCU_04_10ms;
+  message VCU_01_10ms _VCU_01_10ms;
+  message PDC_FD_10_200ms _PDC_FD_10_200ms;
+  message PDC_FD_11_200ms _PDC_FD_11_200ms;
+  message BDC_FD_SMK_03_200ms _BDC_FD_SMK_03_200ms;  
+  // Timer Declaration 
+  msTimer send_PDC_FD_11_200ms_timer;
+  msTimer send_TCU_01_10ms_timer;
+  msTimer send_HTCU_04_10ms_timer;
+  msTimer send_HTCU_05_10ms_timer;
+  msTimer send_VCU_01_10ms_timer;
+  msTimer send_ICU_ModState_timer;
+  msTimer send_BDC_FD_SMK_03_200ms_timer;
+}
+
+on timer send_BDC_FD_SMK_03_200ms_timer {
+  _BDC_FD_SMK_03_200ms.SMK_TrmnlCtrlGrpStaBDC = KEY_STATE;
+  output(_BDC_FD_SMK_03_200ms);
+  send_BDC_FD_SMK_03_200ms_timer.set(200);
+}
+
+on timer send_VCU_01_10ms_timer {
+  _VCU_01_10ms.VCU_GearPosSta = GearPos_value;
+  _VCU_01_10ms.VCU_GearPosStaDisp = GearPos_value;
+  output(_VCU_01_10ms);
+  
+  send_VCU_01_10ms_timer.set(10);
+}
+
+on timer send_ICU_ModState_timer {
+  _PDC_FD_10_200ms.ICU_PowerAutoCutModSta = Mode_state;
+  output(_PDC_FD_10_200ms);
+  send_ICU_ModState_timer.set(200);
+}
+
+on timer send_PDC_FD_11_200ms_timer {
+  _PDC_FD_11_200ms.ICU_BS2SoC = Bat_value;
+  output(_PDC_FD_11_200ms);
+  send_PDC_FD_11_200ms_timer.set(200);
+}
+
+testcase INF_015_1(){
+  testStep("Notifications","Start test INF_015_1");
+  write("=== START INF_015_1 ===");
+  
+  GearPos_value = 0x5; // D 
+  
+  write("=== SETTING ===");
+  
+  write("KEY ON"); KEY_STATE = 0x2; testWaitForTimeout(3000);
+
+  do {
+    
+    Enter_BLTN_CAM(); testWaitForTimeout(3000);
+    
+    if ($BLTN_CAM_RecSet_OWD == 0x1) {write("OWD On"); @panel::LED_Ctrl_SetOWD = 1; testWaitForTimeout(500);}
+    
+    if ($BLTN_CAM_Set_GearPos_Stm == 0x1) {write("Set GearPos Stamp On"); @panel::LED_Ctrl_Set_GearPos_Stm = 1; testWaitForTimeout(500);}
+    
+    if ($BLTN_CAM_Set_Tim_Stm == 0x2) {write("Set Time Stamp Off"); @panel::LED_Ctrl_Set_Tim_Stm = 1; testWaitForTimeout(500);}   
+    
+    if ($BLTN_CAM_Set_Spd_Stm == 0x2) {write("Set Speed Stamp Off"); @panel::LED_Ctrl_Set_Spd_Stm = 1; testWaitForTimeout(500);}    
+    
+    if ($BLTN_CAM_Set_TrnSig_Stm == 0x2) {write("Set TrnSig Stamp Off"); @panel::LED_Ctrl_Set_TrnSig_Stm = 1; testWaitForTimeout(500);}    
+    
+    if ($BLTN_CAM_Set_EVSen_Stm == 0x2) {write(" Set EVSen Stamp Off"); @panel::LED_Ctrl_Set_EVSen_Stm = 1; testWaitForTimeout(500);};   
+    
+    if ($BLTN_CAM_Set_Locatn_Stm == 0x2) {write("Set Locatn Stamp Off"); @panel::LED_Ctrl_Set_Locatn_Stm = 1; testWaitForTimeout(500);}
+    
+    @panel::Switch_Clock = 1;
+    
+    Exit_BLTN_CAM();
+    
+    flag_RecSet_error++;
+  } while (($BLTN_CAM_RecSet_OWD == 0x1 || $BLTN_CAM_Set_GearPos_Stm == 0x1 || $BLTN_CAM_Set_EVSen_Stm == 0x2 || $BLTN_CAM_Set_Locatn_Stm == 0x2 || $BLTN_CAM_Set_Spd_Stm == 0x2 || $BLTN_CAM_Set_Tim_Stm == 0x2 || $BLTN_CAM_Set_TrnSig_Stm == 0x2) && (flag_RecSet_error < 15));
+  
+  flag_RecSet_error = 0;   
+  
+  write("=== TESTING ===");
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWD,10000) == 1) {
+    write("OWD recording with GearPos is started");
+    
+    testWaitForTimeout(5000);
+    
+    send_VCU_01_10ms_timer.cancel();
+    
+    testWaitForTimeout(5000);
+    
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+      testWaitForTimeout(3000);
+      testReportAddWindowCapture("INF","BLTN_CAM_RecSta_OWD; VCU_GearPosSta;VCU_GearPosStaDisp","Sreenshot","./Husign.jpg");
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;
+    
+    send_VCU_01_10ms_timer.set(10);
+    
+    write("KEY OFF"); KEY_STATE = 0x0;
+    
+    @panel::Switch_Clock = 0;
+    
+  }
+  else {
+    
+    write("OWD recording hasn't started");
+    
+    testStepWarning("Warning","OWD recording hasn't started");    
+    
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+      testWaitForTimeout(3000);
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;   
+    
+    write("KEY OFF"); KEY_STATE = 0x0;
+    
+    @panel::Switch_Clock = 0;
+    
+    write("Stop mearsurement"); stop();    
+    
+  }
+  
+  testStep("Notifications","Done test INF_015_1");
+  write("=== FINISH INF_015_1 ===");      
+}
+
+testcase INF_015_2(){
+  testStep("Notifications","Start test INF_015_2");
+  write("=== START INF_015_2 ===");
+  
+  send_VCU_01_10ms_timer.cancel();
+  
+  GearPos_value = 0x5; // D
+  
+  write("=== SETTING ===");
+  
+  write("KEY ON"); KEY_STATE = 0x2; testWaitForTimeout(3000);
+
+  do {
+    
+    Enter_BLTN_CAM(); testWaitForTimeout(3000);
+    
+    if ($BLTN_CAM_RecSet_OWD == 0x1) {write("OWD On"); @panel::LED_Ctrl_SetOWD = 1; testWaitForTimeout(500);}
+    
+    if ($BLTN_CAM_Set_GearPos_Stm == 0x1) {write("Set GearPos Stamp On"); @panel::LED_Ctrl_Set_GearPos_Stm = 1; testWaitForTimeout(500);}
+    
+    if ($BLTN_CAM_Set_Tim_Stm == 0x2) {write("Set Time Stamp Off"); @panel::LED_Ctrl_Set_Tim_Stm = 1; testWaitForTimeout(500);}   
+    
+    if ($BLTN_CAM_Set_Spd_Stm == 0x2) {write("Set Speed Stamp Off"); @panel::LED_Ctrl_Set_Spd_Stm = 1; testWaitForTimeout(500);}    
+    
+    if ($BLTN_CAM_Set_TrnSig_Stm == 0x2) {write("Set TrnSig Stamp Off"); @panel::LED_Ctrl_Set_TrnSig_Stm = 1; testWaitForTimeout(500);}    
+    
+    if ($BLTN_CAM_Set_EVSen_Stm == 0x2) {write(" Set EVSen Stamp Off"); @panel::LED_Ctrl_Set_EVSen_Stm = 1; testWaitForTimeout(500);};   
+    
+    if ($BLTN_CAM_Set_Locatn_Stm == 0x2) {write("Set Locatn Stamp Off"); @panel::LED_Ctrl_Set_Locatn_Stm = 1; testWaitForTimeout(500);}
+    
+    @panel::Switch_Clock = 1;
+    
+    Exit_BLTN_CAM();
+    
+    flag_RecSet_error++;
+  } while (($BLTN_CAM_RecSet_OWD == 0x1 || $BLTN_CAM_Set_GearPos_Stm == 0x1 || $BLTN_CAM_Set_EVSen_Stm == 0x2 || $BLTN_CAM_Set_Locatn_Stm == 0x2 || $BLTN_CAM_Set_Spd_Stm == 0x2 || $BLTN_CAM_Set_Tim_Stm == 0x2 || $BLTN_CAM_Set_TrnSig_Stm == 0x2) && (flag_RecSet_error < 15));
+  
+  flag_RecSet_error = 0;   
+  
+  write("=== TESTING ===");
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWD,10000) == 1) {
+    write("OWD recording with GearPos is started");
+    
+    testWaitForTimeout(4990);
+    
+    send_VCU_01_10ms_timer.set(10);
+    
+    testWaitForTimeout(5000);
+    
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+      testWaitForTimeout(3000);
+      testReportAddWindowCapture("INF","BLTN_CAM_RecSta_OWD; VCU_GearPosSta;VCU_GearPosStaDisp","Sreenshot","./Husign.jpg");
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;
+    
+    write("KEY OFF"); KEY_STATE = 0x0;
+    
+    @panel::Switch_Clock = 0;
+    
+    testWaitForTimeout(3000);
+    testReportAddWindowCapture("INF","BLTN_CAM_RecSta_OWD; VCU_GearPosSta;VCU_GearPosStaDisp","Sreenshot","./Husign.jpg");
+    
+  }
+  else {
+    
+    write("OWD recording hasn't started");
+    
+    testStepWarning("Warning","OWD recording hasn't started");    
+    
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+      testWaitForTimeout(3000);
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;   
+    
+    write("KEY OFF"); KEY_STATE = 0x0;
+    
+    @panel::Switch_Clock = 0;
+    
+    write("Stop mearsurement"); stop();    
+    
+  }
+  
+  testStep("Notifications","Done test INF_015_2");
+  write("=== FINISH INF_015_2 ===");      
+}
+
+testcase INF_015_3(){
+  testStep("Notifications","Start test INF_015_3");
+  write("=== START INF_015_3 ===");
+  
+  GearPos_value = 0x0; // P
+  
+  write("=== SETTING ===");
+  
+  write("KEY ON"); KEY_STATE = 0x2; testWaitForTimeout(3000);
+
+  do {
+    
+    Enter_BLTN_CAM(); testWaitForTimeout(3000);
+    
+    if ($BLTN_CAM_RecSet_OWD == 0x1) {write("OWD On"); @panel::LED_Ctrl_SetOWD = 1; testWaitForTimeout(500);}
+    
+    if ($BLTN_CAM_Set_GearPos_Stm == 0x1) {write("Set GearPos Stamp On"); @panel::LED_Ctrl_Set_GearPos_Stm = 1; testWaitForTimeout(500);}
+    
+    if ($BLTN_CAM_Set_Tim_Stm == 0x2) {write("Set Time Stamp Off"); @panel::LED_Ctrl_Set_Tim_Stm = 1; testWaitForTimeout(500);}   
+    
+    if ($BLTN_CAM_Set_Spd_Stm == 0x2) {write("Set Speed Stamp Off"); @panel::LED_Ctrl_Set_Spd_Stm = 1; testWaitForTimeout(500);}    
+    
+    if ($BLTN_CAM_Set_TrnSig_Stm == 0x2) {write("Set TrnSig Stamp Off"); @panel::LED_Ctrl_Set_TrnSig_Stm = 1; testWaitForTimeout(500);}    
+    
+    if ($BLTN_CAM_Set_EVSen_Stm == 0x2) {write(" Set EVSen Stamp Off"); @panel::LED_Ctrl_Set_EVSen_Stm = 1; testWaitForTimeout(500);};   
+    
+    if ($BLTN_CAM_Set_Locatn_Stm == 0x2) {write("Set Locatn Stamp Off"); @panel::LED_Ctrl_Set_Locatn_Stm = 1; testWaitForTimeout(500);}
+    
+    @panel::Switch_Clock = 1;
+    
+    Exit_BLTN_CAM();
+    
+    flag_RecSet_error++;
+  } while (($BLTN_CAM_RecSet_OWD == 0x1 || $BLTN_CAM_Set_GearPos_Stm == 0x1 || $BLTN_CAM_Set_EVSen_Stm == 0x2 || $BLTN_CAM_Set_Locatn_Stm == 0x2 || $BLTN_CAM_Set_Spd_Stm == 0x2 || $BLTN_CAM_Set_Tim_Stm == 0x2 || $BLTN_CAM_Set_TrnSig_Stm == 0x2) && (flag_RecSet_error < 15));
+  
+  flag_RecSet_error = 0;   
+  
+  write("=== TESTING ===");
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWD,10000) == 1) {
+    write("OWD recording with GearPos is started");
+    
+    testWaitForTimeout(10000);
+    
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+      testWaitForTimeout(3000);
+      testReportAddWindowCapture("INF","BLTN_CAM_RecSta_OWD; VCU_GearPosSta;VCU_GearPosStaDisp","Sreenshot","./Husign.jpg");
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;
+    
+    write("KEY OFF"); KEY_STATE = 0x0;
+    
+    @panel::Switch_Clock = 0;
+    
+    testWaitForTimeout(3000);
+    testReportAddWindowCapture("INF","BLTN_CAM_RecSta_OWD; VCU_GearPosSta;VCU_GearPosStaDisp","Sreenshot","./Husign.jpg");
+    
+  }
+  else {
+    
+    write("OWD recording hasn't started");
+    
+    testStepWarning("Warning","OWD recording hasn't started");    
+    
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+      testWaitForTimeout(3000);
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;   
+    
+    write("KEY OFF"); KEY_STATE = 0x0;
+    
+    @panel::Switch_Clock = 0;
+    
+    write("Stop mearsurement"); stop();    
+    
+  }
+  
+  testStep("Notifications","Done test INF_015_3");
+  write("=== FINISH INF_015_3 ===");      
+}
+
+testcase INF_015_4(){
+  testStep("Notifications","Start test INF_015_4");
+  write("=== START INF_015_4 ===");
+  
+  GearPos_value = 0x1; // L
+  
+  write("=== SETTING ===");
+  
+  write("KEY ON"); KEY_STATE = 0x2; testWaitForTimeout(3000);
+
+  do {
+    
+    Enter_BLTN_CAM(); testWaitForTimeout(3000);
+    
+    if ($BLTN_CAM_RecSet_OWD == 0x1) {write("OWD On"); @panel::LED_Ctrl_SetOWD = 1; testWaitForTimeout(500);}
+    
+    if ($BLTN_CAM_Set_GearPos_Stm == 0x1) {write("Set GearPos Stamp On"); @panel::LED_Ctrl_Set_GearPos_Stm = 1; testWaitForTimeout(500);}
+    
+    if ($BLTN_CAM_Set_Tim_Stm == 0x2) {write("Set Time Stamp Off"); @panel::LED_Ctrl_Set_Tim_Stm = 1; testWaitForTimeout(500);}   
+    
+    if ($BLTN_CAM_Set_Spd_Stm == 0x2) {write("Set Speed Stamp Off"); @panel::LED_Ctrl_Set_Spd_Stm = 1; testWaitForTimeout(500);}    
+    
+    if ($BLTN_CAM_Set_TrnSig_Stm == 0x2) {write("Set TrnSig Stamp Off"); @panel::LED_Ctrl_Set_TrnSig_Stm = 1; testWaitForTimeout(500);}    
+    
+    if ($BLTN_CAM_Set_EVSen_Stm == 0x2) {write(" Set EVSen Stamp Off"); @panel::LED_Ctrl_Set_EVSen_Stm = 1; testWaitForTimeout(500);};   
+    
+    if ($BLTN_CAM_Set_Locatn_Stm == 0x2) {write("Set Locatn Stamp Off"); @panel::LED_Ctrl_Set_Locatn_Stm = 1; testWaitForTimeout(500);}
+    
+    @panel::Switch_Clock = 1;
+    
+    Exit_BLTN_CAM();
+    
+    flag_RecSet_error++;
+  } while (($BLTN_CAM_RecSet_OWD == 0x1 || $BLTN_CAM_Set_GearPos_Stm == 0x1 || $BLTN_CAM_Set_EVSen_Stm == 0x2 || $BLTN_CAM_Set_Locatn_Stm == 0x2 || $BLTN_CAM_Set_Spd_Stm == 0x2 || $BLTN_CAM_Set_Tim_Stm == 0x2 || $BLTN_CAM_Set_TrnSig_Stm == 0x2) && (flag_RecSet_error < 15));
+  
+  flag_RecSet_error = 0;   
+  
+  write("=== TESTING ===");
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWD,10000) == 1) {
+    write("OWD recording with GearPos is started");
+    
+    testWaitForTimeout(10000);
+    
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+      testWaitForTimeout(3000);
+      testReportAddWindowCapture("INF","BLTN_CAM_RecSta_OWD; VCU_GearPosSta;VCU_GearPosStaDisp","Sreenshot","./Husign.jpg");
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;
+    
+    write("KEY OFF"); KEY_STATE = 0x0;
+    
+    @panel::Switch_Clock = 0;
+    
+    testWaitForTimeout(3000);
+    testReportAddWindowCapture("INF","BLTN_CAM_RecSta_OWD; VCU_GearPosSta;VCU_GearPosStaDisp","Sreenshot","./Husign.jpg");
+    
+  }
+  else {
+    
+    write("OWD recording hasn't started");
+    
+    testStepWarning("Warning","OWD recording hasn't started");    
+    
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+      testWaitForTimeout(3000);
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;   
+    
+    write("KEY OFF"); KEY_STATE = 0x0;
+    
+    @panel::Switch_Clock = 0;
+    
+    write("Stop mearsurement"); stop();    
+    
+  }
+  
+  testStep("Notifications","Done test INF_015_4");
+  write("=== FINISH INF_015_4 ===");      
+}
+
+testcase INF_015_5(){
+  testStep("Notifications","Start test INF_015_5");
+  write("=== START INF_015_5 ===");
+  
+  GearPos_value = 0x2; // 2
+  
+  write("=== SETTING ===");
+  
+  write("KEY ON"); KEY_STATE = 0x2; testWaitForTimeout(3000);
+
+  do {
+    
+    Enter_BLTN_CAM(); testWaitForTimeout(3000);
+    
+    if ($BLTN_CAM_RecSet_OWD == 0x1) {write("OWD On"); @panel::LED_Ctrl_SetOWD = 1; testWaitForTimeout(500);}
+    
+    if ($BLTN_CAM_Set_GearPos_Stm == 0x1) {write("Set GearPos Stamp On"); @panel::LED_Ctrl_Set_GearPos_Stm = 1; testWaitForTimeout(500);}
+    
+    if ($BLTN_CAM_Set_Tim_Stm == 0x2) {write("Set Time Stamp Off"); @panel::LED_Ctrl_Set_Tim_Stm = 1; testWaitForTimeout(500);}   
+    
+    if ($BLTN_CAM_Set_Spd_Stm == 0x2) {write("Set Speed Stamp Off"); @panel::LED_Ctrl_Set_Spd_Stm = 1; testWaitForTimeout(500);}    
+    
+    if ($BLTN_CAM_Set_TrnSig_Stm == 0x2) {write("Set TrnSig Stamp Off"); @panel::LED_Ctrl_Set_TrnSig_Stm = 1; testWaitForTimeout(500);}    
+    
+    if ($BLTN_CAM_Set_EVSen_Stm == 0x2) {write(" Set EVSen Stamp Off"); @panel::LED_Ctrl_Set_EVSen_Stm = 1; testWaitForTimeout(500);};   
+    
+    if ($BLTN_CAM_Set_Locatn_Stm == 0x2) {write("Set Locatn Stamp Off"); @panel::LED_Ctrl_Set_Locatn_Stm = 1; testWaitForTimeout(500);}
+    
+    @panel::Switch_Clock = 1;
+    
+    Exit_BLTN_CAM();
+    
+    flag_RecSet_error++;
+  } while (($BLTN_CAM_RecSet_OWD == 0x1 || $BLTN_CAM_Set_GearPos_Stm == 0x1 || $BLTN_CAM_Set_EVSen_Stm == 0x2 || $BLTN_CAM_Set_Locatn_Stm == 0x2 || $BLTN_CAM_Set_Spd_Stm == 0x2 || $BLTN_CAM_Set_Tim_Stm == 0x2 || $BLTN_CAM_Set_TrnSig_Stm == 0x2) && (flag_RecSet_error < 15));
+  
+  flag_RecSet_error = 0;   
+  
+  write("=== TESTING ===");
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWD,10000) == 1) {
+    write("OWD recording with GearPos is started");
+    
+    testWaitForTimeout(10000);
+    
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+      testWaitForTimeout(3000);
+      testReportAddWindowCapture("INF","BLTN_CAM_RecSta_OWD; VCU_GearPosSta;VCU_GearPosStaDisp","Sreenshot","./Husign.jpg");
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;
+    
+    write("KEY OFF"); KEY_STATE = 0x0;
+    
+    @panel::Switch_Clock = 0;
+    
+    testWaitForTimeout(3000);
+    testReportAddWindowCapture("INF","BLTN_CAM_RecSta_OWD; VCU_GearPosSta;VCU_GearPosStaDisp","Sreenshot","./Husign.jpg");
+    
+  }
+  else {
+    
+    write("OWD recording hasn't started");
+    
+    testStepWarning("Warning","OWD recording hasn't started");    
+    
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+      testWaitForTimeout(3000);
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;   
+    
+    write("KEY OFF"); KEY_STATE = 0x0;
+    
+    @panel::Switch_Clock = 0;
+    
+    write("Stop mearsurement"); stop();    
+    
+  }
+  
+  testStep("Notifications","Done test INF_015_5");
+  write("=== FINISH INF_015_5 ===");      
+}
+
+testcase INF_015_6(){
+  testStep("Notifications","Start test INF_015_6");
+  write("=== START INF_015_6 ===");
+  
+  GearPos_value = 0x3; // 3
+  
+  write("=== SETTING ===");
+  
+  write("KEY ON"); KEY_STATE = 0x2; testWaitForTimeout(3000);
+
+  do {
+    
+    Enter_BLTN_CAM(); testWaitForTimeout(3000);
+    
+    if ($BLTN_CAM_RecSet_OWD == 0x1) {write("OWD On"); @panel::LED_Ctrl_SetOWD = 1; testWaitForTimeout(500);}
+    
+    if ($BLTN_CAM_Set_GearPos_Stm == 0x1) {write("Set GearPos Stamp On"); @panel::LED_Ctrl_Set_GearPos_Stm = 1; testWaitForTimeout(500);}
+    
+    if ($BLTN_CAM_Set_Tim_Stm == 0x2) {write("Set Time Stamp Off"); @panel::LED_Ctrl_Set_Tim_Stm = 1; testWaitForTimeout(500);}   
+    
+    if ($BLTN_CAM_Set_Spd_Stm == 0x2) {write("Set Speed Stamp Off"); @panel::LED_Ctrl_Set_Spd_Stm = 1; testWaitForTimeout(500);}    
+    
+    if ($BLTN_CAM_Set_TrnSig_Stm == 0x2) {write("Set TrnSig Stamp Off"); @panel::LED_Ctrl_Set_TrnSig_Stm = 1; testWaitForTimeout(500);}    
+    
+    if ($BLTN_CAM_Set_EVSen_Stm == 0x2) {write(" Set EVSen Stamp Off"); @panel::LED_Ctrl_Set_EVSen_Stm = 1; testWaitForTimeout(500);};   
+    
+    if ($BLTN_CAM_Set_Locatn_Stm == 0x2) {write("Set Locatn Stamp Off"); @panel::LED_Ctrl_Set_Locatn_Stm = 1; testWaitForTimeout(500);}
+    
+    @panel::Switch_Clock = 1;
+    
+    Exit_BLTN_CAM();
+    
+    flag_RecSet_error++;
+  } while (($BLTN_CAM_RecSet_OWD == 0x1 || $BLTN_CAM_Set_GearPos_Stm == 0x1 || $BLTN_CAM_Set_EVSen_Stm == 0x2 || $BLTN_CAM_Set_Locatn_Stm == 0x2 || $BLTN_CAM_Set_Spd_Stm == 0x2 || $BLTN_CAM_Set_Tim_Stm == 0x2 || $BLTN_CAM_Set_TrnSig_Stm == 0x2) && (flag_RecSet_error < 15));
+  
+  flag_RecSet_error = 0;   
+  
+  write("=== TESTING ===");
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWD,10000) == 1) {
+    write("OWD recording with GearPos is started");
+    
+    testWaitForTimeout(10000);
+    
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+      testWaitForTimeout(3000);
+      testReportAddWindowCapture("INF","BLTN_CAM_RecSta_OWD; VCU_GearPosSta;VCU_GearPosStaDisp","Sreenshot","./Husign.jpg");
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;
+    
+    write("KEY OFF"); KEY_STATE = 0x0;
+    
+    @panel::Switch_Clock = 0;
+    
+    testWaitForTimeout(3000);
+    testReportAddWindowCapture("INF","BLTN_CAM_RecSta_OWD; VCU_GearPosSta;VCU_GearPosStaDisp","Sreenshot","./Husign.jpg");
+    
+  }
+  else {
+    
+    write("OWD recording hasn't started");
+    
+    testStepWarning("Warning","OWD recording hasn't started");    
+    
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+      testWaitForTimeout(3000);
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;   
+    
+    write("KEY OFF"); KEY_STATE = 0x0;
+    
+    @panel::Switch_Clock = 0;
+    
+    write("Stop mearsurement"); stop();    
+    
+  }
+  
+  testStep("Notifications","Done test INF_015_6");
+  write("=== FINISH INF_015_6 ===");      
+}
+
+testcase INF_015_7(){
+  testStep("Notifications","Start test INF_015_7");
+  write("=== START INF_015_7 ===");
+  
+  GearPos_value = 0x4; // DS Mode
+  
+  write("=== SETTING ===");
+  
+  write("KEY ON"); KEY_STATE = 0x2; testWaitForTimeout(3000);
+
+  do {
+    
+    Enter_BLTN_CAM(); testWaitForTimeout(3000);
+    
+    if ($BLTN_CAM_RecSet_OWD == 0x1) {write("OWD On"); @panel::LED_Ctrl_SetOWD = 1; testWaitForTimeout(500);}
+    
+    if ($BLTN_CAM_Set_GearPos_Stm == 0x1) {write("Set GearPos Stamp On"); @panel::LED_Ctrl_Set_GearPos_Stm = 1; testWaitForTimeout(500);}
+    
+    if ($BLTN_CAM_Set_Tim_Stm == 0x2) {write("Set Time Stamp Off"); @panel::LED_Ctrl_Set_Tim_Stm = 1; testWaitForTimeout(500);}   
+    
+    if ($BLTN_CAM_Set_Spd_Stm == 0x2) {write("Set Speed Stamp Off"); @panel::LED_Ctrl_Set_Spd_Stm = 1; testWaitForTimeout(500);}    
+    
+    if ($BLTN_CAM_Set_TrnSig_Stm == 0x2) {write("Set TrnSig Stamp Off"); @panel::LED_Ctrl_Set_TrnSig_Stm = 1; testWaitForTimeout(500);}    
+    
+    if ($BLTN_CAM_Set_EVSen_Stm == 0x2) {write(" Set EVSen Stamp Off"); @panel::LED_Ctrl_Set_EVSen_Stm = 1; testWaitForTimeout(500);};   
+    
+    if ($BLTN_CAM_Set_Locatn_Stm == 0x2) {write("Set Locatn Stamp Off"); @panel::LED_Ctrl_Set_Locatn_Stm = 1; testWaitForTimeout(500);}
+    
+    @panel::Switch_Clock = 1;
+    
+    Exit_BLTN_CAM();
+    
+    flag_RecSet_error++;
+  } while (($BLTN_CAM_RecSet_OWD == 0x1 || $BLTN_CAM_Set_GearPos_Stm == 0x1 || $BLTN_CAM_Set_EVSen_Stm == 0x2 || $BLTN_CAM_Set_Locatn_Stm == 0x2 || $BLTN_CAM_Set_Spd_Stm == 0x2 || $BLTN_CAM_Set_Tim_Stm == 0x2 || $BLTN_CAM_Set_TrnSig_Stm == 0x2) && (flag_RecSet_error < 15));
+  
+  flag_RecSet_error = 0;   
+  
+  write("=== TESTING ===");
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWD,10000) == 1) {
+    write("OWD recording with GearPos is started");
+    
+    testWaitForTimeout(10000);
+    
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+      testWaitForTimeout(3000);
+      testReportAddWindowCapture("INF","BLTN_CAM_RecSta_OWD; VCU_GearPosSta;VCU_GearPosStaDisp","Sreenshot","./Husign.jpg");
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;
+    
+    write("KEY OFF"); KEY_STATE = 0x0;
+    
+    @panel::Switch_Clock = 0;
+    
+    testWaitForTimeout(3000);
+    testReportAddWindowCapture("INF","BLTN_CAM_RecSta_OWD; VCU_GearPosSta;VCU_GearPosStaDisp","Sreenshot","./Husign.jpg");
+    
+  }
+  else {
+    
+    write("OWD recording hasn't started");
+    
+    testStepWarning("Warning","OWD recording hasn't started");    
+    
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+      testWaitForTimeout(3000);
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;   
+    
+    write("KEY OFF"); KEY_STATE = 0x0;
+    
+    @panel::Switch_Clock = 0;
+    
+    write("Stop mearsurement"); stop();    
+    
+  }
+  
+  testStep("Notifications","Done test INF_015_7");
+  write("=== FINISH INF_015_7 ===");      
+}
+
+testcase INF_015_8(){
+  testStep("Notifications","Start test INF_015_8");
+  write("=== START INF_015_8 ===");
+  
+  GearPos_value = 0x5; // D
+  
+  write("=== SETTING ===");
+  
+  write("KEY ON"); KEY_STATE = 0x2; testWaitForTimeout(3000);
+
+  do {
+    
+    Enter_BLTN_CAM(); testWaitForTimeout(3000);
+    
+    if ($BLTN_CAM_RecSet_OWD == 0x1) {write("OWD On"); @panel::LED_Ctrl_SetOWD = 1; testWaitForTimeout(500);}
+    
+    if ($BLTN_CAM_Set_GearPos_Stm == 0x1) {write("Set GearPos Stamp On"); @panel::LED_Ctrl_Set_GearPos_Stm = 1; testWaitForTimeout(500);}
+    
+    if ($BLTN_CAM_Set_Tim_Stm == 0x2) {write("Set Time Stamp Off"); @panel::LED_Ctrl_Set_Tim_Stm = 1; testWaitForTimeout(500);}   
+    
+    if ($BLTN_CAM_Set_Spd_Stm == 0x2) {write("Set Speed Stamp Off"); @panel::LED_Ctrl_Set_Spd_Stm = 1; testWaitForTimeout(500);}    
+    
+    if ($BLTN_CAM_Set_TrnSig_Stm == 0x2) {write("Set TrnSig Stamp Off"); @panel::LED_Ctrl_Set_TrnSig_Stm = 1; testWaitForTimeout(500);}    
+    
+    if ($BLTN_CAM_Set_EVSen_Stm == 0x2) {write(" Set EVSen Stamp Off"); @panel::LED_Ctrl_Set_EVSen_Stm = 1; testWaitForTimeout(500);};   
+    
+    if ($BLTN_CAM_Set_Locatn_Stm == 0x2) {write("Set Locatn Stamp Off"); @panel::LED_Ctrl_Set_Locatn_Stm = 1; testWaitForTimeout(500);}
+    
+    @panel::Switch_Clock = 1;
+    
+    Exit_BLTN_CAM();
+    
+    flag_RecSet_error++;
+  } while (($BLTN_CAM_RecSet_OWD == 0x1 || $BLTN_CAM_Set_GearPos_Stm == 0x1 || $BLTN_CAM_Set_EVSen_Stm == 0x2 || $BLTN_CAM_Set_Locatn_Stm == 0x2 || $BLTN_CAM_Set_Spd_Stm == 0x2 || $BLTN_CAM_Set_Tim_Stm == 0x2 || $BLTN_CAM_Set_TrnSig_Stm == 0x2) && (flag_RecSet_error < 15));
+  
+  flag_RecSet_error = 0;   
+  
+  write("=== TESTING ===");
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWD,10000) == 1) {
+    write("OWD recording with GearPos is started");
+    
+    testWaitForTimeout(10000);
+    
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+      testWaitForTimeout(3000);
+      testReportAddWindowCapture("INF","BLTN_CAM_RecSta_OWD; VCU_GearPosSta;VCU_GearPosStaDisp","Sreenshot","./Husign.jpg");
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;
+    
+    write("KEY OFF"); KEY_STATE = 0x0;
+    
+    @panel::Switch_Clock = 0;
+    
+    testWaitForTimeout(3000);
+    testReportAddWindowCapture("INF","BLTN_CAM_RecSta_OWD; VCU_GearPosSta;VCU_GearPosStaDisp","Sreenshot","./Husign.jpg");
+    
+  }
+  else {
+    
+    write("OWD recording hasn't started");
+    
+    testStepWarning("Warning","OWD recording hasn't started");    
+    
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+      testWaitForTimeout(3000);
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;   
+    
+    write("KEY OFF"); KEY_STATE = 0x0;
+    
+    @panel::Switch_Clock = 0;
+    
+    write("Stop mearsurement"); stop();    
+    
+  }
+  
+  testStep("Notifications","Done test INF_015_8");
+  write("=== FINISH INF_015_8 ===");      
+}
+
+testcase INF_015_9(){
+  testStep("Notifications","Start test INF_015_9");
+  write("=== START INF_015_9 ===");
+  
+  GearPos_value = 0x6; // N
+  
+  write("=== SETTING ===");
+  
+  write("KEY ON"); KEY_STATE = 0x2; testWaitForTimeout(3000);
+
+  do {
+    
+    Enter_BLTN_CAM(); testWaitForTimeout(3000);
+    
+    if ($BLTN_CAM_RecSet_OWD == 0x1) {write("OWD On"); @panel::LED_Ctrl_SetOWD = 1; testWaitForTimeout(500);}
+    
+    if ($BLTN_CAM_Set_GearPos_Stm == 0x1) {write("Set GearPos Stamp On"); @panel::LED_Ctrl_Set_GearPos_Stm = 1; testWaitForTimeout(500);}
+    
+    if ($BLTN_CAM_Set_Tim_Stm == 0x2) {write("Set Time Stamp Off"); @panel::LED_Ctrl_Set_Tim_Stm = 1; testWaitForTimeout(500);}   
+    
+    if ($BLTN_CAM_Set_Spd_Stm == 0x2) {write("Set Speed Stamp Off"); @panel::LED_Ctrl_Set_Spd_Stm = 1; testWaitForTimeout(500);}    
+    
+    if ($BLTN_CAM_Set_TrnSig_Stm == 0x2) {write("Set TrnSig Stamp Off"); @panel::LED_Ctrl_Set_TrnSig_Stm = 1; testWaitForTimeout(500);}    
+    
+    if ($BLTN_CAM_Set_EVSen_Stm == 0x2) {write(" Set EVSen Stamp Off"); @panel::LED_Ctrl_Set_EVSen_Stm = 1; testWaitForTimeout(500);};   
+    
+    if ($BLTN_CAM_Set_Locatn_Stm == 0x2) {write("Set Locatn Stamp Off"); @panel::LED_Ctrl_Set_Locatn_Stm = 1; testWaitForTimeout(500);}
+    
+    @panel::Switch_Clock = 1;
+    
+    Exit_BLTN_CAM();
+    
+    flag_RecSet_error++;
+  } while (($BLTN_CAM_RecSet_OWD == 0x1 || $BLTN_CAM_Set_GearPos_Stm == 0x1 || $BLTN_CAM_Set_EVSen_Stm == 0x2 || $BLTN_CAM_Set_Locatn_Stm == 0x2 || $BLTN_CAM_Set_Spd_Stm == 0x2 || $BLTN_CAM_Set_Tim_Stm == 0x2 || $BLTN_CAM_Set_TrnSig_Stm == 0x2) && (flag_RecSet_error < 15));
+  
+  flag_RecSet_error = 0;   
+  
+  write("=== TESTING ===");
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWD,10000) == 1) {
+    write("OWD recording with GearPos is started");
+    
+    testWaitForTimeout(10000);
+    
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+      testWaitForTimeout(3000);
+      testReportAddWindowCapture("INF","BLTN_CAM_RecSta_OWD; VCU_GearPosSta;VCU_GearPosStaDisp","Sreenshot","./Husign.jpg");
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;
+    
+    write("KEY OFF"); KEY_STATE = 0x0;
+    
+    @panel::Switch_Clock = 0;
+    
+    testWaitForTimeout(3000);
+    testReportAddWindowCapture("INF","BLTN_CAM_RecSta_OWD; VCU_GearPosSta;VCU_GearPosStaDisp","Sreenshot","./Husign.jpg");
+    
+  }
+  else {
+    
+    write("OWD recording hasn't started");
+    
+    testStepWarning("Warning","OWD recording hasn't started");    
+    
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+      testWaitForTimeout(3000);
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;   
+    
+    write("KEY OFF"); KEY_STATE = 0x0;
+    
+    @panel::Switch_Clock = 0;
+    
+    write("Stop mearsurement"); stop();    
+    
+  }
+  
+  testStep("Notifications","Done test INF_015_9");
+  write("=== FINISH INF_015_9 ===");      
+}
+
+testcase INF_015_10(){
+  testStep("Notifications","Start test INF_015_10");
+  write("=== START INF_015_10 ===");
+  
+  GearPos_value = 0x7; // R
+  
+  write("=== SETTING ===");
+  
+  write("KEY ON"); KEY_STATE = 0x2; testWaitForTimeout(3000);
+
+  do {
+    
+    Enter_BLTN_CAM(); testWaitForTimeout(3000);
+    
+    if ($BLTN_CAM_RecSet_OWD == 0x1) {write("OWD On"); @panel::LED_Ctrl_SetOWD = 1; testWaitForTimeout(500);}
+    
+    if ($BLTN_CAM_Set_GearPos_Stm == 0x1) {write("Set GearPos Stamp On"); @panel::LED_Ctrl_Set_GearPos_Stm = 1; testWaitForTimeout(500);}
+    
+    if ($BLTN_CAM_Set_Tim_Stm == 0x2) {write("Set Time Stamp Off"); @panel::LED_Ctrl_Set_Tim_Stm = 1; testWaitForTimeout(500);}   
+    
+    if ($BLTN_CAM_Set_Spd_Stm == 0x2) {write("Set Speed Stamp Off"); @panel::LED_Ctrl_Set_Spd_Stm = 1; testWaitForTimeout(500);}    
+    
+    if ($BLTN_CAM_Set_TrnSig_Stm == 0x2) {write("Set TrnSig Stamp Off"); @panel::LED_Ctrl_Set_TrnSig_Stm = 1; testWaitForTimeout(500);}    
+    
+    if ($BLTN_CAM_Set_EVSen_Stm == 0x2) {write(" Set EVSen Stamp Off"); @panel::LED_Ctrl_Set_EVSen_Stm = 1; testWaitForTimeout(500);};   
+    
+    if ($BLTN_CAM_Set_Locatn_Stm == 0x2) {write("Set Locatn Stamp Off"); @panel::LED_Ctrl_Set_Locatn_Stm = 1; testWaitForTimeout(500);}
+    
+    @panel::Switch_Clock = 1;
+    
+    Exit_BLTN_CAM();
+    
+    flag_RecSet_error++;
+  } while (($BLTN_CAM_RecSet_OWD == 0x1 || $BLTN_CAM_Set_GearPos_Stm == 0x1 || $BLTN_CAM_Set_EVSen_Stm == 0x2 || $BLTN_CAM_Set_Locatn_Stm == 0x2 || $BLTN_CAM_Set_Spd_Stm == 0x2 || $BLTN_CAM_Set_Tim_Stm == 0x2 || $BLTN_CAM_Set_TrnSig_Stm == 0x2) && (flag_RecSet_error < 15));
+  
+  flag_RecSet_error = 0;   
+  
+  write("=== TESTING ===");
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWD,10000) == 1) {
+    write("OWD recording with GearPos is started");
+    
+    testWaitForTimeout(10000);
+    
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+      testWaitForTimeout(3000);
+      testReportAddWindowCapture("INF","BLTN_CAM_RecSta_OWD; VCU_GearPosSta;VCU_GearPosStaDisp","Sreenshot","./Husign.jpg");
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;
+    
+    write("KEY OFF"); KEY_STATE = 0x0;
+    
+    @panel::Switch_Clock = 0;
+    
+    testWaitForTimeout(3000);
+    testReportAddWindowCapture("INF","BLTN_CAM_RecSta_OWD; VCU_GearPosSta;VCU_GearPosStaDisp","Sreenshot","./Husign.jpg");
+    
+  }
+  else {
+    
+    write("OWD recording hasn't started");
+    
+    testStepWarning("Warning","OWD recording hasn't started");    
+    
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+      testWaitForTimeout(3000);
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;   
+    
+    write("KEY OFF"); KEY_STATE = 0x0;
+    
+    @panel::Switch_Clock = 0;
+    
+    write("Stop mearsurement"); stop();    
+    
+  }
+  
+  testStep("Notifications","Done test INF_015_10");
+  write("=== FINISH INF_015_10 ===");      
+}
+
+testcase INF_015_11(){
+  testStep("Notifications","Start test INF_015_11");
+  write("=== START INF_015_11 ===");
+  
+  GearPos_value = 0x8; // Sport Mode/Manual Shift/Paddle Shift
+  
+  write("=== SETTING ===");
+  
+  write("KEY ON"); KEY_STATE = 0x2; testWaitForTimeout(3000);
+
+  do {
+    
+    Enter_BLTN_CAM(); testWaitForTimeout(3000);
+    
+    if ($BLTN_CAM_RecSet_OWD == 0x1) {write("OWD On"); @panel::LED_Ctrl_SetOWD = 1; testWaitForTimeout(500);}
+    
+    if ($BLTN_CAM_Set_GearPos_Stm == 0x1) {write("Set GearPos Stamp On"); @panel::LED_Ctrl_Set_GearPos_Stm = 1; testWaitForTimeout(500);}
+    
+    if ($BLTN_CAM_Set_Tim_Stm == 0x2) {write("Set Time Stamp Off"); @panel::LED_Ctrl_Set_Tim_Stm = 1; testWaitForTimeout(500);}   
+    
+    if ($BLTN_CAM_Set_Spd_Stm == 0x2) {write("Set Speed Stamp Off"); @panel::LED_Ctrl_Set_Spd_Stm = 1; testWaitForTimeout(500);}    
+    
+    if ($BLTN_CAM_Set_TrnSig_Stm == 0x2) {write("Set TrnSig Stamp Off"); @panel::LED_Ctrl_Set_TrnSig_Stm = 1; testWaitForTimeout(500);}    
+    
+    if ($BLTN_CAM_Set_EVSen_Stm == 0x2) {write(" Set EVSen Stamp Off"); @panel::LED_Ctrl_Set_EVSen_Stm = 1; testWaitForTimeout(500);};   
+    
+    if ($BLTN_CAM_Set_Locatn_Stm == 0x2) {write("Set Locatn Stamp Off"); @panel::LED_Ctrl_Set_Locatn_Stm = 1; testWaitForTimeout(500);}
+    
+    @panel::Switch_Clock = 1;
+    
+    Exit_BLTN_CAM();
+    
+    flag_RecSet_error++;
+  } while (($BLTN_CAM_RecSet_OWD == 0x1 || $BLTN_CAM_Set_GearPos_Stm == 0x1 || $BLTN_CAM_Set_EVSen_Stm == 0x2 || $BLTN_CAM_Set_Locatn_Stm == 0x2 || $BLTN_CAM_Set_Spd_Stm == 0x2 || $BLTN_CAM_Set_Tim_Stm == 0x2 || $BLTN_CAM_Set_TrnSig_Stm == 0x2) && (flag_RecSet_error < 15));
+  
+  flag_RecSet_error = 0;   
+  
+  write("=== TESTING ===");
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWD,10000) == 1) {
+    write("OWD recording with GearPos is started");
+    
+    testWaitForTimeout(10000);
+    
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+      testWaitForTimeout(3000);
+      testReportAddWindowCapture("INF","BLTN_CAM_RecSta_OWD; VCU_GearPosSta;VCU_GearPosStaDisp","Sreenshot","./Husign.jpg");
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;
+    
+    write("KEY OFF"); KEY_STATE = 0x0;
+    
+    @panel::Switch_Clock = 0;
+    
+    testWaitForTimeout(3000);
+    testReportAddWindowCapture("INF","BLTN_CAM_RecSta_OWD; VCU_GearPosSta;VCU_GearPosStaDisp","Sreenshot","./Husign.jpg");
+    
+  }
+  else {
+    
+    write("OWD recording hasn't started");
+    
+    testStepWarning("Warning","OWD recording hasn't started");    
+    
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+      testWaitForTimeout(3000);
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;   
+    
+    write("KEY OFF"); KEY_STATE = 0x0;
+    
+    @panel::Switch_Clock = 0;
+    
+    write("Stop mearsurement"); stop();    
+    
+  }
+  
+  testStep("Notifications","Done test INF_015_11");
+  write("=== FINISH INF_015_11 ===");      
+}
+
+testcase INF_015_12(){
+  testStep("Notifications","Start test INF_015_12");
+  write("=== START INF_015_12 ===");
+  
+  GearPos_value = 0x9; //Not Display at Cluster
+  
+  write("=== SETTING ===");
+  
+  write("KEY ON"); KEY_STATE = 0x2; testWaitForTimeout(3000);
+
+  do {
+    
+    Enter_BLTN_CAM(); testWaitForTimeout(3000);
+    
+    if ($BLTN_CAM_RecSet_OWD == 0x1) {write("OWD On"); @panel::LED_Ctrl_SetOWD = 1; testWaitForTimeout(500);}
+    
+    if ($BLTN_CAM_Set_GearPos_Stm == 0x1) {write("Set GearPos Stamp On"); @panel::LED_Ctrl_Set_GearPos_Stm = 1; testWaitForTimeout(500);}
+    
+    if ($BLTN_CAM_Set_Tim_Stm == 0x2) {write("Set Time Stamp Off"); @panel::LED_Ctrl_Set_Tim_Stm = 1; testWaitForTimeout(500);}   
+    
+    if ($BLTN_CAM_Set_Spd_Stm == 0x2) {write("Set Speed Stamp Off"); @panel::LED_Ctrl_Set_Spd_Stm = 1; testWaitForTimeout(500);}    
+    
+    if ($BLTN_CAM_Set_TrnSig_Stm == 0x2) {write("Set TrnSig Stamp Off"); @panel::LED_Ctrl_Set_TrnSig_Stm = 1; testWaitForTimeout(500);}    
+    
+    if ($BLTN_CAM_Set_EVSen_Stm == 0x2) {write(" Set EVSen Stamp Off"); @panel::LED_Ctrl_Set_EVSen_Stm = 1; testWaitForTimeout(500);};   
+    
+    if ($BLTN_CAM_Set_Locatn_Stm == 0x2) {write("Set Locatn Stamp Off"); @panel::LED_Ctrl_Set_Locatn_Stm = 1; testWaitForTimeout(500);}
+    
+    @panel::Switch_Clock = 1;
+    
+    Exit_BLTN_CAM();
+    
+    flag_RecSet_error++;
+  } while (($BLTN_CAM_RecSet_OWD == 0x1 || $BLTN_CAM_Set_GearPos_Stm == 0x1 || $BLTN_CAM_Set_EVSen_Stm == 0x2 || $BLTN_CAM_Set_Locatn_Stm == 0x2 || $BLTN_CAM_Set_Spd_Stm == 0x2 || $BLTN_CAM_Set_Tim_Stm == 0x2 || $BLTN_CAM_Set_TrnSig_Stm == 0x2) && (flag_RecSet_error < 15));
+  
+  flag_RecSet_error = 0;   
+  
+  write("=== TESTING ===");
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWD,10000) == 1) {
+    write("OWD recording with GearPos is started");
+    
+    testWaitForTimeout(10000);
+    
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+      testWaitForTimeout(3000);
+      testReportAddWindowCapture("INF","BLTN_CAM_RecSta_OWD; VCU_GearPosSta;VCU_GearPosStaDisp","Sreenshot","./Husign.jpg");
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;
+    
+    write("KEY OFF"); KEY_STATE = 0x0;
+    
+    @panel::Switch_Clock = 0;
+    
+    testWaitForTimeout(3000);
+    testReportAddWindowCapture("INF","BLTN_CAM_RecSta_OWD; VCU_GearPosSta;VCU_GearPosStaDisp","Sreenshot","./Husign.jpg");
+    
+  }
+  else {
+    
+    write("OWD recording hasn't started");
+    
+    testStepWarning("Warning","OWD recording hasn't started");    
+    
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+      testWaitForTimeout(3000);
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;   
+    
+    write("KEY OFF"); KEY_STATE = 0x0;
+    
+    @panel::Switch_Clock = 0;
+    
+    write("Stop mearsurement"); stop();    
+    
+  }
+  
+  testStep("Notifications","Done test INF_015_12");
+  write("=== FINISH INF_015_12 ===");      
+}
+
+testcase INF_015_13(){
+  testStep("Notifications","Start test INF_015_13");
+  write("=== START INF_015_13 ===");
+  
+  GearPos_value = 0xA; // Sub-Rom Communication
+  
+  write("=== SETTING ===");
+  
+  write("KEY ON"); KEY_STATE = 0x2; testWaitForTimeout(3000);
+
+  do {
+    
+    Enter_BLTN_CAM(); testWaitForTimeout(3000);
+    
+    if ($BLTN_CAM_RecSet_OWD == 0x1) {write("OWD On"); @panel::LED_Ctrl_SetOWD = 1; testWaitForTimeout(500);}
+    
+    if ($BLTN_CAM_Set_GearPos_Stm == 0x1) {write("Set GearPos Stamp On"); @panel::LED_Ctrl_Set_GearPos_Stm = 1; testWaitForTimeout(500);}
+    
+    if ($BLTN_CAM_Set_Tim_Stm == 0x2) {write("Set Time Stamp Off"); @panel::LED_Ctrl_Set_Tim_Stm = 1; testWaitForTimeout(500);}   
+    
+    if ($BLTN_CAM_Set_Spd_Stm == 0x2) {write("Set Speed Stamp Off"); @panel::LED_Ctrl_Set_Spd_Stm = 1; testWaitForTimeout(500);}    
+    
+    if ($BLTN_CAM_Set_TrnSig_Stm == 0x2) {write("Set TrnSig Stamp Off"); @panel::LED_Ctrl_Set_TrnSig_Stm = 1; testWaitForTimeout(500);}    
+    
+    if ($BLTN_CAM_Set_EVSen_Stm == 0x2) {write(" Set EVSen Stamp Off"); @panel::LED_Ctrl_Set_EVSen_Stm = 1; testWaitForTimeout(500);};   
+    
+    if ($BLTN_CAM_Set_Locatn_Stm == 0x2) {write("Set Locatn Stamp Off"); @panel::LED_Ctrl_Set_Locatn_Stm = 1; testWaitForTimeout(500);}
+    
+    @panel::Switch_Clock = 1;
+    
+    Exit_BLTN_CAM();
+    
+    flag_RecSet_error++;
+  } while (($BLTN_CAM_RecSet_OWD == 0x1 || $BLTN_CAM_Set_GearPos_Stm == 0x1 || $BLTN_CAM_Set_EVSen_Stm == 0x2 || $BLTN_CAM_Set_Locatn_Stm == 0x2 || $BLTN_CAM_Set_Spd_Stm == 0x2 || $BLTN_CAM_Set_Tim_Stm == 0x2 || $BLTN_CAM_Set_TrnSig_Stm == 0x2) && (flag_RecSet_error < 15));
+  
+  flag_RecSet_error = 0;   
+  
+  write("=== TESTING ===");
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWD,10000) == 1) {
+    write("OWD recording with GearPos is started");
+    
+    testWaitForTimeout(10000);
+    
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+      testWaitForTimeout(3000);
+      testReportAddWindowCapture("INF","BLTN_CAM_RecSta_OWD; VCU_GearPosSta;VCU_GearPosStaDisp","Sreenshot","./Husign.jpg");
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;
+    
+    write("KEY OFF"); KEY_STATE = 0x0;
+    
+    @panel::Switch_Clock = 0;
+    
+    testWaitForTimeout(3000);
+    testReportAddWindowCapture("INF","BLTN_CAM_RecSta_OWD; VCU_GearPosSta;VCU_GearPosStaDisp","Sreenshot","./Husign.jpg");
+    
+  }
+  else {
+    
+    write("OWD recording hasn't started");
+    
+    testStepWarning("Warning","OWD recording hasn't started");    
+    
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+      testWaitForTimeout(3000);
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;   
+    
+    write("KEY OFF"); KEY_STATE = 0x0;
+    
+    @panel::Switch_Clock = 0;
+    
+    write("Stop mearsurement"); stop();    
+    
+  }
+  
+  testStep("Notifications","Done test INF_015_13");
+  write("=== FINISH INF_015_13 ===");      
+}
+
+testcase INF_015_14(){
+  testStep("Notifications","Start test INF_015_14");
+  write("=== START INF_015_14 ===");
+  
+  GearPos_value = 0xB; // Sub-Rom Communication Error
+  
+  write("=== SETTING ===");
+  
+  write("KEY ON"); KEY_STATE = 0x2; testWaitForTimeout(3000);
+
+  do {
+    
+    Enter_BLTN_CAM(); testWaitForTimeout(3000);
+    
+    if ($BLTN_CAM_RecSet_OWD == 0x1) {write("OWD On"); @panel::LED_Ctrl_SetOWD = 1; testWaitForTimeout(500);}
+    
+    if ($BLTN_CAM_Set_GearPos_Stm == 0x1) {write("Set GearPos Stamp On"); @panel::LED_Ctrl_Set_GearPos_Stm = 1; testWaitForTimeout(500);}
+    
+    if ($BLTN_CAM_Set_Tim_Stm == 0x2) {write("Set Time Stamp Off"); @panel::LED_Ctrl_Set_Tim_Stm = 1; testWaitForTimeout(500);}   
+    
+    if ($BLTN_CAM_Set_Spd_Stm == 0x2) {write("Set Speed Stamp Off"); @panel::LED_Ctrl_Set_Spd_Stm = 1; testWaitForTimeout(500);}    
+    
+    if ($BLTN_CAM_Set_TrnSig_Stm == 0x2) {write("Set TrnSig Stamp Off"); @panel::LED_Ctrl_Set_TrnSig_Stm = 1; testWaitForTimeout(500);}    
+    
+    if ($BLTN_CAM_Set_EVSen_Stm == 0x2) {write(" Set EVSen Stamp Off"); @panel::LED_Ctrl_Set_EVSen_Stm = 1; testWaitForTimeout(500);};   
+    
+    if ($BLTN_CAM_Set_Locatn_Stm == 0x2) {write("Set Locatn Stamp Off"); @panel::LED_Ctrl_Set_Locatn_Stm = 1; testWaitForTimeout(500);}
+    
+    @panel::Switch_Clock = 1;
+    
+    Exit_BLTN_CAM();
+    
+    flag_RecSet_error++;
+  } while (($BLTN_CAM_RecSet_OWD == 0x1 || $BLTN_CAM_Set_GearPos_Stm == 0x1 || $BLTN_CAM_Set_EVSen_Stm == 0x2 || $BLTN_CAM_Set_Locatn_Stm == 0x2 || $BLTN_CAM_Set_Spd_Stm == 0x2 || $BLTN_CAM_Set_Tim_Stm == 0x2 || $BLTN_CAM_Set_TrnSig_Stm == 0x2) && (flag_RecSet_error < 15));
+  
+  flag_RecSet_error = 0;   
+  
+  write("=== TESTING ===");
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWD,10000) == 1) {
+    write("OWD recording with GearPos is started");
+    
+    testWaitForTimeout(10000);
+    
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+      testWaitForTimeout(3000);
+      testReportAddWindowCapture("INF","BLTN_CAM_RecSta_OWD; VCU_GearPosSta;VCU_GearPosStaDisp","Sreenshot","./Husign.jpg");
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;
+    
+    write("KEY OFF"); KEY_STATE = 0x0;
+    
+    @panel::Switch_Clock = 0;
+    
+    testWaitForTimeout(3000);
+    testReportAddWindowCapture("INF","BLTN_CAM_RecSta_OWD; VCU_GearPosSta;VCU_GearPosStaDisp","Sreenshot","./Husign.jpg");
+    
+  }
+  else {
+    
+    write("OWD recording hasn't started");
+    
+    testStepWarning("Warning","OWD recording hasn't started");    
+    
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+      testWaitForTimeout(3000);
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;   
+    
+    write("KEY OFF"); KEY_STATE = 0x0;
+    
+    @panel::Switch_Clock = 0;
+    
+    write("Stop mearsurement"); stop();    
+    
+  }
+  
+  testStep("Notifications","Done test INF_015_14");
+  write("=== FINISH INF_015_14 ===");      
+}
+
+testcase INF_015_15(){
+  testStep("Notifications","Start test INF_015_15");
+  write("=== START INF_015_15 ===");
+  
+  GearPos_value = 0xC; // Paddle shift (D-position)
+  
+  write("=== SETTING ===");
+  
+  write("KEY ON"); KEY_STATE = 0x2; testWaitForTimeout(3000);
+
+  do {
+    
+    Enter_BLTN_CAM(); testWaitForTimeout(3000);
+    
+    if ($BLTN_CAM_RecSet_OWD == 0x1) {write("OWD On"); @panel::LED_Ctrl_SetOWD = 1; testWaitForTimeout(500);}
+    
+    if ($BLTN_CAM_Set_GearPos_Stm == 0x1) {write("Set GearPos Stamp On"); @panel::LED_Ctrl_Set_GearPos_Stm = 1; testWaitForTimeout(500);}
+    
+    if ($BLTN_CAM_Set_Tim_Stm == 0x2) {write("Set Time Stamp Off"); @panel::LED_Ctrl_Set_Tim_Stm = 1; testWaitForTimeout(500);}   
+    
+    if ($BLTN_CAM_Set_Spd_Stm == 0x2) {write("Set Speed Stamp Off"); @panel::LED_Ctrl_Set_Spd_Stm = 1; testWaitForTimeout(500);}    
+    
+    if ($BLTN_CAM_Set_TrnSig_Stm == 0x2) {write("Set TrnSig Stamp Off"); @panel::LED_Ctrl_Set_TrnSig_Stm = 1; testWaitForTimeout(500);}    
+    
+    if ($BLTN_CAM_Set_EVSen_Stm == 0x2) {write(" Set EVSen Stamp Off"); @panel::LED_Ctrl_Set_EVSen_Stm = 1; testWaitForTimeout(500);};   
+    
+    if ($BLTN_CAM_Set_Locatn_Stm == 0x2) {write("Set Locatn Stamp Off"); @panel::LED_Ctrl_Set_Locatn_Stm = 1; testWaitForTimeout(500);}
+    
+    @panel::Switch_Clock = 1;
+    
+    Exit_BLTN_CAM();
+    
+    flag_RecSet_error++;
+  } while (($BLTN_CAM_RecSet_OWD == 0x1 || $BLTN_CAM_Set_GearPos_Stm == 0x1 || $BLTN_CAM_Set_EVSen_Stm == 0x2 || $BLTN_CAM_Set_Locatn_Stm == 0x2 || $BLTN_CAM_Set_Spd_Stm == 0x2 || $BLTN_CAM_Set_Tim_Stm == 0x2 || $BLTN_CAM_Set_TrnSig_Stm == 0x2) && (flag_RecSet_error < 15));
+  
+  flag_RecSet_error = 0;   
+  
+  write("=== TESTING ===");
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWD,10000) == 1) {
+    write("OWD recording with GearPos is started");
+    
+    testWaitForTimeout(10000);
+    
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+      testWaitForTimeout(3000);
+      testReportAddWindowCapture("INF","BLTN_CAM_RecSta_OWD; VCU_GearPosSta;VCU_GearPosStaDisp","Sreenshot","./Husign.jpg");
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;
+    
+    write("KEY OFF"); KEY_STATE = 0x0;
+    
+    @panel::Switch_Clock = 0;
+    
+    testWaitForTimeout(3000);
+    testReportAddWindowCapture("INF","BLTN_CAM_RecSta_OWD; VCU_GearPosSta;VCU_GearPosStaDisp","Sreenshot","./Husign.jpg");
+    
+  }
+  else {
+    
+    write("OWD recording hasn't started");
+    
+    testStepWarning("Warning","OWD recording hasn't started");    
+    
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+      testWaitForTimeout(3000);
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;   
+    
+    write("KEY OFF"); KEY_STATE = 0x0;
+    
+    @panel::Switch_Clock = 0;
+    
+    write("Stop mearsurement"); stop();    
+    
+  }
+  
+  testStep("Notifications","Done test INF_015_15");
+  write("=== FINISH INF_015_15 ===");      
+}
+
+testcase INF_015_16(){
+  testStep("Notifications","Start test INF_015_16");
+  write("=== START INF_015_16 ===");
+  
+  GearPos_value = 0xD; // Reserved
+  
+  write("=== SETTING ===");
+  
+  write("KEY ON"); KEY_STATE = 0x2; testWaitForTimeout(3000);
+
+  do {
+    
+    Enter_BLTN_CAM(); testWaitForTimeout(3000);
+    
+    if ($BLTN_CAM_RecSet_OWD == 0x1) {write("OWD On"); @panel::LED_Ctrl_SetOWD = 1; testWaitForTimeout(500);}
+    
+    if ($BLTN_CAM_Set_GearPos_Stm == 0x1) {write("Set GearPos Stamp On"); @panel::LED_Ctrl_Set_GearPos_Stm = 1; testWaitForTimeout(500);}
+    
+    if ($BLTN_CAM_Set_Tim_Stm == 0x2) {write("Set Time Stamp Off"); @panel::LED_Ctrl_Set_Tim_Stm = 1; testWaitForTimeout(500);}   
+    
+    if ($BLTN_CAM_Set_Spd_Stm == 0x2) {write("Set Speed Stamp Off"); @panel::LED_Ctrl_Set_Spd_Stm = 1; testWaitForTimeout(500);}    
+    
+    if ($BLTN_CAM_Set_TrnSig_Stm == 0x2) {write("Set TrnSig Stamp Off"); @panel::LED_Ctrl_Set_TrnSig_Stm = 1; testWaitForTimeout(500);}    
+    
+    if ($BLTN_CAM_Set_EVSen_Stm == 0x2) {write(" Set EVSen Stamp Off"); @panel::LED_Ctrl_Set_EVSen_Stm = 1; testWaitForTimeout(500);};   
+    
+    if ($BLTN_CAM_Set_Locatn_Stm == 0x2) {write("Set Locatn Stamp Off"); @panel::LED_Ctrl_Set_Locatn_Stm = 1; testWaitForTimeout(500);}
+    
+    @panel::Switch_Clock = 1;
+    
+    Exit_BLTN_CAM();
+    
+    flag_RecSet_error++;
+  } while (($BLTN_CAM_RecSet_OWD == 0x1 || $BLTN_CAM_Set_GearPos_Stm == 0x1 || $BLTN_CAM_Set_EVSen_Stm == 0x2 || $BLTN_CAM_Set_Locatn_Stm == 0x2 || $BLTN_CAM_Set_Spd_Stm == 0x2 || $BLTN_CAM_Set_Tim_Stm == 0x2 || $BLTN_CAM_Set_TrnSig_Stm == 0x2) && (flag_RecSet_error < 15));
+  
+  flag_RecSet_error = 0;   
+  
+  write("=== TESTING ===");
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWD,10000) == 1) {
+    write("OWD recording with GearPos is started");
+    
+    testWaitForTimeout(10000);
+    
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+      testWaitForTimeout(3000);
+      testReportAddWindowCapture("INF","BLTN_CAM_RecSta_OWD; VCU_GearPosSta;VCU_GearPosStaDisp","Sreenshot","./Husign.jpg");
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;
+    
+    write("KEY OFF"); KEY_STATE = 0x0;
+    
+    @panel::Switch_Clock = 0;
+    
+    testWaitForTimeout(3000);
+    testReportAddWindowCapture("INF","BLTN_CAM_RecSta_OWD; VCU_GearPosSta;VCU_GearPosStaDisp","Sreenshot","./Husign.jpg");
+    
+  }
+  else {
+    
+    write("OWD recording hasn't started");
+    
+    testStepWarning("Warning","OWD recording hasn't started");    
+    
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+      testWaitForTimeout(3000);
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;   
+    
+    write("KEY OFF"); KEY_STATE = 0x0;
+    
+    @panel::Switch_Clock = 0;
+    
+    write("Stop mearsurement"); stop();    
+    
+  }
+  
+  testStep("Notifications","Done test INF_015_16");
+  write("=== FINISH INF_015_16 ===");      
+}
+
+testcase INF_015_17(){
+  testStep("Notifications","Start test INF_015_17");
+  write("=== START INF_015_17 ===");
+  
+  GearPos_value = 0xE; // Intermediate Position
+  
+  write("=== SETTING ===");
+  
+  write("KEY ON"); KEY_STATE = 0x2; testWaitForTimeout(3000);
+
+  do {
+    
+    Enter_BLTN_CAM(); testWaitForTimeout(3000);
+    
+    if ($BLTN_CAM_RecSet_OWD == 0x1) {write("OWD On"); @panel::LED_Ctrl_SetOWD = 1; testWaitForTimeout(500);}
+    
+    if ($BLTN_CAM_Set_GearPos_Stm == 0x1) {write("Set GearPos Stamp On"); @panel::LED_Ctrl_Set_GearPos_Stm = 1; testWaitForTimeout(500);}
+    
+    if ($BLTN_CAM_Set_Tim_Stm == 0x2) {write("Set Time Stamp Off"); @panel::LED_Ctrl_Set_Tim_Stm = 1; testWaitForTimeout(500);}   
+    
+    if ($BLTN_CAM_Set_Spd_Stm == 0x2) {write("Set Speed Stamp Off"); @panel::LED_Ctrl_Set_Spd_Stm = 1; testWaitForTimeout(500);}    
+    
+    if ($BLTN_CAM_Set_TrnSig_Stm == 0x2) {write("Set TrnSig Stamp Off"); @panel::LED_Ctrl_Set_TrnSig_Stm = 1; testWaitForTimeout(500);}    
+    
+    if ($BLTN_CAM_Set_EVSen_Stm == 0x2) {write(" Set EVSen Stamp Off"); @panel::LED_Ctrl_Set_EVSen_Stm = 1; testWaitForTimeout(500);};   
+    
+    if ($BLTN_CAM_Set_Locatn_Stm == 0x2) {write("Set Locatn Stamp Off"); @panel::LED_Ctrl_Set_Locatn_Stm = 1; testWaitForTimeout(500);}
+    
+    @panel::Switch_Clock = 1;
+    
+    Exit_BLTN_CAM();
+    
+    flag_RecSet_error++;
+  } while (($BLTN_CAM_RecSet_OWD == 0x1 || $BLTN_CAM_Set_GearPos_Stm == 0x1 || $BLTN_CAM_Set_EVSen_Stm == 0x2 || $BLTN_CAM_Set_Locatn_Stm == 0x2 || $BLTN_CAM_Set_Spd_Stm == 0x2 || $BLTN_CAM_Set_Tim_Stm == 0x2 || $BLTN_CAM_Set_TrnSig_Stm == 0x2) && (flag_RecSet_error < 15));
+  
+  flag_RecSet_error = 0;   
+  
+  write("=== TESTING ===");
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWD,10000) == 1) {
+    write("OWD recording with GearPos is started");
+    
+    testWaitForTimeout(10000);
+    
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+      testWaitForTimeout(3000);
+      testReportAddWindowCapture("INF","BLTN_CAM_RecSta_OWD; VCU_GearPosSta;VCU_GearPosStaDisp","Sreenshot","./Husign.jpg");
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;
+    
+    write("KEY OFF"); KEY_STATE = 0x0;
+    
+    @panel::Switch_Clock = 0;
+    
+    testWaitForTimeout(3000);
+    testReportAddWindowCapture("INF","BLTN_CAM_RecSta_OWD; VCU_GearPosSta;VCU_GearPosStaDisp","Sreenshot","./Husign.jpg");
+    
+  }
+  else {
+    
+    write("OWD recording hasn't started");
+    
+    testStepWarning("Warning","OWD recording hasn't started");    
+    
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+      testWaitForTimeout(3000);
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;   
+    
+    write("KEY OFF"); KEY_STATE = 0x0;
+    
+    @panel::Switch_Clock = 0;
+    
+    write("Stop mearsurement"); stop();    
+    
+  }
+  
+  testStep("Notifications","Done test INF_015_17");
+  write("=== FINISH INF_015_17 ===");      
+}
+
+testcase INF_015_18(){
+  testStep("Notifications","Start test INF_015_18");
+  write("=== START INF_015_18 ===");
+  
+  GearPos_value = 0xF; // Fault
+  
+  write("=== SETTING ===");
+  
+  write("KEY ON"); KEY_STATE = 0x2; testWaitForTimeout(3000);
+
+  do {
+    
+    Enter_BLTN_CAM(); testWaitForTimeout(3000);
+    
+    if ($BLTN_CAM_RecSet_OWD == 0x1) {write("OWD On"); @panel::LED_Ctrl_SetOWD = 1; testWaitForTimeout(500);}
+    
+    if ($BLTN_CAM_Set_GearPos_Stm == 0x1) {write("Set GearPos Stamp On"); @panel::LED_Ctrl_Set_GearPos_Stm = 1; testWaitForTimeout(500);}
+    
+    if ($BLTN_CAM_Set_Tim_Stm == 0x2) {write("Set Time Stamp Off"); @panel::LED_Ctrl_Set_Tim_Stm = 1; testWaitForTimeout(500);}   
+    
+    if ($BLTN_CAM_Set_Spd_Stm == 0x2) {write("Set Speed Stamp Off"); @panel::LED_Ctrl_Set_Spd_Stm = 1; testWaitForTimeout(500);}    
+    
+    if ($BLTN_CAM_Set_TrnSig_Stm == 0x2) {write("Set TrnSig Stamp Off"); @panel::LED_Ctrl_Set_TrnSig_Stm = 1; testWaitForTimeout(500);}    
+    
+    if ($BLTN_CAM_Set_EVSen_Stm == 0x2) {write(" Set EVSen Stamp Off"); @panel::LED_Ctrl_Set_EVSen_Stm = 1; testWaitForTimeout(500);};   
+    
+    if ($BLTN_CAM_Set_Locatn_Stm == 0x2) {write("Set Locatn Stamp Off"); @panel::LED_Ctrl_Set_Locatn_Stm = 1; testWaitForTimeout(500);}
+    
+    @panel::Switch_Clock = 1;
+    
+    Exit_BLTN_CAM();
+    
+    flag_RecSet_error++;
+  } while (($BLTN_CAM_RecSet_OWD == 0x1 || $BLTN_CAM_Set_GearPos_Stm == 0x1 || $BLTN_CAM_Set_EVSen_Stm == 0x2 || $BLTN_CAM_Set_Locatn_Stm == 0x2 || $BLTN_CAM_Set_Spd_Stm == 0x2 || $BLTN_CAM_Set_Tim_Stm == 0x2 || $BLTN_CAM_Set_TrnSig_Stm == 0x2) && (flag_RecSet_error < 15));
+  
+  flag_RecSet_error = 0;   
+  
+  write("=== TESTING ===");
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWD,10000) == 1) {
+    write("OWD recording with GearPos is started");
+    
+    testWaitForTimeout(10000);
+    
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+      testWaitForTimeout(3000);
+      testReportAddWindowCapture("INF","BLTN_CAM_RecSta_OWD; VCU_GearPosSta;VCU_GearPosStaDisp","Sreenshot","./Husign.jpg");
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;
+    
+    write("KEY OFF"); KEY_STATE = 0x0;
+    
+    @panel::Switch_Clock = 0;
+    
+    testWaitForTimeout(3000);
+    testReportAddWindowCapture("INF","BLTN_CAM_RecSta_OWD; VCU_GearPosSta;VCU_GearPosStaDisp","Sreenshot","./Husign.jpg");
+    
+  }
+  else {
+    
+    write("OWD recording hasn't started");
+    
+    testStepWarning("Warning","OWD recording hasn't started");    
+    
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+      testWaitForTimeout(3000);
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;   
+    
+    write("KEY OFF"); KEY_STATE = 0x0;
+    
+    @panel::Switch_Clock = 0;
+    
+    write("Stop mearsurement"); stop();    
+    
+  }
+  
+  testStep("Notifications","Done test INF_015_18");
+  write("=== FINISH INF_015_18 ===");      
+}
+
+testcase INF_015_19(){
+  testStep("Notifications","Start test INF_015_19");
+  write("=== START INF_015_19 ===");
+  
+  send_VCU_01_10ms_timer.cancel();
+  
+  write("=== SETTING ===");
+  
+  write("KEY ON"); KEY_STATE = 0x2; testWaitForTimeout(3000);
+
+  do {
+    
+    Enter_BLTN_CAM(); testWaitForTimeout(3000);
+    
+    if ($BLTN_CAM_RecSet_OWD == 0x1) {write("OWD On"); @panel::LED_Ctrl_SetOWD = 1; testWaitForTimeout(500);}
+    
+    if ($BLTN_CAM_Set_GearPos_Stm == 0x1) {write("Set GearPos Stamp On"); @panel::LED_Ctrl_Set_GearPos_Stm = 1; testWaitForTimeout(500);}
+    
+    if ($BLTN_CAM_Set_Tim_Stm == 0x2) {write("Set Time Stamp Off"); @panel::LED_Ctrl_Set_Tim_Stm = 1; testWaitForTimeout(500);}   
+    
+    if ($BLTN_CAM_Set_Spd_Stm == 0x2) {write("Set Speed Stamp Off"); @panel::LED_Ctrl_Set_Spd_Stm = 1; testWaitForTimeout(500);}    
+    
+    if ($BLTN_CAM_Set_TrnSig_Stm == 0x2) {write("Set TrnSig Stamp Off"); @panel::LED_Ctrl_Set_TrnSig_Stm = 1; testWaitForTimeout(500);}    
+    
+    if ($BLTN_CAM_Set_EVSen_Stm == 0x2) {write(" Set EVSen Stamp Off"); @panel::LED_Ctrl_Set_EVSen_Stm = 1; testWaitForTimeout(500);};   
+    
+    if ($BLTN_CAM_Set_Locatn_Stm == 0x2) {write("Set Locatn Stamp Off"); @panel::LED_Ctrl_Set_Locatn_Stm = 1; testWaitForTimeout(500);}
+    
+    @panel::Switch_Clock = 1;
+    
+    Exit_BLTN_CAM();
+    
+    flag_RecSet_error++;
+  } while (($BLTN_CAM_RecSet_OWD == 0x1 || $BLTN_CAM_Set_GearPos_Stm == 0x1 || $BLTN_CAM_Set_EVSen_Stm == 0x2 || $BLTN_CAM_Set_Locatn_Stm == 0x2 || $BLTN_CAM_Set_Spd_Stm == 0x2 || $BLTN_CAM_Set_Tim_Stm == 0x2 || $BLTN_CAM_Set_TrnSig_Stm == 0x2) && (flag_RecSet_error < 15));
+  
+  flag_RecSet_error = 0;   
+  
+  write("=== TESTING ===");
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWD,10000) == 1) {
+    write("OWD recording with GearPos is started");
+    
+    testWaitForTimeout(10000);
+    
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+      testWaitForTimeout(3000);
+      testReportAddWindowCapture("INF","BLTN_CAM_RecSta_OWD; VCU_GearPosSta;VCU_GearPosStaDisp","Sreenshot","./Husign.jpg");
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;
+    
+    send_VCU_01_10ms_timer.set(10);
+    
+    write("KEY OFF"); KEY_STATE = 0x0;
+    
+    @panel::Switch_Clock = 0;
+    
+    testWaitForTimeout(3000);
+    testReportAddWindowCapture("INF","BLTN_CAM_RecSta_OWD; VCU_GearPosSta;VCU_GearPosStaDisp","Sreenshot","./Husign.jpg");
+    
+  }
+  else {
+    
+    write("OWD recording hasn't started");
+    
+    testStepWarning("Warning","OWD recording hasn't started");    
+    
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+      testWaitForTimeout(3000);
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;   
+    
+    write("KEY OFF"); KEY_STATE = 0x0;
+    
+    @panel::Switch_Clock = 0;
+    
+    write("Stop mearsurement"); stop();    
+    
+  }
+  
+  testStep("Notifications","Done test INF_015_19");
+  write("=== FINISH INF_015_19 ===");      
+}
+
+void Setting(){
+  @panel::Switch_CGWNM = 1; 
+  
+  KEY_STATE = 0x2; testWaitForTimeout(3000);
+  
+  if ($BLTN_CAM_RecSet_OWD == 0x2 || $BLTN_CAM_RecSet_OWP == 0x2 || $BLTN_CAM_RecSet_DEV == 0x2 || $BLTN_CAM_RecSet_PEV == 0x2){
+
+    do {
+      Enter_BLTN_CAM();      
+      testWaitForTimeout(3000);
+      if ($BLTN_CAM_RecSet_OWD == 0x2) {write("OWD OFF"); @panel::LED_Ctrl_SetOWD = 1;testWaitForTimeout(500);}
+      else if ($BLTN_CAM_RecSet_OWP == 0x2) {write("OWP OFF"); @panel::LED_Ctrl_SetOWP = 1;testWaitForTimeout(500);}
+      else if ($BLTN_CAM_RecSet_DEV == 0x2) {write("DEV OFF"); @panel::LED_Ctrl_SetDEV = 1;testWaitForTimeout(500);}
+      else if ($BLTN_CAM_RecSet_PEV == 0x2) {write("PEV OFF"); @panel::LED_Ctrl_SetPEV = 1;testWaitForTimeout(500);}
+      Exit_BLTN_CAM();
+      testWaitForTimeout(2000);
+      flag_RecSet_error++;
+    } while($BLTN_CAM_RecSet_OWD == 0x2 || $BLTN_CAM_RecSet_OWP == 0x2 || $BLTN_CAM_RecSet_DEV == 0x2 || $BLTN_CAM_RecSet_PEV == 0x2 && (flag_RecSet_error < 15));
+    
+    flag_RecSet_error = 0; 
+
+  }
+  else {
+    write("Notifications: All recording setting are turned OFF.");
+  }
+
+  while (getSignal(BLTN_CAM_SD_Format_Op_State) != 0x1){
+    write("Reset Recorded Video"); @panel::Button_RecReset = 1; 
+    testWaitForSignalChange(BLTN_CAM_SD_Format_Op_State,500);
+  }
+  
+  
+  KEY_STATE = 0x0;
+  
+  @panel::Switch_CGWNM = 0;   
+}
+
+void Send_timer(){
+  send_BDC_FD_SMK_03_200ms_timer.set(10);
+  send_PDC_FD_11_200ms_timer.set(10);
+  send_ICU_ModState_timer.set(10);
+  send_VCU_01_10ms_timer.set(10);  
+}
+
+void MainTest(){
+  
+  Send_timer();
+  
+  write("Run Setting()"); Setting();
+  @panel::Switch_CGWNM = 1;  
+  
+  TestWaitForValueInput("Please enter the test ID (1/2/3/4/5/6/7/8/9/10/11/12/13/14/15/16/17/18/19/20)", 300000); 
+  switch (TestGetValueInput()){
+
+   case(1) : INF_015_1(); break;
+   case(2) : INF_015_2(); break;
+   case(3) : INF_015_3(); break;
+   case(4) : INF_015_4(); break;   
+   case(5) : INF_015_5(); break;    
+   case(6) : INF_015_6(); break;
+   case(7) : INF_015_7(); break;
+   case(8) : INF_015_8(); break;
+   case(9) : INF_015_9(); break;
+   case(10) : INF_015_10(); break;      
+   case(11) : INF_015_11(); break;
+   case(12) : INF_015_12(); break;
+   case(13) : INF_015_13(); break;
+   case(14) : INF_015_14(); break;
+   case(15) : INF_015_15(); break;
+   case(16) : INF_015_16(); break;
+   case(17) : INF_015_17(); break;
+   case(18) : INF_015_18(); break;
+   case(19) : INF_015_19(); break;
+   case(20) : INF_015_1(); INF_015_2(); INF_015_3(); INF_015_4(); INF_015_5(); INF_015_6(); INF_015_7(); INF_015_8(); INF_015_9(); INF_015_10();
+   INF_015_11(); INF_015_12(); INF_015_13(); INF_015_14(); INF_015_15(); INF_015_16(); INF_015_17(); INF_015_18(); INF_015_19(); break;  
+
+} 
+  @panel::Switch_CGWNM = 0;
+
+  GearPos_value = 0x0;
+  Mode_state = 0x2;
+  send_PDC_FD_11_200ms_timer.cancel();
+  send_ICU_ModState_timer.cancel();
+  send_VCU_01_10ms_timer.cancel();
+
+}

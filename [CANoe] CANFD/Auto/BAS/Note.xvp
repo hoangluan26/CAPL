@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<Panel Type="Vector.CANalyzer.Panels.PanelSerializer, Vector.CANalyzer.Panels.Serializer, Version=17.5.5.0, Culture=neutral, PublicKeyToken=null">
+  <Object Type="Vector.CANalyzer.Panels.Runtime.Panel, Vector.CANalyzer.Panels.Common, Version=17.5.5.0, Culture=neutral, PublicKeyToken=null" Name="Panel" Children="Controls" ControlName="Note">
+    <Object Type="Vector.CANalyzer.Panels.Design.GroupBoxControl, Vector.CANalyzer.Panels.CommonControls, Version=17.5.5.0, Culture=neutral, PublicKeyToken=null" Name="GroupBoxControl1" Children="Controls" ControlName="Group Box 1">
+      <Object Type="Vector.CANalyzer.Panels.Design.StaticTextControl, Vector.CANalyzer.Panels.CommonControls, Version=17.5.5.0, Culture=neutral, PublicKeyToken=null" Name="StaticTextControl1" Children="Controls" ControlName="Static Text 1">
+        <Property Name="Name">StaticTextControl1</Property>
+        <Property Name="Size">262, 33</Property>
+        <Property Name="Location">2, 48</Property>
+        <Property Name="Font">Microsoft Sans Serif, 21.75pt</Property>
+        <Property Name="Text">Make impact event </Property>
+      </Object>
+      <Property Name="Name">GroupBoxControl1</Property>
+      <Property Name="Size">264, 121</Property>
+      <Property Name="Location">3, 3</Property>
+      <Property Name="BackColor">White</Property>
+      <Property Name="Font">Microsoft Sans Serif, 14.25pt, style=Bold</Property>
+      <Property Name="Text">Notice</Property>
+      <Property Name="TabIndex">0</Property>
+    </Object>
+    <Property Name="Name">Panel</Property>
+    <Property Name="Size">270, 127</Property>
+    <Property Name="BackColor">White</Property>
+  </Object>
+</Panel>

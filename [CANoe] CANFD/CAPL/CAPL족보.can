@@ -1,0 +1,86 @@
+/*@!Encoding:949*/
+/*@!Encoding:949*/
+includes
+{
+  
+}
+
+variables
+{
+  
+}
+
+
+//  String 선언
+//  char text[150] = "안녕하세요";
+
+//  strncpy(outputString, STRING, 50); // 배열 카피
+
+//  strncat(outputString, buffer, strlen(STRING) + strlen(buffer) + 1); //char + char
+
+//  if( !strncmp(string,"myString",strlen(string)-1) ) //string 비교, 같으면 0 출력
+
+// snprintf(buffer, elcount(buffer), "%.1f", inputValue); //double to char
+
+//배열 확인하기
+//int j;
+//for(j=0; j<30; j++) write("%d %c", j, buffer[j]);
+
+//void byteToChar(byte byteArray[], char stringBuffer[])
+//{
+//  int i;
+//
+//  // 바이트 데이터를 문자열로 변환
+//  for (i = 0; i < elcount(byteArray) ; i++)
+//    stringBuffer[i] = byteArray[i];
+//}
+
+
+
+
+/*
+//빌트인캠 NM이 수신되면 로깅 시작(CAN Wake Up 시)
+//on message NM_BLTN_CAM //CAN
+on message NM_BLTN_CAM_FD //CANFD 
+{
+  if(loggingHandle == -1) //로깅이 비활성화 되어 있으면
+  {
+    startLogging("Logging",1000); //로깅 시작
+    loggingHandle = 0;
+    write("");
+    write("===================== Logging Start =====================");
+  }
+}
+
+//5초마다 CAN BUS Load 확인하여 0(Sleep)이면 로깅 종료
+on timer timer_Logging
+{
+  if(loggingHandle != -1) //로깅이 활성화 되어 있으면
+  {
+    if(canGetBusLoad(2) == 0)
+    {
+      stopLogging("Logging",1000); //로깅 종료
+      loggingHandle = -1;
+      write("logging Stop, Busload = %d", canGetBusLoad(2));
+      write("===================== Logging Stop =====================");
+      write("");
+    }
+  }
+  timer_Logging.Set(TIME_timer_Logging);
+}
+*/
+
+
+//"%ld","%d" decimal display
+//"%lx","%x" hexadecimal display
+//"%lX","%X" hexadecimal display (upper case)
+//"%lu","%u" unsigned display
+//"%lo","%o" octal display
+//"%s" display a string
+//"%g","%lf" floating point display
+//"%c" display a character
+//"%%" display %-character
+//"%I64d" decimal display of a 64 bit value
+//"%I64x" hexadecimal display of a 64 bit value
+//"%I64X" hexadecimal display of a 64 bit value (upper case)
+//"%I64u" unsigned display of a 64 bit value

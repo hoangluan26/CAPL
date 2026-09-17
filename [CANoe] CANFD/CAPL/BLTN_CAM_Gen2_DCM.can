@@ -1,0 +1,1019 @@
+/*@!Encoding:949*/
+includes
+{
+}
+
+variables
+{ 
+  int loggingHandle = -1;
+  
+  long CAM_Pos_FR;
+  long CAM_Pos_RR;
+  long OWPSetTime;
+  long TmlpsRecSetTime;
+  long DEVSenSetValue;
+  long PEVSenSetValue;
+  long Evt_BfrTime;
+  long Evt_AftTime;
+  
+
+  enum CAM_Ver_Pos
+  {
+    MINUS_5 = 0x15,
+    MINUS_4 = 0x14,
+    MINUS_3 = 0x13,
+    MINUS_2 = 0x12,
+    MINUS_1 = 0x11,
+    ZERO_0 = 0x0,
+    PLUS_1 = 0x1,
+    PLUS_2 = 0x2,
+    PLUS_3 = 0x3,
+    PLUS_4 = 0x4,
+    PLUS_5 = 0x5
+  };
+  
+
+  // timer
+  //msTimer timer_Logging;
+  //int TIME_timer_Logging = 5000;
+  
+  msTimer timer_HU_CLOCK_PE;
+  int TIME_HU_CLOCK = 1000;
+  
+  msTimer timer_CGW_NM;
+  int TIME_CGW_NM = 100;
+  
+  msTimer timer_GetScrollBarSettingInfo;
+  int TIME_GetScrollBarSettingInfo = 500;
+  
+  msTimer timer_CF_AVN_CluUSMReset;
+  msTimer timer_HU_BLTN_CAM_E_01;
+  
+  // define CAN message
+  message HU_BLTN_CAM_01_00ms _HU_BLTN_CAM_E_00;
+  message HU_BLTN_CAM_01_00ms _HU_BLTN_CAM_E_01; 
+  message CAN2::NM_CGW_CCU _NM_CGW_CCU;
+  
+  message can2.0x100 msgSubBattCharge = {  
+  dlc = 8,
+  byte(0) = 0x19
+  };
+  
+  message can2.0x100 msgSubBattDisCharge = { 
+  dlc = 8,
+  byte(0) = 0x00
+  };
+  
+  // CAN message timer
+  msTimer timer_SubBatt_Charge;
+  int TIME_timer_SubBatt_Charge = 20;
+}
+
+on prestart
+{ 
+  //판넬 초기화
+  @sysvar::panel::EnableDrvInfo = 0;
+  @sysvar::panel::Switch_Clock = 0;
+  //@sysvar::panel::Switch_Warn_HoodSwSta = 0;
+//  @sysvar::panel::Switch_Warn_AsstDrSwSta = 0;
+//  @sysvar::panel::Switch_Warn_RrRtDrSwSta = 0;
+//  @sysvar::panel::Switch_Warn_AsstDrSwSta_SBCM = 0;
+//  @sysvar::panel::Switch_Warn_RrRtDrSwSta_SBCM = 0;
+//  @sysvar::panel::Switch_Trunk_TrnkTlgtSwSta = 0;
+//  @sysvar::panel::Switch_Warn_DrvDrSwSta = 0;
+//  @sysvar::panel::Switch_Warn_RrLftDrSwSta = 0;
+//  @sysvar::panel::Switch_Warn_DrvDrSwSta_SBCM = 0;
+//  @sysvar::panel::Switch_Warn_RrLftDrSwSta_SBCM = 0;
+//  @sysvar::panel::Button_DCM = 0;
+  
+  //버글러 신호 0
+  //setSignal(BAlarm_BglrAlrmCurrentSta, 0); //CAN
+  setSignal(BAlarm_BglrAlrm_CurrentSta, 0); //CANFD
+
+  //차량모드 고객모드로 세팅
+  setSignal(ICU_PowerAutoCutModSta,0x2);
+  
+  //주행데이터 신호 초기화
+  setSignal(TCU_GearSlctDis, 0x0);//P
+  setSignal(ENG_AccelPdlVal, 0);
+  setSignal(SAS_AnglVal, 0);
+  setSignal(CLU_DisSpdVal, 0);
+  setSignal(CLU_SpdUnitTyp, 0);// km/h
+  setSignal(ENG_BrkSwSta, 0);
+  setSignal(BAT_SocVal, 100); // 100% = 20h
+  setSignal(ICU_BS2SoC, 100); // 100% = 20h
+  setSignal(MainLBM_SocVal,100);
+  setSignal(Warn_HoodSwSta, 0);
+  setSignal(Warn_AsstDrSwSta, 0);
+  setSignal(Warn_RrRtDrSwSta, 0);
+  setSignal(Warn_AsstDrSwSta_SBCM, 0);
+  setSignal(Warn_RrRtDrSwSta_SBCM, 0);
+  setSignal(Trunk_TrnkTlgtSwSta, 0);
+  setSignal(Warn_DrvDrSwSta, 0);
+  setSignal(Warn_RrLftDrSwSta, 0);
+  setSignal(Warn_DrvDrSwSta_SBCM, 0);
+  setSignal(Warn_RrLftDrSwSta_SBCM, 0);
+
+}
+
+on start
+{
+
+  //타이머 초기화
+  //timer_Logging.Set(TIME_timer_Logging);
+  timer_SubBatt_Charge.Set(TIME_timer_SubBatt_Charge);
+  timer_HU_CLOCK_PE.set(TIME_HU_CLOCK);
+  timer_CGW_NM.Set(TIME_CGW_NM);
+  timer_GetScrollBarSettingInfo.Set(TIME_GetScrollBarSettingInfo);
+  
+  //시작할때 NM 끄고 시작
+  @panel::Switch_CGWNM = 0;
+  setSignal(BCM_AccInSta_Copy_0, 0x1);
+  setSignal(BCM_Ign1InSta_Copy_0, 0x1);
+  setSignal(BCM_Ign2InSta_Copy_0, 0x1);
+  setSignal(BCM_KeyInSta_Copy_0, 0x1);
+}
+
+
+on timer timer_GetScrollBarSettingInfo
+{
+  //주차녹화시간 SET
+  OWPSetTime = getSignal(BLTN_CAM_Set_PrkTime);
+  
+  
+  @sysvar::panel::TrackBar_OWP_TIME = OWPSetTime;
+  
+  //타임랩스 녹화시간 SET
+  TmlpsRecSetTime = getSignal(BLTN_CAM_Set_Drv_TML_Int);
+  @sysvar::panel::TrackBar_Timelaps_TIME = TmlpsRecSetTime;
+  
+  //F-CAM 각도 SET
+  CAM_Pos_FR = getSignal(BLTN_CAM_Set_FR_Ver_Pos);
+  
+  switch(CAM_Pos_FR)
+  {
+    case MINUS_5: @sysvar::panel::TrackBar_FR_Ver_Pos = 1; break;
+    case MINUS_4: @sysvar::panel::TrackBar_FR_Ver_Pos = 2; break;
+    case MINUS_3: @sysvar::panel::TrackBar_FR_Ver_Pos = 3; break;
+    case MINUS_2: @sysvar::panel::TrackBar_FR_Ver_Pos = 4; break;
+    case MINUS_1: @sysvar::panel::TrackBar_FR_Ver_Pos = 5; break;
+    case ZERO_0: @sysvar::panel::TrackBar_FR_Ver_Pos = 6; break;
+    case PLUS_1: @sysvar::panel::TrackBar_FR_Ver_Pos = 7; break;
+    case PLUS_2: @sysvar::panel::TrackBar_FR_Ver_Pos = 8; break;
+    case PLUS_3: @sysvar::panel::TrackBar_FR_Ver_Pos = 9; break;
+    case PLUS_4: @sysvar::panel::TrackBar_FR_Ver_Pos = 10; break;
+    case PLUS_5: @sysvar::panel::TrackBar_FR_Ver_Pos = 11; break;
+  }
+  
+  //R-CAM 각도 SET
+  CAM_Pos_RR = getSignal(BLTN_CAM_Set_RR_Ver_Pos);
+  
+  switch(CAM_Pos_RR)
+  {
+    case MINUS_5: @sysvar::panel::TrackBar_RR_Ver_Pos = 1; break;
+    case MINUS_4: @sysvar::panel::TrackBar_RR_Ver_Pos = 2; break;
+    case MINUS_3: @sysvar::panel::TrackBar_RR_Ver_Pos = 3; break;
+    case MINUS_2: @sysvar::panel::TrackBar_RR_Ver_Pos = 4; break;
+    case MINUS_1: @sysvar::panel::TrackBar_RR_Ver_Pos = 5; break;
+    case ZERO_0: @sysvar::panel::TrackBar_RR_Ver_Pos = 6; break;
+    case PLUS_1: @sysvar::panel::TrackBar_RR_Ver_Pos = 7; break;
+    case PLUS_2: @sysvar::panel::TrackBar_RR_Ver_Pos = 8; break;
+    case PLUS_3: @sysvar::panel::TrackBar_RR_Ver_Pos = 9; break;
+    case PLUS_4: @sysvar::panel::TrackBar_RR_Ver_Pos = 10; break;
+    case PLUS_5: @sysvar::panel::TrackBar_RR_Ver_Pos = 11; break;
+  }
+
+  //이벤트 민감도 SET
+  DEVSenSetValue = getSignal(BLTN_CAM_SenSet_DEV);
+  @sysvar::panel::TrackBar_DEV_Sen = DEVSenSetValue;
+  PEVSenSetValue = getSignal(BLTN_CAM_SenSet_PEV);
+  @sysvar::panel::TrackBar_PEV_Sen = PEVSenSetValue;
+  
+  //이벤트 녹화시간 After SET(트랙바 순서때문에 Before랑 다르게 해야됨
+  Evt_BfrTime = getSignal(BLTN_CAM_Set_EV_BfrTime) + 10;
+  
+  switch(Evt_BfrTime)
+  {
+    case 10: @sysvar::panel::TrackBar_EV_Time_Bfr = 3; break;
+    case 15: @sysvar::panel::TrackBar_EV_Time_Bfr = 2; break;
+    case 20: @sysvar::panel::TrackBar_EV_Time_Bfr = 1; break;
+  }
+
+  //이벤트 녹화 After 시간 SET
+  Evt_AftTime = getSignal(BLTN_CAM_Set_EV_AftTime) + 10;
+  @sysvar::panel::TrackBar_EV_Time_Aft = Evt_AftTime;
+  
+  
+  timer_GetScrollBarSettingInfo.Set(TIME_GetScrollBarSettingInfo);
+}
+
+on timer timer_HU_CLOCK_PE
+{
+  if(@sysvar::panel::Switch_Clock == 1)
+  {
+    //message HU_CLOCK_PE_02 _HU_CLOCK_PE_02; //CAN
+    message HU_CLOCK_01_1000ms _HU_CLOCK_PE_02; //CANFD
+
+    long time[9];
+    getLocalTime(time);
+    
+    _HU_CLOCK_PE_02.HU_DisplayYear1 = 0x1;
+    _HU_CLOCK_PE_02.HU_DisplayYear2 = (time[5]+1900) - 2000;
+    _HU_CLOCK_PE_02.HU_DisplayMonth = time[4]+1;
+    _HU_CLOCK_PE_02.HU_DisplayDay = time[3];
+    _HU_CLOCK_PE_02.HU_DisplayHour = time[2];
+    _HU_CLOCK_PE_02.HU_DisplayMinute= time[1];
+    _HU_CLOCK_PE_02.HU_DisplaySecond = time[0]; 
+    
+    _HU_CLOCK_PE_02.HU_Status = 0x2; //GPS Time receving
+    _HU_CLOCK_PE_02.HU_TimeSetting = 0x2; //GPS Time
+    
+    output(_HU_CLOCK_PE_02);
+  }
+  
+  else
+  {
+  }
+
+  timer_HU_CLOCK_PE.Set(TIME_HU_CLOCK);
+}
+
+
+on timer timer_SubBatt_Charge
+{
+  if(@sysvar::panel::Switch_SubBattCharge == 1)
+  {
+    /*
+    if($SMK_TrmnlCtrlGrpStaBDC == 0x0)
+      output(msgSubBattDisCharge);
+    
+    else if($SMK_TrmnlCtrlGrpStaBDC == 0x4)
+      output(msgSubBattCharge);
+    */
+    if($HCU_HevRdySta == 0x1)
+      output(msgSubBattCharge);
+    if($VCU_EvDrvRdySta == 0x1)
+      output(msgSubBattCharge);
+    if($SMK_TrmnlCtrlGrpStaBDC == 0x4)
+      output(msgSubBattCharge);
+    
+    if($HCU_HevRdySta == 0x0 && $VCU_EvDrvRdySta == 0x0 && $SMK_TrmnlCtrlGrpStaBDC == 0x0)
+      output(msgSubBattDisCharge);
+  }
+  
+  else
+  {
+  }
+
+  timer_SubBatt_Charge.Set(TIME_timer_SubBatt_Charge);
+}
+
+
+on timer timer_CGW_NM
+{
+  
+  if(@sysvar::panel::Switch_CGWNM == 0x1) //system variable 'Switch_CGWNM' 값이 1(ON) 이면
+  {
+    output(_NM_CGW_CCU); //생성한 메시지 출력
+  }
+  else
+  {
+    
+  }
+  
+    timer_CGW_NM.Set(TIME_CGW_NM); //타이머 다시 세팅(입력한 시간만큼 지나서 timer가 수행됨)
+}
+
+on timer timer_CF_AVN_CluUSMReset
+{
+  message  HU_USM_02_00ms _HU_USM_E_04; //CANFD
+  //message HU_USM_E_04 _HU_USM_E_04; //CAN
+  
+  _HU_USM_E_04.CF_AVN_CluUSMReset = 0x0;//Default
+  
+  output(_HU_USM_E_04);
+}
+
+on timer timer_HU_BLTN_CAM_E_01
+{
+  message HU_BLTN_CAM_01_00ms _HU_BLTN_CAM_E_01;//CANFD
+  //message HU_BLTN_CAM_E_01 _HU_BLTN_CAM_E_01; //CAN
+
+  int i;
+  for( i=0; i<8; i++)
+  {
+    _HU_BLTN_CAM_E_01.byte(i) = 0xFF;
+  }
+  
+  output(_HU_BLTN_CAM_E_01);
+}
+
+
+/* system variable event handler */
+
+on sysvar_update panel::LED_Ctrl_SetOWD
+{
+  valueSet_HU_BLTN_CAM_E_00();
+  
+  if($BLTN_CAM_RecSet_OWD == 0x1)
+    _HU_BLTN_CAM_E_00.BLTN_CAM_Rec_OWD_NvalueSet = 0x2;//ON
+  else
+    _HU_BLTN_CAM_E_00.BLTN_CAM_Rec_OWD_NvalueSet = 0x1;//OFF
+    
+  output(_HU_BLTN_CAM_E_00);
+}
+
+on sysvar_update panel::LED_Ctrl_SetDEV
+{
+  valueSet_HU_BLTN_CAM_E_00();
+  
+  if($BLTN_CAM_RecSet_DEV == 0x1)
+    _HU_BLTN_CAM_E_00.BLTN_CAM_Rec_DEV_NvalueSet = 0x2;
+  else
+    _HU_BLTN_CAM_E_00.BLTN_CAM_Rec_DEV_NvalueSet = 0x1;
+    
+  output(_HU_BLTN_CAM_E_00);
+}
+
+on sysvar_update panel::LED_Ctrl_SetOWP
+{
+  valueSet_HU_BLTN_CAM_E_00();
+  
+  if($BLTN_CAM_RecSet_OWP == 0x1)
+    _HU_BLTN_CAM_E_00.BLTN_CAM_Rec_OWP_NvalueSet = 0x2;
+  else
+    _HU_BLTN_CAM_E_00.BLTN_CAM_Rec_OWP_NvalueSet = 0x1;
+    
+  output(_HU_BLTN_CAM_E_00);
+}
+
+on sysvar_update panel::LED_Ctrl_SetPEV
+{
+  valueSet_HU_BLTN_CAM_E_00();
+  
+  if($BLTN_CAM_RecSet_PEV == 0x1)
+    _HU_BLTN_CAM_E_00.BLTN_CAM_Rec_PEV_NvalueSet = 0x2;
+  else
+    _HU_BLTN_CAM_E_00.BLTN_CAM_Rec_PEV_NvalueSet = 0x1;
+    
+  output(_HU_BLTN_CAM_E_00);
+}
+
+on sysvar_update panel::LED_Ctrl_Set_EVSen_Stm
+{
+  valueSet_HU_BLTN_CAM_E_00();
+  
+  if($BLTN_CAM_Set_EVSen_Stm == 0x1)
+    _HU_BLTN_CAM_E_00.BLTN_CAM_EVSen_Stm_NvalueSet = 0x2;
+  else
+    _HU_BLTN_CAM_E_00.BLTN_CAM_EVSen_Stm_NvalueSet = 0x1;
+    
+  output(_HU_BLTN_CAM_E_00);
+}
+
+on sysvar_update panel::LED_Ctrl_Set_GearPos_Stm
+{
+  valueSet_HU_BLTN_CAM_E_00();
+  
+  if($BLTN_CAM_Set_GearPos_Stm == 0x1)
+    _HU_BLTN_CAM_E_00.BLTN_CAM_GearPos_Stm_NvalueSet = 0x2;
+  else
+    _HU_BLTN_CAM_E_00.BLTN_CAM_GearPos_Stm_NvalueSet = 0x1;
+    
+  output(_HU_BLTN_CAM_E_00);
+}
+
+on sysvar_update panel::LED_Ctrl_Set_Locatn_Stm
+{
+  valueSet_HU_BLTN_CAM_E_00();
+  
+  if($BLTN_CAM_Set_Locatn_Stm == 0x1)
+    _HU_BLTN_CAM_E_00.BLTN_CAM_Locatn_Stm_NvalueSet = 0x2;
+  else
+    _HU_BLTN_CAM_E_00.BLTN_CAM_Locatn_Stm_NvalueSet = 0x1;
+    
+  output(_HU_BLTN_CAM_E_00);
+}
+
+on sysvar_update panel::LED_Ctrl_Set_Spd_Stm
+{
+  valueSet_HU_BLTN_CAM_E_00();
+  
+  if($BLTN_CAM_Set_Spd_Stm == 0x1)
+    _HU_BLTN_CAM_E_00.BLTN_CAM_Spd_Stm_NvalueSet = 0x2;
+  else
+    _HU_BLTN_CAM_E_00.BLTN_CAM_Spd_Stm_NvalueSet = 0x1;
+    
+  output(_HU_BLTN_CAM_E_00);
+}
+
+on sysvar_update panel::LED_Ctrl_Set_Tim_Stm
+{
+  valueSet_HU_BLTN_CAM_E_00();
+  
+  if($BLTN_CAM_Set_Tim_Stm  == 0x1)
+    _HU_BLTN_CAM_E_00.BLTN_CAM_Time_Stm_NvalueSet = 0x2;
+  else
+    _HU_BLTN_CAM_E_00.BLTN_CAM_Time_Stm_NvalueSet = 0x1;
+    
+  output(_HU_BLTN_CAM_E_00);
+}
+
+on sysvar_update panel::LED_Ctrl_Set_TrnSig_Stm
+{
+  valueSet_HU_BLTN_CAM_E_00();
+  
+  if($BLTN_CAM_Set_TrnSig_Stm  == 0x1)
+    _HU_BLTN_CAM_E_00.BLTN_CAM_TrnSig_Stm_NvalueSet = 0x2;
+  else
+    _HU_BLTN_CAM_E_00.BLTN_CAM_TrnSig_Stm_NvalueSet = 0x1;
+    
+  output(_HU_BLTN_CAM_E_00);
+}
+
+on sysvar_update panel::LED_Ctrl_AudRec_Set
+{
+  valueSet_HU_BLTN_CAM_E_00();
+  
+  if($BLTN_CAM_AudRec_Set  == 0x1)
+    _HU_BLTN_CAM_E_00.BLTN_CAM_AudRec_NvalueSet = 0x2;
+  else
+    _HU_BLTN_CAM_E_00.BLTN_CAM_AudRec_NvalueSet = 0x1;
+    
+  output(_HU_BLTN_CAM_E_00);
+}
+
+//on sysvar_update panel::LED_Ctrl_Stm_all
+//{
+//  valueSet_HU_BLTN_CAM_E_00();
+  
+//  if($BLTN_CAM_Stm_all  == 0x1)
+//    _HU_BLTN_CAM_E_00.BLTN_CAM_Stm_all_NvalueSet = 0x2;
+//  else
+//    _HU_BLTN_CAM_E_00.BLTN_CAM_Stm_all_NvalueSet = 0x1;
+    
+//  output(_HU_BLTN_CAM_E_00);
+//}
+
+on sysvar_update panel::LED_Ctrl_EV_RecMaxTime
+{
+  valueSet_HU_BLTN_CAM_E_00();
+  
+  if($BLTN_CAM_Set_EV_RecMaxTime == 0x2)
+    _HU_BLTN_CAM_E_00.BLTN_CAM_EV_RecMaxTime_NvalueSet = 0x1;
+  else
+    _HU_BLTN_CAM_E_00.BLTN_CAM_EV_RecMaxTime_NvalueSet = 0x2;
+    
+    output(_HU_BLTN_CAM_E_00);
+}
+
+on sysvar_update panel::TrackBar_OWP_TIME
+{ 
+  OWPSetTime = getSignal(BLTN_CAM_Set_PrkTime);
+  
+  if(@panel::TrackBar_OWP_TIME != OWPSetTime)
+  {
+    valueSet_HU_BLTN_CAM_E_00();
+    
+    switch (@panel::TrackBar_OWP_TIME) {
+      case 2 : _HU_BLTN_CAM_E_00.BLTN_CAM_PrkTime_NvalueSet = 0x2; output(_HU_BLTN_CAM_E_00); break;
+      case 3 : _HU_BLTN_CAM_E_00.BLTN_CAM_PrkTime_NvalueSet = 0x3; output(_HU_BLTN_CAM_E_00); break;
+      case 4 : _HU_BLTN_CAM_E_00.BLTN_CAM_PrkTime_NvalueSet = 0x4; output(_HU_BLTN_CAM_E_00); break;
+      case 5 : _HU_BLTN_CAM_E_00.BLTN_CAM_PrkTime_NvalueSet = 0x5; output(_HU_BLTN_CAM_E_00); break;
+      case 6 : _HU_BLTN_CAM_E_00.BLTN_CAM_PrkTime_NvalueSet = 0x6; output(_HU_BLTN_CAM_E_00); break;
+      case 7 : _HU_BLTN_CAM_E_00.BLTN_CAM_PrkTime_NvalueSet = 0x7; output(_HU_BLTN_CAM_E_00); break;
+      case 8 : _HU_BLTN_CAM_E_00.BLTN_CAM_PrkTime_NvalueSet = 0x8; output(_HU_BLTN_CAM_E_00); break;
+      case 9 : _HU_BLTN_CAM_E_00.BLTN_CAM_PrkTime_NvalueSet = 0x9; output(_HU_BLTN_CAM_E_00); break;
+      case 10 : _HU_BLTN_CAM_E_00.BLTN_CAM_PrkTime_NvalueSet = 0xA; output(_HU_BLTN_CAM_E_00); break;
+      case 11 : _HU_BLTN_CAM_E_00.BLTN_CAM_PrkTime_NvalueSet = 0xB; output(_HU_BLTN_CAM_E_00); break;
+      case 12 : _HU_BLTN_CAM_E_00.BLTN_CAM_PrkTime_NvalueSet = 0xC; output(_HU_BLTN_CAM_E_00); break;
+      case 13 : _HU_BLTN_CAM_E_00.BLTN_CAM_PrkTime_NvalueSet = 0xD; output(_HU_BLTN_CAM_E_00); break;
+      case 14 : _HU_BLTN_CAM_E_00.BLTN_CAM_PrkTime_NvalueSet = 0xE; output(_HU_BLTN_CAM_E_00); break;
+      case 15 : _HU_BLTN_CAM_E_00.BLTN_CAM_PrkTime_NvalueSet = 0xF; output(_HU_BLTN_CAM_E_00); break;
+      case 16 : _HU_BLTN_CAM_E_00.BLTN_CAM_PrkTime_NvalueSet = 0x10; output(_HU_BLTN_CAM_E_00); break;
+      case 17 : _HU_BLTN_CAM_E_00.BLTN_CAM_PrkTime_NvalueSet = 0x11; output(_HU_BLTN_CAM_E_00); break;
+      case 18 : _HU_BLTN_CAM_E_00.BLTN_CAM_PrkTime_NvalueSet = 0x12; output(_HU_BLTN_CAM_E_00); break;
+      case 19 : _HU_BLTN_CAM_E_00.BLTN_CAM_PrkTime_NvalueSet = 0x13; output(_HU_BLTN_CAM_E_00); break;
+      case 20 : _HU_BLTN_CAM_E_00.BLTN_CAM_PrkTime_NvalueSet = 0x14; output(_HU_BLTN_CAM_E_00); break;
+      default : write("TrackBar_OWP_TIME default"); break;
+        write("OWD Time");
+    }
+  }
+}
+
+on sysvar_update panel::TrackBar_Timelaps_TIME
+{
+  TmlpsRecSetTime = getSignal(BLTN_CAM_Set_Drv_TML_Int);
+  
+  if(@panel::TrackBar_Timelaps_TIME != TmlpsRecSetTime)
+  {
+    valueSet_HU_BLTN_CAM_E_00();
+    
+    switch (@panel::TrackBar_Timelaps_TIME) {
+      case 1 : _HU_BLTN_CAM_E_00.BLTN_CAM_TML_Int_NvalueSet = 0x1; output(_HU_BLTN_CAM_E_00); break;
+      case 2 : _HU_BLTN_CAM_E_00.BLTN_CAM_TML_Int_NvalueSet = 0x2; output(_HU_BLTN_CAM_E_00); break;
+      case 5 : _HU_BLTN_CAM_E_00.BLTN_CAM_TML_Int_NvalueSet = 0x5; output(_HU_BLTN_CAM_E_00); break;
+      default : write("TrackBar_Timelaps_TIME default"); break;
+    }
+        write("TmlpsRecSetTime");
+  }
+}
+
+on sysvar_update panel::TrackBar_FR_Ver_Pos
+{
+  CAM_Pos_FR = getSignal(BLTN_CAM_Set_FR_Ver_Pos);
+  
+  switch (@panel::TrackBar_FR_Ver_Pos) {
+    case 1 : if(CAM_Pos_FR == MINUS_5) break;
+      _HU_BLTN_CAM_E_01.BLTN_CAM_FR_VerPos_NvalueSet = MINUS_5; output(_HU_BLTN_CAM_E_01); write("CAM_Pos_FR -5"); break;
+    case 2 : if(CAM_Pos_FR == MINUS_4) break;                                             
+      _HU_BLTN_CAM_E_01.BLTN_CAM_FR_VerPos_NvalueSet = MINUS_4; output(_HU_BLTN_CAM_E_01); write("CAM_Pos_FR -4"); break;
+    case 3 : if(CAM_Pos_FR == MINUS_3) break;                                             
+      _HU_BLTN_CAM_E_01.BLTN_CAM_FR_VerPos_NvalueSet = MINUS_3; output(_HU_BLTN_CAM_E_01); write("CAM_Pos_FR -3"); break;
+    case 4 : if(CAM_Pos_FR == MINUS_2) break;                                           
+      _HU_BLTN_CAM_E_01.BLTN_CAM_FR_VerPos_NvalueSet = MINUS_2; output(_HU_BLTN_CAM_E_01); write("CAM_Pos_FR -2"); break;
+    case 5 : if(CAM_Pos_FR == MINUS_1) break;                                               
+      _HU_BLTN_CAM_E_01.BLTN_CAM_FR_VerPos_NvalueSet = MINUS_1; output(_HU_BLTN_CAM_E_01); write("CAM_Pos_FR -1"); break;
+    case 6 : if(CAM_Pos_FR == ZERO_0) break;
+      _HU_BLTN_CAM_E_01.BLTN_CAM_FR_VerPos_NvalueSet = ZERO_0; output(_HU_BLTN_CAM_E_01); write("CAM_Pos_FR 0");  break;
+    case 7 : if(CAM_Pos_FR == PLUS_1) break;
+      _HU_BLTN_CAM_E_01.BLTN_CAM_FR_VerPos_NvalueSet = PLUS_1; output(_HU_BLTN_CAM_E_01); write("CAM_Pos_FR +1");  break;
+    case 8 : if(CAM_Pos_FR == PLUS_2) break;
+      _HU_BLTN_CAM_E_01.BLTN_CAM_FR_VerPos_NvalueSet = PLUS_2; output(_HU_BLTN_CAM_E_01); write("CAM_Pos_FR +2");  break;
+    case 9 : if(CAM_Pos_FR == PLUS_3) break;
+      _HU_BLTN_CAM_E_01.BLTN_CAM_FR_VerPos_NvalueSet = PLUS_3; output(_HU_BLTN_CAM_E_01); write("CAM_Pos_FR +3");  break;
+    case 10 : if(CAM_Pos_FR == PLUS_4) break;
+      _HU_BLTN_CAM_E_01.BLTN_CAM_FR_VerPos_NvalueSet = PLUS_4; output(_HU_BLTN_CAM_E_01); write("CAM_Pos_FR +4");  break;
+    case 11 : if(CAM_Pos_FR == PLUS_5) break;
+      _HU_BLTN_CAM_E_01.BLTN_CAM_FR_VerPos_NvalueSet = PLUS_5; output(_HU_BLTN_CAM_E_01); write("CAM_Pos_FR +5"); break;
+    default : write("TrackBar_FR_Ver_Pos default"); break;
+  }
+}
+
+on sysvar_update panel::TrackBar_RR_Ver_Pos
+{
+  CAM_Pos_RR = getSignal(BLTN_CAM_Set_RR_Ver_Pos);
+  
+  switch (@panel::TrackBar_RR_Ver_Pos) {
+    case 1 : if(CAM_Pos_RR == MINUS_5) break;
+      _HU_BLTN_CAM_E_01.BLTN_CAM_RR_VerPos_NvalueSet = MINUS_5; output(_HU_BLTN_CAM_E_01); write("CAM_Pos_RR -5"); break;
+    case 2 : if(CAM_Pos_RR == MINUS_4) break;
+      _HU_BLTN_CAM_E_01.BLTN_CAM_RR_VerPos_NvalueSet = MINUS_4; output(_HU_BLTN_CAM_E_01); write("CAM_Pos_RR -4"); break;
+    case 3 : if(CAM_Pos_RR == MINUS_3) break;
+      _HU_BLTN_CAM_E_01.BLTN_CAM_RR_VerPos_NvalueSet = MINUS_3; output(_HU_BLTN_CAM_E_01); write("CAM_Pos_RR -3"); break;
+    case 4 : if(CAM_Pos_RR == MINUS_2) break;
+      _HU_BLTN_CAM_E_01.BLTN_CAM_RR_VerPos_NvalueSet = MINUS_2; output(_HU_BLTN_CAM_E_01); write("CAM_Pos_RR -2"); break;
+    case 5 : if(CAM_Pos_RR == MINUS_1) break;
+      _HU_BLTN_CAM_E_01.BLTN_CAM_RR_VerPos_NvalueSet = MINUS_1; output(_HU_BLTN_CAM_E_01); write("CAM_Pos_RR -1"); break;
+    case 6 : if(CAM_Pos_RR == ZERO_0) break;
+      _HU_BLTN_CAM_E_01.BLTN_CAM_RR_VerPos_NvalueSet = ZERO_0; output(_HU_BLTN_CAM_E_01); write("CAM_Pos_RR 0"); break;
+    case 7 : if(CAM_Pos_RR == PLUS_1) break;
+      _HU_BLTN_CAM_E_01.BLTN_CAM_RR_VerPos_NvalueSet = PLUS_1; output(_HU_BLTN_CAM_E_01); write("CAM_Pos_RR +1"); break;
+    case 8 : if(CAM_Pos_RR == PLUS_2) break;
+      _HU_BLTN_CAM_E_01.BLTN_CAM_RR_VerPos_NvalueSet = PLUS_2; output(_HU_BLTN_CAM_E_01); write("CAM_Pos_RR +2"); break;
+    case 9 : if(CAM_Pos_RR == PLUS_3) break;
+      _HU_BLTN_CAM_E_01.BLTN_CAM_RR_VerPos_NvalueSet = PLUS_3; output(_HU_BLTN_CAM_E_01); write("CAM_Pos_RR +3"); break;
+    case 10 : if(CAM_Pos_RR == PLUS_4) break;
+      _HU_BLTN_CAM_E_01.BLTN_CAM_RR_VerPos_NvalueSet = PLUS_4; output(_HU_BLTN_CAM_E_01); write("CAM_Pos_RR +4"); break;
+    case 11 : if(CAM_Pos_RR == PLUS_5) break;
+      _HU_BLTN_CAM_E_01.BLTN_CAM_RR_VerPos_NvalueSet = PLUS_5; output(_HU_BLTN_CAM_E_01); write("CAM_Pos_RR +5"); break;
+    default : write("TrackBar_RR_Ver_Pos default"); break;
+  }
+}
+
+on sysvar_update panel::TrackBar_DEV_Sen
+{
+  DEVSenSetValue = getSignal(BLTN_CAM_SenSet_DEV);
+  
+  if(@panel::TrackBar_DEV_Sen != DEVSenSetValue)
+  {
+    valueSet_HU_BLTN_CAM_E_00();
+    
+    switch (@panel::TrackBar_DEV_Sen) {
+      case 1 : _HU_BLTN_CAM_E_00.BLTN_CAM_Sen_DEV_NvalueSet = 0x1; output(_HU_BLTN_CAM_E_00); break;
+      case 2 : _HU_BLTN_CAM_E_00.BLTN_CAM_Sen_DEV_NvalueSet = 0x2; output(_HU_BLTN_CAM_E_00); break;
+      case 3 : _HU_BLTN_CAM_E_00.BLTN_CAM_Sen_DEV_NvalueSet = 0x3; output(_HU_BLTN_CAM_E_00); break;
+      case 4 : _HU_BLTN_CAM_E_00.BLTN_CAM_Sen_DEV_NvalueSet = 0x4; output(_HU_BLTN_CAM_E_00); break;
+      case 5 : _HU_BLTN_CAM_E_00.BLTN_CAM_Sen_DEV_NvalueSet = 0x5; output(_HU_BLTN_CAM_E_00); break;
+      default : write("TrackBar_DEV_Sen default"); break;
+    }
+     write("DEVSenSetValue");
+  }
+}
+
+on sysvar_update panel::TrackBar_PEV_Sen
+{
+  PEVSenSetValue = getSignal(BLTN_CAM_SenSet_PEV);
+  
+  if(@panel::TrackBar_PEV_Sen != PEVSenSetValue)
+  {
+    valueSet_HU_BLTN_CAM_E_00();
+    
+    switch (@panel::TrackBar_PEV_Sen) {
+      case 1 : _HU_BLTN_CAM_E_00.BLTN_CAM_Sen_PEV_NvalueSet = 0x1; output(_HU_BLTN_CAM_E_00); break;
+      case 2 : _HU_BLTN_CAM_E_00.BLTN_CAM_Sen_PEV_NvalueSet = 0x2; output(_HU_BLTN_CAM_E_00); break;
+      case 3 : _HU_BLTN_CAM_E_00.BLTN_CAM_Sen_PEV_NvalueSet = 0x3; output(_HU_BLTN_CAM_E_00); break;
+      case 4 : _HU_BLTN_CAM_E_00.BLTN_CAM_Sen_PEV_NvalueSet = 0x4; output(_HU_BLTN_CAM_E_00); break;
+      case 5 : _HU_BLTN_CAM_E_00.BLTN_CAM_Sen_PEV_NvalueSet = 0x5; output(_HU_BLTN_CAM_E_00); break;
+      default : write("TrackBar_PEV_Sen default"); break;
+    }
+     write("PEVSenSetValue");
+  }
+}
+
+on sysvar_update panel::TrackBar_EV_Time_Bfr  //트랙바의 값이 변동되면 실행
+{
+    Evt_BfrTime = getSignal(BLTN_CAM_Set_EV_BfrTime) + 10; //현재 빌트인캠 Bfr 시간 세팅 값 가져오기
+  
+    valueSet_HU_BLTN_CAM_E_00(); //비어있는 _HU_BLTN_CAM_E_00 메시지 생성 후 현재 빌트인캠 세팅값으로 채우기
+    
+    switch (@panel::TrackBar_EV_Time_Bfr) //트랙바의 값 받기
+    {
+      case 1 : //트랙바가 1 이면 수행    
+        if(Evt_BfrTime == 20)//Bfrtime가 이미 20s이면
+          break; //switch문 탈출
+        
+        _HU_BLTN_CAM_E_00.BLTN_CAM_EV_BfrTime_NvalueSet = 0xA;//0xA: 20s가 아니면 0xA 값을 생성한 메시지에 값 넣기
+        output(_HU_BLTN_CAM_E_00); //생성한 메시지 송출하기
+        write("Evt_BfrTime 20"); //출력창에 "Evt_BfrTime 20" 출력하기
+        break; //switch문 탈출
+        
+      case 2 : if(Evt_BfrTime == 15) break;
+        _HU_BLTN_CAM_E_00.BLTN_CAM_EV_BfrTime_NvalueSet = 0x5; output(_HU_BLTN_CAM_E_00); write("Evt_BfrTime 15"); break;
+      case 3 : if(Evt_BfrTime == 10) break;
+        _HU_BLTN_CAM_E_00.BLTN_CAM_EV_BfrTime_NvalueSet = 0x0; output(_HU_BLTN_CAM_E_00); write("Evt_BfrTime 10"); break;
+      default : write("TrackBar_DEV_Time_Bfr default"); break;
+    }
+}
+
+on sysvar_update panel::TrackBar_EV_Time_Aft
+{
+  Evt_AftTime = getSignal(BLTN_CAM_Set_EV_AftTime) + 10;
+
+  valueSet_HU_BLTN_CAM_E_00();
+  
+  if(@panel::TrackBar_EV_Time_Aft != Evt_AftTime)
+  {
+    switch (@panel::TrackBar_EV_Time_Aft) {
+      case 10 : _HU_BLTN_CAM_E_00.BLTN_CAM_EV_AftTime_NvalueSet = 0x0; output(_HU_BLTN_CAM_E_00); write("Evt_AftTime 10"); break;
+      case 15 : _HU_BLTN_CAM_E_00.BLTN_CAM_EV_AftTime_NvalueSet = 0x5; output(_HU_BLTN_CAM_E_00); write("Evt_AftTime 15"); break;
+      case 20 : _HU_BLTN_CAM_E_00.BLTN_CAM_EV_AftTime_NvalueSet = 0xA; output(_HU_BLTN_CAM_E_00); write("Evt_AftTime 20"); break;
+      default : write("TrackBar_PEV_Time_Aft default"); break;
+    }
+  }
+}
+
+//on sysvar_update panel::TrackBar_EV_Time_Before
+//{
+//  Evt_BfrTime = getSignal(BLTN_CAM_Set_EV_BfrTime) + 10;
+  
+//  valueSet_HU_BLTN_CAM_E_00();
+    
+//  switch (@panel::TrackBar_EV_Time_Bfr)
+//  {
+//    case 1 :
+//    {
+//      if(Evt_BfrTime == 20)
+//        break;
+
+//      _HU_BLTN_CAM_E_00.BLTN_CAM_EV_BfrTime_NvalueSet = 0xA;
+//      output(_HU_BLTN_CAM_E_00);
+//      write("Evt_BfrTime 20");
+//      break;
+//    }
+      
+//    case 2 :
+//    {
+//      if(Evt_BfrTime == 15)
+//        break;
+      
+//      _HU_BLTN_CAM_E_00.BLTN_CAM_EV_BfrTime_NvalueSet = 0x5;
+//      output(_HU_BLTN_CAM_E_00);
+//      write("Evt_BfrTime 15");
+//      break;
+//    }
+      
+//    case 3 :
+//    {
+//      if(Evt_BfrTime == 10)
+//        break;
+      
+//      _HU_BLTN_CAM_E_00.BLTN_CAM_EV_BfrTime_NvalueSet = 0x0;
+//      output(_HU_BLTN_CAM_E_00);
+//      write("Evt_BfrTime 10");
+//      break;
+//    }
+      
+//    default :
+//    {
+//        write("TrackBar_DEV_Time_Bfr default");
+//        break;
+//    }
+//  }
+//}
+
+void valueSet_HU_BLTN_CAM_E_00()
+{
+  //_HU_BLTN_CAM_E_00.BLTN_CAM_AclBrk_Stm_NvalueSet = 
+  _HU_BLTN_CAM_E_00.BLTN_CAM_AudRec_NvalueSet = $BLTN_CAM_AudRec_Set;
+  _HU_BLTN_CAM_E_00.BLTN_CAM_EVSen_Stm_NvalueSet = $BLTN_CAM_Set_EVSen_Stm;
+  _HU_BLTN_CAM_E_00.BLTN_CAM_EV_AftTime_NvalueSet = $BLTN_CAM_Set_EV_AftTime;
+  _HU_BLTN_CAM_E_00.BLTN_CAM_EV_BfrTime_NvalueSet = $BLTN_CAM_Set_EV_BfrTime;
+  _HU_BLTN_CAM_E_00.BLTN_CAM_GearPos_Stm_NvalueSet = $BLTN_CAM_Set_GearPos_Stm;
+  _HU_BLTN_CAM_E_00.BLTN_CAM_Locatn_Stm_NvalueSet = $BLTN_CAM_Set_Locatn_Stm;
+  _HU_BLTN_CAM_E_00.BLTN_CAM_Stm_all_NvalueSet = $BLTN_CAM_Stm_all;
+  _HU_BLTN_CAM_E_00.BLTN_CAM_PrkTime_NvalueSet = $BLTN_CAM_Set_PrkTime;
+  _HU_BLTN_CAM_E_00.BLTN_CAM_Rec_DEV_NvalueSet = $BLTN_CAM_RecSet_DEV;
+  _HU_BLTN_CAM_E_00.BLTN_CAM_Rec_OWD_NvalueSet = $BLTN_CAM_RecSet_OWD;
+  _HU_BLTN_CAM_E_00.BLTN_CAM_Rec_OWP_NvalueSet = $BLTN_CAM_RecSet_OWP;
+  _HU_BLTN_CAM_E_00.BLTN_CAM_Rec_PEV_NvalueSet = $BLTN_CAM_RecSet_PEV;
+  _HU_BLTN_CAM_E_00.BLTN_CAM_Spd_Stm_NvalueSet = $BLTN_CAM_Set_Spd_Stm;
+  _HU_BLTN_CAM_E_00.BLTN_CAM_Strangl_Stm_NvalueSet = 
+  _HU_BLTN_CAM_E_00.BLTN_CAM_TML_Int_NvalueSet = $BLTN_CAM_Set_Drv_TML_Int;
+  _HU_BLTN_CAM_E_00.BLTN_CAM_Time_Stm_NvalueSet = $BLTN_CAM_Set_Tim_Stm;
+  _HU_BLTN_CAM_E_00.BLTN_CAM_TrnSig_Stm_NvalueSet = $BLTN_CAM_Set_TrnSig_Stm;
+  _HU_BLTN_CAM_E_00.BLTN_CAM_EV_RecMaxTime_NvalueSet = $BLTN_CAM_Set_EV_RecMaxTime;
+  _HU_BLTN_CAM_E_00.BLTN_CAM_FR_VerPos_NvalueSet= $BLTN_CAM_Set_FR_Ver_Pos;
+  _HU_BLTN_CAM_E_00.BLTN_CAM_RR_VerPos_NvalueSet= $BLTN_CAM_Set_RR_Ver_Pos;
+  
+}
+
+void valueSet_HU_BLTN_CAM_E_01()
+{
+  _HU_BLTN_CAM_E_01.BLTN_CAM_AppNoti_PEV_NvalueSet= $BLTN_CAM_Set_PEV_AppNoti;
+  _HU_BLTN_CAM_E_01.BLTN_CAM_WiFi_AutoOn_NvalueSet= $BLTN_CAM_Set_WiFi_AutoOn;
+}
+
+void valueSet_BMS_INFO_19Ah()
+{
+
+}
+
+
+on sysvar_update panel::Button_clu_USMReset
+{
+  if(@panel::Button_clu_USMReset == 0x1)//Pressed
+  {
+    message HU_USM_02_00ms _HU_USM_E_04;//CANFD  
+    //message HU_USM_E_04 _HU_USM_E_04;//CAN
+    
+    _HU_USM_E_04.CF_AVN_CluUSMReset = 0x1;
+    output(_HU_USM_E_04); 
+    
+    timer_CF_AVN_CluUSMReset.Set(40);
+  }
+}
+
+on sysvar_update panel::Button_USMReset
+{
+  if(@panel::Button_USMReset == 0x1)//Pressed
+  {
+    message HU_BLTN_CAM_01_00ms _HU_BLTN_CAM_E_01; //CANFD
+    //message HU_BLTN_CAM_E_01 _HU_BLTN_CAM_E_01; //CAN
+    
+    int i;
+    for( i=0; i<8; i++)
+    {
+      _HU_BLTN_CAM_E_01.byte(i) = 0xFF;
+    }
+
+    _HU_BLTN_CAM_E_01.CF_AVN_BLTN_CAM_USMReset = 0x1;
+    output(_HU_BLTN_CAM_E_01);
+
+    timer_HU_BLTN_CAM_E_01.Set(40);
+  }
+}
+
+on sysvar_update panel::Button_RecReset
+{
+  if(@panel::Button_RecReset == 0x1)//Pressed
+  {
+    message HU_BLTN_CAM_01_00ms _HU_BLTN_CAM_E_01; //CANFD
+    //message HU_BLTN_CAM_E_01 _HU_BLTN_CAM_E_01; //CAN
+
+    int i;
+    for( i=0; i<8; i++)
+    {
+      _HU_BLTN_CAM_E_01.byte(i) = 0xFF;
+    }
+        
+    _HU_BLTN_CAM_E_01.CF_AVN_BLTN_CAM_RecReset = 0x1;
+    output(_HU_BLTN_CAM_E_01);
+    
+    timer_HU_BLTN_CAM_E_01.Set(40);
+  }  
+}
+
+on sysvar_update panel::Button_EngineerMode
+{
+  if(@panel::Button_EngineerMode == 1)//Pressed
+  {
+    message HU_BLTN_CAM_01_00ms _HU_BLTN_CAM_E_01; //CANFD
+    //message HU_BLTN_CAM_E_01 _HU_BLTN_CAM_E_01; //CAN
+    
+    int i;
+    for( i=0; i<8; i++)
+    {
+      _HU_BLTN_CAM_E_01.byte(i) = 0xFF;
+    }
+    
+    _HU_BLTN_CAM_E_01.BLTN_CAM_LVDS_Mode_Cmd = 0x2;
+    output(_HU_BLTN_CAM_E_01);    
+    
+    timer_HU_BLTN_CAM_E_01.Set(40);
+  }
+}
+
+on sysvar_update panel::Button_Timelaps_Start
+{
+  if(@panel::Button_Timelaps_Start == 1)//Pressed
+  {
+    message HU_BLTN_CAM_01_00ms _HU_BLTN_CAM_E_01; //CANFD
+    //message HU_BLTN_CAM_E_01 _HU_BLTN_CAM_E_01; //CAN
+
+    int i;
+    for( i=0; i<8; i++)
+    {
+      _HU_BLTN_CAM_E_01.byte(i) = 0xFF;
+    }
+    
+    _HU_BLTN_CAM_E_01.TML_Rec_Req = 0x1;
+    
+    output(_HU_BLTN_CAM_E_01);
+  }
+}
+
+on sysvar_update panel::Button_Timelaps_Stop
+{
+  if(@panel::Button_Timelaps_Stop == 1)//Pressed
+  {
+    message HU_BLTN_CAM_01_00ms _HU_BLTN_CAM_E_01; //CANFD
+    //message HU_BLTN_CAM_E_01 _HU_BLTN_CAM_E_01; //CAN
+    
+    _HU_BLTN_CAM_E_01.TML_Rec_Req = 0x2;
+    
+    output(_HU_BLTN_CAM_E_01);
+  }
+}
+
+on sysvar_update panel::Button_SwitchEvt
+{
+  if(@panel::Button_SwitchEvt == 1)//Pressed
+  {
+    message HU_BLTN_CAM_01_00ms _HU_BLTN_CAM_E_01; //CANFD
+    //message HU_BLTN_CAM_E_01 _HU_BLTN_CAM_E_01; //CAN
+    
+    _HU_BLTN_CAM_E_01.MEV_Rec_Req = 0x1;
+    
+    output(_HU_BLTN_CAM_E_01);
+  }
+}
+
+
+on sysvar_update panel::Button_SetTime
+{
+  if(@panel::Button_SetTime == 1)//Pressed
+  {
+    message HU_CLOCK_01_1000ms _HU_CLOCK_PE_02; //CANFD
+    //message HU_CLOCK_PE_02 _HU_CLOCK_PE_02; //CAN
+
+    long time[9];
+    getLocalTime(time);
+    
+    _HU_CLOCK_PE_02.HU_DisplayYear1 = 0x1;
+    _HU_CLOCK_PE_02.HU_DisplayYear2 = (time[5]+1900) - 2000;
+    _HU_CLOCK_PE_02.HU_DisplayMonth = time[4]+1;
+    _HU_CLOCK_PE_02.HU_DisplayDay = time[3];
+    _HU_CLOCK_PE_02.HU_DisplayHour = time[2];
+    _HU_CLOCK_PE_02.HU_DisplayMinute= time[1];
+    _HU_CLOCK_PE_02.HU_DisplaySecond = time[0]; 
+    
+    _HU_CLOCK_PE_02.HU_Status = 0x2; //GPS Time receving
+    _HU_CLOCK_PE_02.HU_TimeSetting = 0x2; //GPS Time
+    
+    output(_HU_CLOCK_PE_02);
+  }
+}
+
+on sysvar_update panel::Button_AppNoti_PEV
+{
+  if(@panel::Button_AppNoti_PEV == 1)//Pressed
+  {
+    valueSet_HU_BLTN_CAM_E_01();
+
+    if(@panel::Button_AppNoti_PEV == 1)
+    {
+      if($BLTN_CAM_Set_PEV_AppNoti == 0x2)
+      {
+        _HU_BLTN_CAM_E_01.BLTN_CAM_AppNoti_PEV_NvalueSet = 0x1;
+        output(_HU_BLTN_CAM_E_01);
+      }
+      else if($BLTN_CAM_Set_PEV_AppNoti == 0x1)
+      {
+        _HU_BLTN_CAM_E_01.BLTN_CAM_AppNoti_PEV_NvalueSet = 0x2;
+        output(_HU_BLTN_CAM_E_01);
+      }
+    }
+  }
+}
+
+on sysvar_update panel::Button_WiFiAuto
+{
+  if(@panel::Button_WiFiAuto == 1)//Pressed
+  {
+    valueSet_HU_BLTN_CAM_E_01();
+    
+      if(@panel::Button_WiFiAuto == 1)
+    {
+      if($BLTN_CAM_Set_WiFi_AutoOn == 0x2)
+      {
+        _HU_BLTN_CAM_E_01.BLTN_CAM_WiFi_AutoOn_NvalueSet = 0x1;
+        output(_HU_BLTN_CAM_E_01);
+      }
+      else if($BLTN_CAM_Set_WiFi_AutoOn == 0x1)
+      {
+        _HU_BLTN_CAM_E_01.BLTN_CAM_WiFi_AutoOn_NvalueSet = 0x2;
+        output(_HU_BLTN_CAM_E_01);
+      }
+    }
+  }
+}
+
+//on sysvar_update panel::Button_DCM
+//{   
+//  if(@sysvar::panel::Button_DCM == 0x1){
+//    @sysvar::panel::Switch_CGWNM = 0x1;
+//    setSignal(BCM_AccInSta_Copy_0, 0x1);
+//    setSignal(BCM_Ign1InSta_Copy_0, 0x1);
+//    setSignal(BCM_Ign2InSta_Copy_0, 0x1);
+//    setSignal(BCM_KeyInSta_Copy_0, 0x1);
+//  }else
+//  {
+//    // Stop NM transmission while preserving the last signal values.
+//    @sysvar::panel::Switch_CGWNM = 0x0;
+//  }
+//}
+
+//on sysvar_update panel::Switch_Warn_HoodSwSta
+//{
+//  setSignal(Warn_HoodSwSta, @panel::Switch_Warn_HoodSwSta);
+//}
+
+//on sysvar_update panel::Switch_Trunk_TrnkTlgtSwSta
+//{
+//  setSignal(Trunk_TrnkTlgtSwSta, @panel::Switch_Trunk_TrnkTlgtSwSta);
+//}
+
+//on sysvar_update panel::Switch_Warn_DrvDrSwSta
+//{
+//  setSignal(Warn_DrvDrSwSta, @panel::Switch_Warn_DrvDrSwSta);
+//}
+
+//on sysvar_update panel::Switch_Warn_DrvDrSwSta_SBCM
+//{
+//  setSignal(Warn_DrvDrSwSta_SBCM, @panel::Switch_Warn_DrvDrSwSta_SBCM);
+//}
+
+//on sysvar_update panel::Switch_Warn_RrLftDrSwSta
+//{
+//  setSignal(Warn_RrLftDrSwSta, @panel::Switch_Warn_RrLftDrSwSta);
+//}
+
+//on sysvar_update panel::Switch_Warn_RrLftDrSwSta_SBCM
+//{
+//  setSignal(Warn_RrLftDrSwSta_SBCM, @panel::Switch_Warn_RrLftDrSwSta_SBCM);
+//}
+
+//on sysvar_update panel::Switch_Warn_AsstDrSwSta
+//{
+//  setSignal(Warn_AsstDrSwSta, @panel::Switch_Warn_AsstDrSwSta);
+//}
+
+//on sysvar_update panel::Switch_Warn_AsstDrSwSta_SBCM
+//{
+//  setSignal(Warn_AsstDrSwSta_SBCM, @panel::Switch_Warn_AsstDrSwSta_SBCM);
+//}
+
+//on sysvar_update panel::Switch_Warn_RrRtDrSwSta
+//{
+//  setSignal(Warn_RrRtDrSwSta, @panel::Switch_Warn_RrRtDrSwSta);
+//}
+
+//on sysvar_update panel::Switch_Warn_RrRtDrSwSta_SBCM
+//{
+//  setSignal(Warn_RrRtDrSwSta_SBCM, @panel::Switch_Warn_RrRtDrSwSta_SBCM);
+//}
+
+
+on message BLTN_CAM_FD_HU_01_200ms{
+  byte check_Hour_value, check_Minute_value, check_Second_value;
+  
+  check_Hour_value = getSignal(HU_DisplayHour);
+  check_Minute_value = getSignal(HU_DisplayMinute);
+  check_Second_value = getSignal(HU_DisplaySecond);
+  
+  setClockControlTime("BLTN_CAM_Gen2_DrvInfo","Clock Control 1", check_Hour_value,check_Minute_value,check_Second_value);
+  setClockControlTime("Recording_Setting","Clock Control 1", check_Hour_value,check_Minute_value,check_Second_value);
+  setClockControlTime("Panel_TestBench","Clock Control 1", check_Hour_value,check_Minute_value,check_Second_value);
+  
+}

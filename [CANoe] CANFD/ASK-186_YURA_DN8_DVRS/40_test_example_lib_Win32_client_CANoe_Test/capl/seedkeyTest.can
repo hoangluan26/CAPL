@@ -1,0 +1,83 @@
+/*@!Encoding:949*/
+variables
+{
+  msTimer ASK_TEST;
+
+  
+  byte testSeed[10][8] = { 
+    {0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77}, 
+    {0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88},
+    {0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99},
+    {0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa},
+    {0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb},
+    {0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc},
+    {0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd},
+    {0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee},
+    {0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff},
+    {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
+  }; 
+  
+  byte numOfTestCase = 10;
+
+}
+
+on preStart
+{
+  writeLineEx(1,1,"");
+  writeLineEx(1,1,"");
+  writeLineEx(1,1,"------ Seedkey Test ------");
+}
+
+on start
+{
+  // -------- (필수)Diag Target 설정 - Diagnostics/ISO TP Configuration 메뉴 참고 --------
+  if( 0 != diagSetTarget( "SEEDKEY_TEST")) write( "Error setting target!");
+  setTimer(ASK_TEST, 500);
+}
+
+on stopMeasurement
+{
+  write("stopMeasurement"); 
+}
+
+on timer ASK_TEST
+{
+  int i, j;
+  // -------- (필수)SeedKey 변수 설정 --------
+  byte  seedArray[8];
+  int   seedArraySize      = 8;
+  int   securityLevel      = 0x01;
+  char  variant[200]       = "Common";
+  char  option[200]        = "";  
+  byte  keyArray[8];
+  int   maxKeyArraySize    = 8;  
+  DWORD actualSize         = 0;
+  
+  write("> TestCase");
+  write("#Seed");
+  for(i = 0;i < 10;i++) 
+  {
+    for(j = 0;j < 8;j++)
+    {
+      seedArray[j] = testSeed[i][j]; 
+    }
+    write("Case %d : 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X",i, seedArray[0], seedArray[1], seedArray[2], seedArray[3],
+      seedArray[4], seedArray[5], seedArray[6], seedArray[7]);
+  }
+  
+  write("#Key");
+  for(i = 0;i < 10;i++) 
+  {
+    for(j = 0;j < 8;j++)
+    {
+      seedArray[j] = testSeed[i][j]; 
+    }
+    // -------- (필수)Seedkey 연산 -------- 
+    DiagGenerateKeyFromSeed (seedArray, seedArraySize, securityLevel, variant, option, keyArray, maxKeyArraySize, actualSize);
+    write("Case %d : 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X",i, keyArray[0], keyArray[1], keyArray[2], keyArray[3],
+      keyArray[4], keyArray[5], keyArray[6], keyArray[7]);
+  }
+  
+  write("> TestDone");
+}
+

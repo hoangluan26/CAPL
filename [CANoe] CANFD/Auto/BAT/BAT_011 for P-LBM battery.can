@@ -1,0 +1,87 @@
+/*@!Encoding:949*/
+variables
+{
+  // Global Variable Declaration
+  int i;
+  int arr_SoC_input[21]= {99,96,90,86,81,76,71,65,60,57,51,47,42,38,31,27,22,16,13,6,1};
+  byte SoC_input = 0xFF;
+  byte GetVal_BAT_SoC;
+  byte MeasuredOperableTime;
+  byte Oprable_Time_Expect;
+}
+//Preconditions: - Add signal to graphic: BAT_SOC_for_BLTN_CAM,BLTN_CAM_Prk_Oprable_Time
+//               - ACC and IGN and ccNC/ccIC switch OFF
+
+void KEY_ON(){
+  setSignal(SMK_TrmnlCtrlGrpStaBDC,0x1); // Power ON
+}
+
+void KEY_OFF(){
+   setSignal(SMK_TrmnlCtrlGrpStaBDC,0x0); // Power OFF
+}
+
+void InitSignal(){ 
+  @panel::Switch_CGWNM = 1; //CAN Network Wake up
+  
+  KEY_ON();
+  testWaitForTimeout(3000);
+}
+
+testcase BAT_011_22(){
+  Oprable_Time_Expect= 0x0;
+  
+  testStep("Notifications","Start BAT_011_22 (BatSoc = 0xFF)");
+  write("Start BAT_011_22 (BatSoc = 0xFF)");
+
+  setSignal(BAT_SOC_for_BLTN_CAM, 0xFF);
+  testWaitForTimeout(5000);
+  
+  MeasuredOperableTime= getSignal(BLTN_CAM_Prk_Oprable_Time);
+  if (MeasuredOperableTime == Oprable_Time_Expect){
+	testStepPass("Detailed results", "Expected: %d hours, Measured: %d hours", Oprable_Time_Expect, MeasuredOperableTime);
+}	  
+  else {
+	testStepFail("Detailed results", "Expected: %d hours, Measured: %d hours", Oprable_Time_Expect, MeasuredOperableTime);
+}
+  testReportAddWindowCapture("Graphics 2","BAT_SOC_for_BLTN_CAM;BLTN_CAM_Prk_Oprable_Time","Sreenshot");
+  
+}
+
+testcase BAT_011_1_to_21(){ 
+ Oprable_Time_Expect= 0x14;
+ for(i=0; i < 21;i++){
+  
+  setSignal(BAT_SOC_for_BLTN_CAM,arr_SoC_input[i]);
+  testWaitForTimeout(2000);
+  GetVal_BAT_SoC = getSignal(BAT_SOC_for_BLTN_CAM);
+
+  testStep("Notifications","Start BAT_011 step %d (BatSoc = %d)",21-i,GetVal_BAT_SoC);
+  write("Start BAT_011 step %d (BatSoc = %d)",21-i,GetVal_BAT_SoC);
+  
+  testWaitForTimeout(2000);
+  
+  MeasuredOperableTime= getSignal(BLTN_CAM_Prk_Oprable_Time);
+  if (MeasuredOperableTime == Oprable_Time_Expect){
+	testStepPass("Detailed results", "Expected: %d hours, Measured: %d hours", Oprable_Time_Expect, MeasuredOperableTime);
+}	  
+  else {
+	testStepFail("Detailed results", "Expected: %d hours, Measured: %d hours", Oprable_Time_Expect, MeasuredOperableTime);
+}
+  Oprable_Time_Expect--;
+}
+  testReportAddWindowCapture("Graphics 2","BAT_SOC_for_BLTN_CAM;BLTN_CAM_Prk_Oprable_Time","Sreenshot");
+
+}
+
+
+void Maintest(){
+  write("===START TEST===");
+  InitSignal();
+  
+  testWaitForTimeout(3000);
+  
+  BAT_011_22();
+  
+  BAT_011_1_to_21();
+  write("===FINISH TEST===");
+}

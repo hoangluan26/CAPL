@@ -1,0 +1,81 @@
+/*@!Encoding:949*/
+includes
+{
+  
+}
+
+variables
+{
+  #define CERTI_KEY_1	0xA7U
+  #define CERTI_KEY_2	0x12U
+  #define CERTI_KEY_3	0xC3U
+  #define CERTI_KEY_4	0x62U
+  
+  dword receiveRdmVal1;
+  dword receiveRdmVal2;
+  dword receiveRdmVal3;
+  dword receiveRdmVal4;
+  dword transmitRdmRval1;
+  dword transmitRdmRval2;
+  dword transmitRdmRval3;
+  dword transmitRdmRval4;
+    
+  dword receiveOperationControl;
+  dword transmitBmsStatus;
+}
+
+/// <NewGroup>
+on linFrame BMS_CERTI
+{
+  write("receive BMS_CERTI");
+  
+  receiveRdmVal1 = getSignal(Rdm_Val1);
+  receiveRdmVal2 = getSignal(Rdm_Val2);
+  receiveRdmVal3 = getSignal(Rdm_Val3);
+  receiveRdmVal4 = getSignal(Rdm_Val4);
+  
+  transmitRdmRval1 = receiveRdmVal1 + 0xA0;
+  transmitRdmRval2 = receiveRdmVal2 + 0xB2;
+  transmitRdmRval3 = receiveRdmVal3 + 0xC1;
+  transmitRdmRval4 = receiveRdmVal4 + 0xD3;
+  
+  setSignal(Rdm_Rval1, transmitRdmRval1);
+  setSignal(Rdm_Rval2, transmitRdmRval2);
+  setSignal(Rdm_Rval3, transmitRdmRval3);
+  setSignal(Rdm_Rval4, transmitRdmRval4);
+  
+
+}
+
+/// <NewGroup>
+on linFrame BMS_CERTI_CHECK
+{
+  write("receive BMS_CERTI_CHECK");
+}
+
+on linFrame BMS_OPERATION_CONTROL
+{
+    receiveOperationControl = getSignal(BAT_Charge_Control);
+    if(receiveOperationControl == 1)
+    {
+        transmitBmsStatus = 2;
+    }
+    else if(receiveOperationControl == 2)
+    {
+        transmitBmsStatus = 3;
+    }
+    else
+    {
+        transmitBmsStatus = 0;
+    }
+    setSignal(BAT_Status , transmitBmsStatus);
+}
+
+on linFrame BMS_INFO_01
+{
+    setSignal(BAT_Type , 1);
+    setSignal(BAT_Option_Type , 1);
+    setSignal(BAT_Capa_for_BLTN_CAM , 12);
+}
+
+

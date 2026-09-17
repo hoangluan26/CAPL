@@ -1,0 +1,301 @@
+﻿/*@!Encoding:65001*/
+//Preconditions: - AVN mode, ACC and IGN and ccNC/ccIC switch OFF
+//               - Add Graphics 2: ICU_BS2SoC;BLTN_CAM_Set_PrkTime;BLTN_CAM_RecSta_OWP
+
+
+variables
+{
+  //Global Variable Declaration
+  int flag_RecSet_error = 0; 
+  int i;
+  // Message Declaration for CAN FD
+  message HU_BLTN_CAM_02_200ms _HU_BLTN_CAM_02_200ms;
+  message HU_BLTN_CAM_01_00ms _HU_BLTN_CAM_01_00ms;
+//  //Message Declaration for CAN
+//  message HU_BLTN_CAM_PE_00_200ms _HU_BLTN_CAM_PE_00_200ms;
+//  message HU_BLTN_CAM_E_00 _HU_BLTN_CAM_E_00;
+}
+
+void Change_Battery_capa(int capa_Bfr, int capa_Aft){
+  if ((capa_Bfr - capa_Aft) > 0){
+    for (i = 1; i <= abs(capa_Bfr - capa_Aft); i++){
+      setSignal(ICU_BS2SoC, capa_Bfr - i); testWaitForTimeout(1000);
+      write("Remain Capacity = %d%% .Battery is discharging...", capa_Bfr - i); 
+    }    
+  }
+  else{
+    for (i = 1; i <= abs(capa_Bfr - capa_Aft); i++){
+      setSignal(ICU_BS2SoC, capa_Bfr + i); testWaitForTimeout(1000);
+      write("Remain Capacity = %d%% .Battery is discharging...", capa_Bfr + i); 
+    }       
+  }
+}
+
+void BLTN_CAM_Settings(int Choose_Option){
+  switch (Choose_Option){
+    case(1):
+      // CAN FD
+      _HU_BLTN_CAM_01_00ms.BLTN_CAM_Rec_OWP_NvalueSet = 0x2;/*OWP setting ON*/break;
+//      // CAN
+//      _HU_BLTN_CAM_E_00.BLTN_CAM_Rec_OWP_NvalueSet = 0x2; break;
+    case(2):
+      // CAN FD
+      _HU_BLTN_CAM_01_00ms.BLTN_CAM_Rec_OWP_NvalueSet = 0x1;/*OWP setting OFF*/break;
+//      // CAN
+//      _HU_BLTN_CAM_E_00.BLTN_CAM_Rec_OWP_NvalueSet = 0x1; break;
+    case(3):
+      // CAN FD 
+      _HU_BLTN_CAM_01_00ms.BLTN_CAM_Rec_OWP_NvalueSet = 0x2;
+      _HU_BLTN_CAM_01_00ms.BLTN_CAM_PrkTime_NvalueSet = 0x4; /*OWP setting ON, Parking recording time set 4h*/break;
+//      // CAN 
+//      _HU_BLTN_CAM_E_00.BLTN_CAM_Rec_OWP_NvalueSet = 0x2;
+//      _HU_BLTN_CAM_E_00.BLTN_CAM_PrkTime_NvalueSet = 0x4; break;
+    case(4): 
+    // CAN FD  
+      _HU_BLTN_CAM_01_00ms.BLTN_CAM_Rec_OWD_NvalueSet = 0x1; //OWD setting OFF
+      _HU_BLTN_CAM_01_00ms.BLTN_CAM_Rec_OWP_NvalueSet = 0x1; //OWP setting OFF
+      _HU_BLTN_CAM_01_00ms.BLTN_CAM_Rec_DEV_NvalueSet = 0x1; //DEV setting OFF
+      _HU_BLTN_CAM_01_00ms.BLTN_CAM_Rec_PEV_NvalueSet = 0x1; //PEV setting OFF
+      _HU_BLTN_CAM_01_00ms.CF_AVN_BLTN_CAM_RecReset = 0x1;
+      break;
+//    // CAN  
+//      _HU_BLTN_CAM_E_00.BLTN_CAM_Rec_OWD_NvalueSet = 0x1; //OWD setting OFF
+//      _HU_BLTN_CAM_E_00.BLTN_CAM_Rec_OWP_NvalueSet = 0x1; //OWP setting OFF
+//      _HU_BLTN_CAM_E_00.BLTN_CAM_Rec_DEV_NvalueSet = 0x1; //DEV setting OFF
+//      _HU_BLTN_CAM_E_00.BLTN_CAM_Rec_PEV_NvalueSet = 0x1; //PEV setting OFF
+//      _HU_BLTN_CAM_E_00.CF_AVN_BLTN_CAM_RecReset = 0x1; 
+//      break;        
+  }
+  output(_HU_BLTN_CAM_01_00ms);
+//  output(_HU_BLTN_CAM_E_00);
+}
+
+void KEY_ON(){
+  setSignal(SMK_TrmnlCtrlGrpStaBDCEV,0x1); // Power ON
+}
+void KEY_OFF(){
+   setSignal(SMK_TrmnlCtrlGrpStaBDCEV,0x0); // Power OFF
+}
+void Enter_BLTN_CAM(){
+  // CAN FD
+  _HU_BLTN_CAM_02_200ms.HU_BLTN_CAM_UI_Mode = 0x1; //Enter BLTN_CAM mode
+  output(_HU_BLTN_CAM_02_200ms);
+//  // CAN
+//  _HU_BLTN_CAM_PE_00_200ms.HU_BLTN_CAM_UI_Mode=0x1;
+//  output(_HU_BLTN_CAM_PE_00_200ms); //Enter BLTN_CAM mode  
+}
+
+void Exit_BLTN_CAM(){
+  // CAN FD 
+  _HU_BLTN_CAM_02_200ms.HU_BLTN_CAM_UI_Mode = 0x0; //Enter AVN mode - Exit BLTN_CAM Mode
+  output(_HU_BLTN_CAM_02_200ms);
+//  // CAN
+//  _HU_BLTN_CAM_PE_00_200ms.HU_BLTN_CAM_UI_Mode=0x0;
+//  output(_HU_BLTN_CAM_PE_00_200ms);//Exit BLTN_CAM Mode    
+}
+
+void CaptureGraphics(){
+  testWaitForTimeout(3000);
+  testReportAddWindowCapture("Graphics 2","ICU_BS2SoC;BLTN_CAM_Set_PrkTime;BLTN_CAM_RecSta_OWP","Sreenshot","./Husign.jpg");
+}
+
+void Clock_Down(long CD_time){
+  while (CD_time > 0){
+    write("===Start Count down clock ===");
+    write("Remaining time: %02d::%02d", CD_time/60, CD_time%60);
+    testWaitForTimeout(60000);
+    CD_time--;
+  }
+}
+
+void Turn_OFF_RecSet(){
+  if (getSignal(BLTN_CAM_RecSet_OWD) == 0x2 || getSignal(BLTN_CAM_RecSet_OWP) == 0x2 || getSignal(BLTN_CAM_RecSet_DEV) == 0x2 || getSignal(BLTN_CAM_RecSet_PEV) == 0x2){
+    @panel::Switch_CGWNM = 1;
+  
+    KEY_ON();
+    testWaitForTimeout(3000);
+  
+    Enter_BLTN_CAM();
+    testWaitForTimeout(3000);
+    
+    while((getSignal(BLTN_CAM_RecSet_OWD) == 0x2 || getSignal(BLTN_CAM_RecSet_OWP) == 0x2 || getSignal(BLTN_CAM_RecSet_DEV) == 0x2 || getSignal(BLTN_CAM_RecSet_PEV) == 0x2) && (flag_RecSet_error < 30)){
+      BLTN_CAM_Settings(4);
+      testWaitForTimeout(1000);
+      flag_RecSet_error++;
+    }
+    
+    flag_RecSet_error = 0; 
+    
+    Exit_BLTN_CAM();
+    testWaitForTimeout(3000);
+    
+    KEY_OFF();
+  }
+  else {
+    write("Notifications: All recording setting are turned OFF.");
+  }
+}
+
+void Setup_Function(){
+  @panel::Switch_CGWNM = 1;
+  
+  KEY_ON();
+  testWaitForTimeout(3000);
+  
+  Enter_BLTN_CAM();
+  testWaitForTimeout(3000);
+  
+  BLTN_CAM_Settings(3);
+  testWaitForTimeout(1000);
+  
+  @panel::Switch_Clock = 1;
+  
+  testWaitForTimeout(1000);
+  
+  @panel::Switch_Clock = 0;
+  
+  Exit_BLTN_CAM();
+  testWaitForTimeout(3000);
+  
+  KEY_OFF();
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWP,100000) == 1){
+    @panel::Switch_CGWNM = 0;
+    write("OWP recording is in progress...");
+  }
+  else{
+    write("Error: OWP recording hasn't started. Stop test !!!");
+    
+    Setup_End_test();
+    
+    KEY_OFF();
+  
+    stop();
+  }  
+}
+
+void Setup_End_test(){
+  
+  KEY_ON();
+  testWaitForTimeout(3000);
+  
+  Enter_BLTN_CAM();
+  testWaitForTimeout(3000);
+  
+  while(getSignal(BLTN_CAM_RecSet_OWP) == 0x2 && flag_RecSet_error < 30){
+    BLTN_CAM_Settings(2);
+    testWaitForTimeout(1000);
+    flag_RecSet_error++;
+  }
+  
+  flag_RecSet_error = 0;
+  
+  Exit_BLTN_CAM();
+  testWaitForTimeout(1000);      
+}
+
+testcase BAT_035_1(){
+  testStepBegin("Notification","Start test BAT_035_1");
+  write("Notification","Start test BAT_035_1");
+
+  write("===SETTING BEFORE TESTING===");
+  
+  Turn_OFF_RecSet(); write("Run Turn_OFF_RecSet()");
+  
+  write("===START TEST===");  
+  
+  setSignal(ICU_BS2SoC,71);
+  testWaitForTimeout(1000);
+  
+  @panel::Switch_CGWNM = 0;
+  
+  Setup_Function(); write("Run Setup_Function()");
+
+  write("Wait Built-in CAM entering Sleep Network");
+  testWaitForTimeout(20000);
+
+  @panel::Switch_CGWNM = 1;
+  
+  Change_Battery_capa(71, 73); write("Run Change_Battery_capa");
+  
+  @panel::Switch_CGWNM = 0;
+
+  write("Wait Built-in CAM re-entering Sleep Network");
+
+  Clock_Down(240);
+  
+  @panel::Switch_CGWNM = 1;
+  
+  CaptureGraphics(); write("Run CaptureGraphics()");
+  
+  Setup_End_test(); write("Run Setup_End_test()");
+  
+  KEY_OFF(); write("Run KEY_OFF()");
+
+  @panel::Switch_CGWNM = 0;
+  
+  testStepPass("Notification","Finish BAT_035_1");
+  write("BFinish BAT_035_1");
+}
+
+testcase BAT_035_2(){
+  testStepBegin("Notification","Start test BAT_035_2");
+  write("Notification","Start test BAT_035_2");
+
+  write("===SETTING BEFORE TESTING===");
+  
+  Turn_OFF_RecSet(); write("Run Turn_OFF_RecSet()");
+  
+  write("===START TEST===");    
+  
+  setSignal(ICU_BS2SoC,73);
+  testWaitForTimeout(1000);
+  
+  @panel::Switch_CGWNM = 0;
+  
+  Setup_Function(); write("Run Setup_Function()");
+
+  write("Wait Built-in CAM entering Sleep Network");
+  testWaitForTimeout(20000);
+
+  @panel::Switch_CGWNM = 1;
+  
+  Change_Battery_capa(73, 71); write("Run Change_Battery_capa");
+  
+  @panel::Switch_CGWNM = 0;
+
+  write("Wait Built-in CAM re-entering Sleep Network");
+
+  Clock_Down(240);
+  
+  @panel::Switch_CGWNM = 1;
+  
+  CaptureGraphics(); write("Run CaptureGraphics()");
+  
+  Setup_End_test(); write("Run Setup_End_test()");
+  
+  KEY_OFF(); write("Run KEY_OFF()");
+
+  @panel::Switch_CGWNM = 0;
+
+  testStepPass("Notification","Finish BAT_035_2");
+  write("BFinish BAT_035_2");
+}
+
+
+void MainTest(){
+   testWaitForValueInput("Enter the testcase ID (1/2/3):",300000);
+  
+  switch(testGetValueInput()){
+    case(1): BAT_035_1();break; //Test case BAT_035_1
+      
+    case(2): BAT_035_2();break; //Test case BAT_035_2
+      
+    case(3): 
+      BAT_035_1();
+      
+      BAT_035_2();
+      
+      break;
+  }
+}

@@ -1,0 +1,33 @@
+/*@!Encoding:949*/
+
+variables
+{
+  long periodHour = 24 * 3600 * 1000; //주기
+  long sendTime = 20 * 1000; //전송 유지시간(초)
+  long stopTime = 30 * 1000; //전송 중단 유지시간(초)
+}
+
+void MainTest()
+{
+  int i, j;
+  
+  for(i = 0; i <5; i++) //24시간 주기로 5번 반복
+  {
+    testWaitForTimeout(periodHour); //시간 주기
+    
+    for(j = 0; j<5; j++) // 한번 실행 시 충격 이벤트 5 회 인가
+    {
+      @panel::Switch_CGWNM = 1; //CAN Netwrok Wake up(CGW_NM 신호 입력 스위치 ON)
+      
+      setSignal(BAlarm_BglrAlrmCurrentSta, 0x9); //Alarm 
+      
+      testWaitForTimeout(sendTime); //전송 유지 시간
+      
+      setSignal(BAlarm_BglrAlrmCurrentSta, 0x0); //Off
+      
+      @panel::Switch_CGWNM = 0; //CAN Netwrok Sleep(CGW_NM 신호 입력 스위치 OFF)
+      
+      testWaitForTimeout(stopTime); //전송 중단 유지 시간
+    }
+  }
+}

@@ -1,0 +1,24 @@
+/*@!Encoding:949*/
+
+variables
+{
+  long prDelayTestTime = 40 * 3600 * 1000; // N시간 뒤에 시작
+  long sendTime = 20 * 1000; //전송 유지시간(초)
+}
+
+
+void MainTest()
+{
+  testWaitForTimeout(prDelayTestTime); //N시간 뒤에 시작
+  
+  @panel::Switch_CGWNM = 1; //CAN Netwrok Wake up(CGW_NM 신호 입력 스위치 ON)
+
+  setSignal(ICU_BS2SoC, 0xFF); //0xFF입력 
+  //setSignal(ICU_BS2SoC, 65); //65%입력 
+
+  testWaitForTimeout(sendTime); //전송 유지 시간
+
+  setSignal(BAlarm_BglrAlrmCurrentSta, 0x0); //Off
+
+  @panel::Switch_CGWNM = 0; //CAN Netwrok Sleep(CGW_NM 신호 입력 스위치 OFF)
+}

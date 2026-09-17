@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<Panel Type="Vector.CANalyzer.Panels.PanelSerializer, Vector.CANalyzer.Panels.Serializer, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null">
+  <Object Type="Vector.CANalyzer.Panels.Runtime.Panel, Vector.CANalyzer.Panels.Common, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="Panel" Children="Controls" ControlName="BLTN_CAM_Gen2_LIN_Manual">
+    <Object Type="Vector.CANalyzer.Panels.Design.StaticTextControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="StaticTextControl1" Children="Controls" ControlName="Static Text 1">
+      <Property Name="Name">StaticTextControl1</Property>
+      <Property Name="Size">381, 12</Property>
+      <Property Name="Location">17, 14</Property>
+      <Property Name="Text">Y클라우드 업무메뉴얼 폴더에서 P-LBM 시뮬레이션 방법 메뉴얼 참조</Property>
+    </Object>
+    <Object Type="Vector.CANalyzer.Panels.Design.PictureBoxControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="PictureBoxControl1" ControlName="Picture Box 1">
+      <Property Name="Name">PictureBoxControl1</Property>
+      <Property Name="Size">753, 447</Property>
+      <Property Name="Location">0, 32</Property>
+      <Property Name="ImageFile">..\image\LIN 세팅법.png</Property>
+    </Object>
+    <Property Name="Name">Panel</Property>
+    <Property Name="Size">760, 496</Property>
+    <Property Name="BackColor">White</Property>
+  </Object>
+</Panel>

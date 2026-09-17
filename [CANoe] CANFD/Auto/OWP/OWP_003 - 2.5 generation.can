@@ -1,0 +1,491 @@
+﻿/*@!Encoding:65001*/
+//Preconditions: - ACC and IGN and ccNC/ccIC switch OFF, AVN mode
+//               - Add signal: BLTN_CAM_RecSta_OWP
+//               - Remind setting to get log
+ variables{
+   // Global Variable Declaration
+  byte time_Hour_value = 0x17;
+  byte time_Minute_value = 0x28;
+  byte time_Second_value = 0x0;
+  int flag_RecSet_error = 0; 
+  byte check_DisplayYear2_value;
+  byte check_DisplayYear1_value;
+  byte check_DisplayMonth_value;
+  byte check_DisplayDay_value;   
+  char PLBM_Battery[4] = {'P','L','B','M'};
+  char eAGM_Battery[4] = {'E','A','G','M'};
+  char answer[4];   
+   // Message Declaration for CAN FD
+  message HU_BLTN_CAM_02_200ms _HU_BLTN_CAM_02_200ms;
+  message HU_BLTN_CAM_01_00ms _HU_BLTN_CAM_01_00ms;
+  message HU_CLOCK_01_1000ms _HU_CLOCK_01_1000ms;
+}
+
+int checkBatteryType(char a[], int size)  // khai bao ham, ham check xem Pin PLBM hay EAGM
+{
+  int i, matchPLBM, matchEAGM;
+  
+  matchPLBM = 1;
+  
+  matchEAGM = 1;
+  
+  for (i = 0; i < size; i++)
+  {
+    if (a[i] != PLBM_Battery[i])
+    {
+      matchPLBM = 0;
+    }
+    if (a[i] != eAGM_Battery[i])
+    {
+      matchEAGM = 0;
+    }
+  }
+
+  if (matchPLBM)
+    return 1;
+  else if (matchEAGM)
+    return 2;
+  else
+    return 0;
+}
+
+void Set_Battery(){
+  int flag_Timeout; 
+  int battery_Type; 
+  
+  flag_Timeout = 0;
+  battery_Type = 0;
+  
+  @panel::Switch_CGWNM = 1;
+  
+  KEY_ON();
+  
+  do
+  {
+    testWaitForStringInput("Please enter kind of battery (PLBM or EAGM):", 300000); // Hien popup
+    
+    testGetStringInput(answer, 5); // nhap du lieu
+    
+    write("You entered: %c%c%c%c", answer[0], answer[1], answer[2], answer[3]);  // Đoạn này gia tri da luu vao bien answer
+    
+    battery_Type = checkBatteryType(answer,4); // Truyen vao de lay gia tri cua ham
+    
+    if(battery_Type == 0){
+      write("Invalid input! Please enter 'PLBM' or 'EAGM'.");
+    }
+  } while(battery_Type == 0);
+  
+  switch(battery_Type){
+    case(1): 
+      write("Battery type is PLBM.");     
+      @ControlPowerSupply::RadioBtn_PwrSplyModel = 1; //Choose model power suplly TL305TP
+      @ControlPowerSupply::Numeric_PortNum = 3; //Choose numberic port to connect PC 
+ 
+      if( @ControlPowerSupply::RadioBtn_PwrSplyModel == 1 && @ControlPowerSupply::Numeric_PortNum == 3 ){
+        while (@ControlPowerSupply::isConectedPwrSply == 0 && flag_Timeout <= 30){
+        @ControlPowerSupply::Button_Connect = 0; 
+        testWaitForTimeout(1000);
+        @ControlPowerSupply::Button_Connect = 1;
+        testWaitForTimeout(1000);  
+        @ControlPowerSupply::Button_Connect = 0;
+        flag_Timeout++;  
+        }
+      }
+      flag_Timeout = 0;  // Reset bo dem 0
+      break;
+    case(2):
+      write("Battery type is EAGM.");
+      setSignal(ICU_BS2SoC, 0x64); break;
+  }
+
+  KEY_OFF();
+  
+  @panel::Switch_CGWNM = 0;
+}
+
+void Check_time(){
+  check_DisplayYear2_value = getSignal(HU_DisplayYear2);
+  check_DisplayYear1_value = getSignal(HU_DisplayYear1);
+  check_DisplayMonth_value = getSignal(HU_DisplayMonth);
+  check_DisplayDay_value = getSignal(HU_DisplayDay);
+}
+
+void BLTN_CAM_Settings(int Choose_Option){  // Chon de set thoi gian ghi hinh
+  switch (Choose_Option){
+    case(1):
+      if ($BLTN_CAM_RecSet_OWP == 0x1){
+        write("OWP On"); @panel::LED_Ctrl_SetOWP = 1;
+        
+        testWaitForTimeout(500);
+        
+        write("Set 20h"); @panel::TrackBar_OWP_TIME = 0x14;
+      } 
+      break;
+    case(2):
+      if ($BLTN_CAM_RecSet_OWP == 0x1){
+        write("OWP On"); @panel::LED_Ctrl_SetOWP = 1;
+        
+        testWaitForTimeout(500);
+        
+        write("Set 12h"); @panel::TrackBar_OWP_TIME = 0xC;
+      } 
+      break;
+    case(3):
+      if ($BLTN_CAM_RecSet_OWP == 0x1){
+        write("OWP On"); @panel::LED_Ctrl_SetOWP = 1;
+        
+        testWaitForTimeout(500);
+        
+        write("Set 6h"); @panel::TrackBar_OWP_TIME = 0x6;
+      } 
+      break;  
+    case(4):
+      if ($BLTN_CAM_RecSet_OWP == 0x1){
+        write("OWP On"); @panel::LED_Ctrl_SetOWP = 1;
+        
+        testWaitForTimeout(500);
+        
+        write("Set 2h"); @panel::TrackBar_OWP_TIME = 0x2;
+      } 
+      break;  
+  } 
+}
+
+void KEY_ON(){
+  setSignal(SMK_TrmnlCtrlGrpStaBDC,0x1); // Power ON
+}
+
+void KEY_OFF(){
+   setSignal(SMK_TrmnlCtrlGrpStaBDC,0x0); // Power OFF
+}
+
+void Enter_BLTN_CAM(){
+  // CAN FD
+  _HU_BLTN_CAM_02_200ms.HU_BLTN_CAM_UI_Mode = 0x1; //Enter BLTN_CAM mode
+  output(_HU_BLTN_CAM_02_200ms); 
+}
+
+void Exit_BLTN_CAM(){
+  // CAN FD 
+  _HU_BLTN_CAM_02_200ms.HU_BLTN_CAM_UI_Mode = 0x0; //Enter AVN mode - Exit BLTN_CAM Mode
+  output(_HU_BLTN_CAM_02_200ms);
+}
+
+void CaptureGraphics(){
+  testWaitForTimeout(3000);
+  testReportAddWindowCapture("Graphics 2","BLTN_CAM_RecSta_OWP","Sreenshot","./Husign.jpg");
+}
+
+void Clock_Down(long CD_time){       // in thoi gian con lai trong luc chay chuong trinh
+  write("=== START COUNTDOWN CLOCK ===");
+  while (CD_time > 0){
+    write("Remaining time: %02d:%02d", CD_time/60,CD_time%60);
+    testWaitForTimeout(60000);
+    CD_time--;
+  }
+}
+
+void Set_Time(byte hour, byte min, byte sec, byte day, byte month, byte year1, byte year2){  // ham set thoi gian
+  // CAN FD
+  _HU_CLOCK_01_1000ms.HU_TimeFormat = 0x2; 
+  _HU_CLOCK_01_1000ms.HU_Status = 0x2; 
+  _HU_CLOCK_01_1000ms.HU_TimeSetting = 0x1; 
+  _HU_CLOCK_01_1000ms.HU_DisplayHour = hour; 
+  _HU_CLOCK_01_1000ms.HU_DisplayMinute = min; 
+  _HU_CLOCK_01_1000ms.HU_DisplaySecond = sec; 
+  _HU_CLOCK_01_1000ms.HU_DisplayYear1 = year1; 
+  _HU_CLOCK_01_1000ms.HU_DisplayYear2 = year2; 
+  _HU_CLOCK_01_1000ms.HU_DisplayMonth = month; 
+  _HU_CLOCK_01_1000ms.HU_DisplayDay = day; 
+  _HU_CLOCK_01_1000ms.HU_ClockInfo = 0x1; 
+  _HU_CLOCK_01_1000ms.HU_ComRefresh = 0x2; 
+  _HU_CLOCK_01_1000ms.HU_AM_PM_INFO = 0x0; 
+  output(_HU_CLOCK_01_1000ms);
+}
+
+void Turn_OFF_RecSet(){
+  if (getSignal(BLTN_CAM_RecSet_OWD) == 0x2 || getSignal(BLTN_CAM_RecSet_OWP) == 0x2 || getSignal(BLTN_CAM_RecSet_DEV) == 0x2 || getSignal(BLTN_CAM_RecSet_PEV) == 0x2){
+    @panel::Switch_CGWNM = 1;
+  
+    KEY_ON();
+    testWaitForTimeout(3000);
+
+    do {
+      Enter_BLTN_CAM();
+      testWaitForTimeout(3000);
+      
+      if (getSignal(BLTN_CAM_RecSet_OWD) == 0x2){
+        write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1; testWaitForTimeout(1000);
+      } 
+      
+      else if (getSignal(BLTN_CAM_RecSet_OWP) == 0x2){
+        write("OWP Off"); @panel::LED_Ctrl_SetOWP = 1; testWaitForTimeout(1000);
+      } 
+      
+      else if (getSignal(BLTN_CAM_RecSet_DEV) == 0x2){
+        write("DEV Off"); @panel::LED_Ctrl_SetDEV = 1; testWaitForTimeout(1000);
+      } 
+      
+      else if (getSignal(BLTN_CAM_RecSet_PEV) == 0x2){
+        write("PEV Off"); @panel::LED_Ctrl_SetPEV = 1; testWaitForTimeout(1000);
+      } 
+
+      Exit_BLTN_CAM();
+      
+      flag_RecSet_error++;
+      
+    } while((getSignal(BLTN_CAM_RecSet_OWD) == 0x2 || getSignal(BLTN_CAM_RecSet_OWP) == 0x2 || getSignal(BLTN_CAM_RecSet_DEV) == 0x2 || getSignal(BLTN_CAM_RecSet_PEV) == 0x2) && (flag_RecSet_error <= 15));
+    
+    flag_RecSet_error = 0; 
+    
+    testWaitForTimeout(3000); 
+    KEY_OFF();
+  }
+  else {
+    write("Notifications: All recording setting are turned OFF.");
+  }
+}
+
+void Setup_Function(int Choose_Option){
+  @panel::Switch_CGWNM = 1;
+  
+  KEY_ON();
+  testWaitForTimeout(3000);
+  
+  do {
+    Enter_BLTN_CAM();
+    testWaitForTimeout(3000);
+  
+    BLTN_CAM_Settings(Choose_Option);
+    testWaitForTimeout(1000);
+  
+    @panel::Switch_Clock = 1;
+  
+    Exit_BLTN_CAM();
+    testWaitForTimeout(3000);
+  } while ($BLTN_CAM_RecSet_OWP == 0x1);
+  
+  KEY_OFF();
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWP,100000) == 1){
+    write("OWP recording is in progress...");
+  }
+  else{
+    write("Error: OWP recording hasn't started. Stop test !!!");
+    
+    Setup_End_test();
+    
+    KEY_OFF();
+  
+    stop();
+  }  
+}
+
+void Setup_End_test(){
+  
+  KEY_ON();
+  CaptureGraphics(); write("Run CaptureGraphics()");
+  
+  do { 
+    Enter_BLTN_CAM();
+    testWaitForTimeout(3000);
+    @panel::LED_Ctrl_SetOWP = 1;
+    testWaitForTimeout(2000);  
+    Exit_BLTN_CAM();
+    testWaitForTimeout(1000);     
+    flag_RecSet_error++;
+  } while(getSignal(BLTN_CAM_RecSet_OWP) == 0x2 && flag_RecSet_error < 15);
+  
+  flag_RecSet_error = 0; 
+}
+
+void Init(){
+  @panel::Switch_CGWNM = 1; 
+  
+  KEY_ON();
+  
+//  write("Run Set_Battery()");
+ //Set_Battery();
+  
+  while (getSignal(BLTN_CAM_SD_Format_Op_State) != 0x1){
+    @panel::Button_RecReset = 1; 
+    testWaitForSignalChange(BLTN_CAM_SD_Format_Op_State,500);
+  }
+  
+  KEY_OFF();
+  
+  @panel::Switch_CGWNM = 0; 
+}
+
+testcase OWP_003_1_2(){
+  testStep("Notification","Start test OWP_003_1_2");
+  write("=== START OWP_003_1_2 ===");
+  
+  write("Run Setup_Function()"); Setup_Function(1); 
+  
+  Clock_Down(1230); //20h
+  
+  write("Run Setup_End_test()"); Setup_End_test(); 
+  
+  @panel::Switch_Clock = 0;
+  
+  @panel::Switch_CGWNM = 0;
+  
+  write("KEY_OFF()"); KEY_OFF(); 
+  
+  testStep("Notifications","Finish OWP_003_1_2");
+  write("=== FINISH OWP_003_1_2 ===");  
+}
+
+testcase OWP_003_3(){
+  testStep("Notification","Start test OWP_003_3");
+  write("=== START OWP_003_3 ===");
+
+  write("Run Setup_Function()"); Setup_Function(2);
+  
+  Clock_Down(720); //12h
+  
+  write("Run Setup_End_test()"); Setup_End_test();
+  
+  @panel::Switch_Clock = 0;
+  
+  @panel::Switch_CGWNM = 0;
+  
+  write("KEY_OFF()"); KEY_OFF();
+  
+  testStep("Notifications","Finish OWP_003_3");
+  write("=== FINISH OWP_003_3 ==="); 
+}
+
+testcase OWP_003_4(){
+  testStep("Notification","Start test OWP_003_4");
+  write("=== START OWP_003_4 ===");
+
+  write("Run Setup_Function()"); Setup_Function(3);
+  
+  Clock_Down(360); //6h
+  
+  write("Run Setup_End_test()"); Setup_End_test(); 
+  
+  @panel::Switch_Clock = 0;
+  
+  @panel::Switch_CGWNM = 0;
+  
+  write("KEY_OFF()"); KEY_OFF(); 
+  
+  testStep("Notifications","Finish OWP_003_4");
+  write("=== FINISH OWP_003_4 ===");   
+}
+
+testcase OWP_003_5(){
+  testStep("Notification","Start test OWP_003_5");
+  write("=== START OWP_003_5 ===");
+
+  write("Run Setup_Function()"); Setup_Function(4); 
+  
+  Clock_Down(120); //2h
+  
+  write("Run Setup_End_test()"); Setup_End_test(); 
+  
+  @panel::Switch_Clock = 0;
+  
+  @panel::Switch_CGWNM = 0;
+  
+  write("KEY_OFF()"); KEY_OFF(); 
+  
+  testStep("Notifications","Finish OWP_003_5");
+  write("=== FINISH OWP_003_5 ===");     
+}
+
+testcase OWP_003_6(){
+  testStep("Notification","Start test OWP_003_6");
+  write("=== START OWP_003_6 ===");
+
+  @panel::Switch_CGWNM = 1;
+  
+  write("Run KEY_ON()"); KEY_ON(); 
+  testWaitForTimeout(3000);
+
+  write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM(); 
+  testWaitForTimeout(3000);
+  
+  BLTN_CAM_Settings(1); write("Run BLTN_CAM_Settings(1)");
+  testWaitForTimeout(1000);
+ 
+  @panel::Switch_Clock = 1;
+  testWaitForTimeout(1000);
+  write("Run Check_time()"); Check_time(); 
+  @panel::Switch_Clock = 0;
+  
+  write("Run Set_Time()"); Set_Time(time_Hour_value, time_Minute_value, time_Second_value, check_DisplayDay_value, check_DisplayMonth_value, check_DisplayYear1_value, check_DisplayYear2_value); 
+  
+  write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM(); 
+  testWaitForTimeout(3000);
+  
+  write("Run KEY_OFF()"); KEY_OFF(); 
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWP,100000) == 1){
+    write("OWP recording is in progress...");
+    
+    Clock_Down(60); //1h  
+  }
+  else {
+    write("Error: OWP recording hasn't started. Stop test !!!");
+    
+    write("Run Setup_End_test()"); Setup_End_test(); 
+    
+    write("KEY_OFF()"); KEY_OFF(); 
+  
+    write(" stop()"); stop(); 
+  }  
+
+  write("Run Setup_End_test()"); Setup_End_test(); 
+  
+  @panel::Switch_CGWNM = 0;
+  
+  write("KEY_OFF()"); KEY_OFF(); 
+  
+  testStep("Notifications","Finish OWP_003_6");
+  write("=== FINISH OWP_003_6 ===");     
+}
+
+void MainTest(){
+ write("Run Init()"); Init();
+  
+  write("Run Turn_OFF_RecSet()");Turn_OFF_RecSet();
+  TestWaitForValueInput("Please enter the test ID (1/2/3/4/5/6)", 300000);
+  switch (TestGetValueInput()){
+   case(1) :
+  OWP_003_1_2(); /* break;*/
+   case(2) :
+ OWP_003_3(); /* break;*/   
+   case(3) :
+  OWP_003_4(); break;        
+  case(4) :
+   OWP_003_5(); break; 
+  case(5) :
+  OWP_003_1_2();
+  OWP_003_6(); break;
+ case(6) :
+   
+   OWP_003_1_2();
+     
+   OWP_003_3();  
+
+   OWP_003_4(); 
+     
+   OWP_003_5();
+     
+  OWP_003_6();  
+
+   break;
+   case(7) :
+  OWP_003_4(); 
+     
+   OWP_003_5();
+     
+   OWP_003_6();  
+
+   break;
+  }
+}

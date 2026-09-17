@@ -1,0 +1,388 @@
+/*@!Encoding:949*/
+includes
+{
+  #include "../CAPL/RS232.h"
+}
+
+variables
+{
+/*
+  테스트 시나리오
+  0. KEY OFF 전
+     - ICU SOC = 88%
+     - PLBM SOC = 87%(17시간 가능)
+
+  1. 17시간 시점에 빌트인캠이 LIN Wake up 하여 PLBM SOC 확인
+   -> 3%
+
+  2. 빌트인캠이 CAN Wake up 하여 ICU SOC 확인
+   -> 87%
+
+  3. ICU가 충분하니 B+ 전원으로 전환
+
+  4. 주차녹화 시작 후 22시간 시점에 ICU SOC 80% 까지 소진되어 Network Wakeup 되고 보충전(차량에서 CAN Wake up)
+     - ICU SOC 충전(1시간) 80% -> 88%
+     - PLBM SOC 충전(1시간)  3% -> 87%
+
+  5. Sleep 진입
+  
+  6. 5회 반복(22시간 * 5 = 110시간) -> 11시간 대기 후 테스트 종료(총 121시간 소요)
+*/
+  
+  int countMainTC = 0;
+  
+  //---------------------------PLBM 설정---------------------------//
+  int PLBM_SOC = 3; // PLBM 방전 직전 SOC 3%(RG3 KV 측정값)
+  int PLBM_Low_SOC = 3;
+  int PLBM_Full_SOC = 87; // PLBM 보충전 완료 SOC 87%(RG3 KV 측정값)
+  
+  msTimer timer_PLBM_Charging;
+  long TIME_PLBM_Charging = 42 * 1000; //평균 42초당 1% 충전
+  
+  long TIME_PLBM_Discharing = 17 * 3600 * 1000; //PLBM 방전시간
+  
+  int countPLBM_Charge = 0; //PLBM 충전 횟수
+  
+  //-------------------------ICU SOC 설정-------------------------//
+  int ICU_SOC = 80; //80% 부터 보충전
+  int ICU_Low_SOC = 80; //80% 부터 보충전
+  int ICU_Full_SOC = 88; //88% 까지 보충전 완료(RG3 KV 측정값)
+  
+  msTimer timer_ICUSOC_Charging;
+  long TIME_ICUSOC_Charging = 7.5 * 60 * 1000; //평균 7.5분당 1% 충전(80%->87%)
+  
+  long TIME_ICUSOC_FullCharge = 1 * 3600 * 1000; //1시간동안 충전
+
+  long TIME_ICUSOC_Discharing = 4 * 3600 * 1000; //4시간동안 ICU 방전(87%->80%)
+  
+  msTimer timer_MainTC;
+  long TIME_MainTC = 22 * 3600 * 1000; //22시간 마다 보충전 수행
+  long TIME_MainTC_FirtTime = 3600 * 1000; // 처음 보충 시간
+  
+  int countICUSOC_Charge = 0; //ICU SOC 충전 횟수
+  
+  int isBLTN_CAM_Check_PLBM_SOC = 0;
+  int isFirst_CAN_MessageReceived = 1 ;
+
+  //CAN Wakeup Flag 초기화 타이머
+  msTimer timer_Init_CAN_WakeUp_Flag_TIME_Init;
+  long TIME_Init_CAN_WakeUp_Flag_TIME_Init = 500;
+
+  
+  //----------------------Operable Time Test---------------------------//
+  
+  long prDelayTestTime = 5000;//12 * 3600 * 1000; // N시간 뒤에 시작
+  long judgeTime = 2 * 1000; // 판단 대기시간(초)
+  long delayTime = 2.3 * 60 * 1000; // 1%당 충전 소요시간(분)
+  int StartExpectedOperableTime = 12; // 시작 기댓값(80% = 12시간)
+  
+  int isRecStaON = 1;
+  int isRecStaOFF = 0;
+  
+  int MeasuredOperableTime;
+  int MeasuredOWPSta;
+    
+  char titleString[200]; //Test Case Title
+  char resultString[200]; //Test Case Result
+  
+  //시간 기록용
+  long time[9];
+  long currentTime[7];
+  long Year1 = 20, Year2, Month, Day, Hour, Minute, Second;
+}
+
+on preStart
+{
+}
+
+void MainTest()
+{
+//  long timeScale = 264; //디버그용
+  
+  char popupMsg[100];
+  char fileName[100];
+
+  //Set Test Report File Name
+  getCurrentTime();
+  snprintf(fileName, elcount(fileName), "/TestReports/OWP_120Hr_eAGM+PLBM_TestReport_%d%d%d%d_%d%d%d_", currentTime[0], currentTime[1],currentTime[2],currentTime[3],currentTime[4],currentTime[5],currentTime[6]);
+  TestReportFileName(fileName);
+  
+  snprintf(popupMsg, elcount(popupMsg), "SOC를 세팅하고 HU_CLOCK, CGW_NM을 켜세요.\n ICU SOC: %d%, PLBM SOC: %d%", ICU_Full_SOC, PLBM_Full_SOC);
+  
+  TestWaitForMessageBox(popupMsg, 5 * 6 * 1000, "알림", 0);
+  TestWaitForMessageBox("KEY OFF 후 OWP 신호가 ON 되면 모든 입력신호를 OFF하고, Sleep이 되면 확인을 누르세요", 5 * 60*1000, "알림", 0);
+
+//  TIME_PLBM_Charging /= timeScale;
+//  TIME_PLBM_Discharing /= timeScale;
+//  
+//  TIME_ICUSOC_Charging /= timeScale;
+//  TIME_ICUSOC_FullCharge /= timeScale;
+//  
+//  TIME_ICUSOC_Discharing /= timeScale;
+//  TIME_MainTC /= timeScale;
+//  TIME_MainTC_FirtTime = 2 * 60 * 1000; //2분 뒤에 보충전 일어나는 시나리오.
+  //////////////////////////////////
+    
+  //테스트 시작
+  MainTC();
+}
+
+on key 'q'
+{
+  //전류 측정
+  strncpy(rs232SendBuffer[0], "INST OUTP1", 11); //CH1 선택
+  strncpy(rs232SendBuffer[1], "MEAS:CURR?", 50);
+
+  //Interval 간격으로 날리기
+  timer_RS232SendInterval.Set(TIME_RS232SendInterval);
+  
+  Rs232ReceiveMsg();
+}
+
+on key 'w'
+{
+    
+  //전압 측정
+  strncpy(rs232SendBuffer[0], "INST OUTP1", 11); //CH1 선택
+  strncpy(rs232SendBuffer[1], "MEAS:VOLT?", 50);
+
+  //Interval 간격으로 날리기
+  timer_RS232SendInterval.Set(TIME_RS232SendInterval);
+  
+  Rs232ReceiveMsg();
+}
+
+
+testcase MainTC()
+{
+  write("Start MainTC");
+  testCaseTitle("TC_00","MainTC");
+  
+  //KEY OFF 전 배터리는 완충상태
+  PLBM_SOC = PLBM_Full_SOC;
+  ICU_SOC = ICU_Full_SOC;
+
+  //1초마다 CAN BUSLoad가 0인지 확인함. (CAN이 Wakeup 되는 처음에만 원하는 함수를 실행시키기 위함)
+  timer_Init_CAN_WakeUp_Flag_TIME_Init.set(TIME_Init_CAN_WakeUp_Flag_TIME_Init);
+  timer_MainTC.set(TIME_MainTC_FirtTime);
+  
+  //125시간동안 테스트케이스가 종료되기를 대기함.
+  testWaitForTextEvent("END_MainTC", 125 * 3600 * 1000);
+}
+
+//22시간마다 보충전
+on timer timer_MainTC
+{
+  //CAN BUS를 깨움
+  write("CGWM_WM ON, 보충전 시작.");
+  @panel::Switch_CGWNM = 1;
+  
+  //22시간 뒤 보충전 시작 할 때 ICU SOC는 80%임
+  write("set ICU SOC: %d", ICU_Low_SOC);
+  setSignal(ICU_BS2SoC, ICU_Low_SOC);
+  ICU_SOC = ICU_Low_SOC;
+  
+  //22시간 뒤 보충전 시작 할 때 PLBM SOC는 3%임
+  write("set PLBM SOC: %d", PLBM_Low_SOC);
+  setSignal(BAT_SOC_for_BLTN_CAM, PLBM_Low_SOC);
+  PLBM_SOC = PLBM_Low_SOC;
+
+  //ICU SOC 충전 시작
+  timer_ICUSOC_Charging.set(TIME_ICUSOC_Charging);
+  
+  //PLBM SOC 충전 시작
+  timer_PLBM_Charging.set(TIME_PLBM_Charging);
+  
+  //5번 반복: 110시간
+  if( countMainTC < 6)
+    timer_MainTC.set(TIME_MainTC); //22시간 타이머 셋
+  
+  //5번 반복됐으면 그만반복(110시간)
+  else
+  {
+    testWaitForTimeout(TIME_MainTC * 5 + TIME_MainTC / 2); //110시간 + 11시간 까지 대기
+    
+    cancelTimer(timer_MainTC);
+    TestSupplyTextEvent("END_MainTC"); 
+  }
+}
+
+on timer timer_ICUSOC_Charging
+{
+  char timeCheck[50];
+  write("■ ICU SOC Charging.");
+  
+  //Full_SOC 까지 충전하기
+  if( ICU_SOC < ICU_Full_SOC )
+  {
+    getCurrentTime();
+    write("■ [%d:%d:%d - %d/%d] input ICU SOC: %d", currentTime[4], currentTime[5], currentTime[6], currentTime[2], currentTime[3], ICU_SOC);
+    
+    if(getSignal(BLTN_CAM_RecSta_OWP) == 0x0 )
+    {
+      write("OWP is OFF");
+      testStepFail("OWP is OFF");
+      testCaseFail();
+    }
+    
+    setSignal(ICU_BS2SoC, ICU_SOC++);
+    timer_ICUSOC_Charging.set(TIME_ICUSOC_Charging);
+  }
+
+  else
+  { 
+    write("Timer canceled: ICU SOC is full charged");
+    testStepPass("ICU SOC 충전이 완료됨.");
+
+    countICUSOC_Charge++;
+    write("□ [%d:%d:%d - %d/%d] %d번째 ICU 충전 완료. SOC: %d", currentTime[4], currentTime[5], currentTime[6], currentTime[2], currentTime[3], countPLBM_Charge, ICU_SOC);
+    
+    snprintf(timeCheck, elcount(timeCheck), "%d%d%d%d_%d%d%d", currentTime[0], currentTime[1],currentTime[2],currentTime[3],currentTime[4],currentTime[5],currentTime[6]);
+    testCaseComment(timeCheck);
+    TestCaseReportMeasuredValue("ICUSOC 충전 완료: ", countICUSOC_Charge);
+    TestCaseReportMeasuredValue("ICUSOC 충전 완료: ", countICUSOC_Charge);
+    TestCaseReportMeasuredValue("BLTN_CAM_Prk_Oprable_Time: ", $BLTN_CAM_Prk_Oprable_Time);
+    TestCaseReportMeasuredValue("BLTN_CAM_Prk_Oped_Time: ", $BLTN_CAM_Prk_Oped_Time);
+    TestCaseReportMeasuredValue("BLTN_CAM_RecSta_OWP: ", $BLTN_CAM_RecSta_OWP);
+    TestCaseReportMeasuredValue("BLTN_CAM_Prk_EV_Cnt: ", $BLTN_CAM_Prk_EV_Cnt);
+    TestCaseReportMeasuredValue("BLTN_CAM_SD_Card_State: ", $BLTN_CAM_SD_Card_State);
+    
+    write("CGWM_WM OFF");
+    @panel::Switch_CGWNM = 0;
+    
+    isBLTN_CAM_Check_PLBM_SOC = 0;
+
+    //타이머 종료
+    cancelTimer(timer_ICUSOC_Charging);
+  }
+}
+
+//타이머 이벤트 발생 시 PLBM SOC 증가
+on timer timer_PLBM_Charging
+{
+  write("□ PLBM Charging.");
+  
+    //100%까지 충전하기
+  if(PLBM_SOC < PLBM_Full_SOC)
+  {
+    PLBM_SOC++;
+    
+    getCurrentTime();
+    write("□ [%d:%d:%d - %d/%d] input PLBM SOC: %d", currentTime[4], currentTime[5], currentTime[6], currentTime[2], currentTime[3], PLBM_SOC);
+    
+    setSignal(BAT_SOC_for_BLTN_CAM, PLBM_SOC);
+    
+    timer_PLBM_Charging.set(TIME_PLBM_Charging);
+  }
+
+  else
+  { 
+    countPLBM_Charge++;
+    write("□ [%d:%d:%d - %d%d] %d번째 PLBM 충전 완료. SOC: %d", currentTime[4], currentTime[5], currentTime[6], currentTime[2], currentTime[3], countPLBM_Charge, PLBM_SOC);
+    TestCaseReportMeasuredValue("PLBM 충전 완료:", countPLBM_Charge);
+
+    //타이머 종료
+    write("PLBM is full charged. cancel timer");
+    cancelTimer(timer_PLBM_Charging);
+  }
+}
+
+
+//CAN Wake up 이벤트 핸들러가 없어서 만듦.
+on timer timer_Init_CAN_WakeUp_Flag_TIME_Init
+{
+ if(canGetBusLoad(2) == 0)
+    isFirst_CAN_MessageReceived = 1;
+
+  timer_Init_CAN_WakeUp_Flag_TIME_Init.set(TIME_Init_CAN_WakeUp_Flag_TIME_Init);
+}
+
+//주차녹화 중 빌트인캠이 LIN Wake up 시 PLBM SOC가 3%로 녹화 가능시간 = 0시간
+on linWakeupFrame 
+{
+  testCaseComment("lin Wakeup");
+  write("lin Wakeup");
+  
+  //PLBM으로부터 수신된 마지막 SOC가 PLBM_Full_SOC(보충전 완) 였는데 빌트인캠이 LIN Wakeup 하여 SOC 확인 시 PLBM은 방전상태(3%)
+  if(PLBM_SOC >= PLBM_Full_SOC)
+  {
+    isBLTN_CAM_Check_PLBM_SOC = 1;
+    testStepPass("빌트인캠이 LIN SOC를 확인하였음.");
+    
+    write("Set PLBM SOC %d %",PLBM_Low_SOC);    
+    TestCaseReportMeasuredValue("Lin Wakeup됨, Set PLBM SOC =", PLBM_Low_SOC);
+
+    setSignal(BAT_SOC_for_BLTN_CAM, PLBM_Low_SOC);
+    PLBM_SOC = PLBM_Low_SOC;
+  }
+}
+
+//주차녹화 중 PLBM의 SOC 부족으로 ICU SOC 확인을 위해 BLTN_CAM이 CAN Wake up
+on message PDC_FD_11_200ms
+{
+  char mystring[50];
+  testGetCurrentTestCaseTitle(mystring, elcount(mystring) );
+  
+  //Main TC 실행중에만 동작
+  //string 비교, 같으면 0 출력
+  if( !strncmp(mystring,"MainTC",strlen(mystring)-1) ) 
+  {
+    if(isFirst_CAN_MessageReceived)
+    {
+      //보충전에 의한 Wakeup이 아니면
+      if(!@panel::Switch_CGWNM) testStepPass("빌트인캠이 ICU SOC를 확인하였음.");
+
+      //첫 수신 플래그 변수 업데이트
+      isFirst_CAN_MessageReceived = 0;
+    }    
+  }
+}
+
+on linFrame BMS_OPERATION_CONTROL
+{
+  char mystring[50];
+  testGetCurrentTestCaseTitle(mystring, elcount(mystring) );
+  
+  //Main TC 실행중에만 동작
+  //string 비교, 같으면 0 출력
+  if( !strncmp(mystring,"MainTC",strlen(mystring)-1) ) 
+  {
+    char BMS_CTRL_timeCheck[50];
+    
+    snprintf(BMS_CTRL_timeCheck, elcount(BMS_CTRL_timeCheck), "%d%d%d%d_%d%d%d", currentTime[0], currentTime[1],currentTime[2],currentTime[3],currentTime[4],currentTime[5],currentTime[6]);
+    testCaseComment(BMS_CTRL_timeCheck);
+    
+    if($BAT_Charge_Control == 0x2) //discharging 신호 수신 시
+    {
+      write("BMS_OPERATION_CONTROL: discharging");
+      TestCaseReportMeasuredValue("BAT_Charge_Control: ", $BAT_Charge_Control);
+    }
+
+    else if($BAT_Charge_Control == 0x0) //stop 신허 수신 시
+    {
+      write("BMS_OPERATION_CONTROL: stop");
+      TestCaseReportMeasuredValue("BAT_Charge_Control: ", $BAT_Charge_Control);
+    }
+  }
+}
+
+void getCurrentTime()
+{
+  getLocalTime(time);
+  Year2 = (time[5]+1900) - 2000;
+  Month = time[4]+1;
+  Day = time[3];
+  Hour = time[2];
+  Minute= time[1];
+  Second = time[0]; 
+  
+  currentTime[0] = Year1;
+  currentTime[1] = Year2;
+  currentTime[2] = Month;
+  currentTime[3] = Day;
+  currentTime[4] = Hour;
+  currentTime[5] = Minute;
+  currentTime[6] = Second;
+}
+
+//종료 시 termiate info 확인하는 TC Step 추가하기.

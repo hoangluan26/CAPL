@@ -1,0 +1,39 @@
+/*@!Encoding:949*/
+on prestart
+{
+}
+
+void MainTest()
+{
+  eAGMcharging(60000);
+}
+
+void eAGMcharging(int time)
+{
+  setSignal(CAN2::ICU_10_200ms::ICU_BS2SoC, 75);testWaitForTimeout(time);
+  setSignal(CAN2::ICU_10_200ms::ICU_BS2SoC, 76);testWaitForTimeout(time);
+  setSignal(CAN2::ICU_10_200ms::ICU_BS2SoC, 77);testWaitForTimeout(time);
+  setSignal(CAN2::ICU_10_200ms::ICU_BS2SoC, 78);testWaitForTimeout(time);
+  setSignal(CAN2::ICU_10_200ms::ICU_BS2SoC, 79);testWaitForTimeout(time);
+  setSignal(CAN2::ICU_10_200ms::ICU_BS2SoC, 80);testWaitForTimeout(time);
+  setSignal(CAN2::ICU_10_200ms::ICU_BS2SoC, 81);testWaitForTimeout(time);
+  setSignal(CAN2::ICU_10_200ms::ICU_BS2SoC, 82);testWaitForTimeout(time);
+  setSignal(CAN2::ICU_10_200ms::ICU_BS2SoC, 83);testWaitForTimeout(time);
+  setSignal(CAN2::ICU_10_200ms::ICU_BS2SoC, 84);testWaitForTimeout(time);
+  setSignal(CAN2::ICU_10_200ms::ICU_BS2SoC, 85);testWaitForTimeout(time);
+  setSignal(CAN2::ICU_10_200ms::ICU_BS2SoC, 86);testWaitForTimeout(time);
+  setSignal(CAN2::ICU_10_200ms::ICU_BS2SoC, 87);testWaitForTimeout(time);
+  setSignal(CAN2::ICU_10_200ms::ICU_BS2SoC, 88);testWaitForTimeout(time);
+  setSignal(CAN2::ICU_10_200ms::ICU_BS2SoC, 89);testWaitForTimeout(time);
+  setSignal(CAN2::ICU_10_200ms::ICU_BS2SoC, 90);testWaitForTimeout(time);
+  setSignal(CAN2::ICU_10_200ms::ICU_BS2SoC, 91);testWaitForTimeout(time);
+  setSignal(CAN2::ICU_10_200ms::ICU_BS2SoC, 92);testWaitForTimeout(time);
+  setSignal(CAN2::ICU_10_200ms::ICU_BS2SoC, 93);testWaitForTimeout(time);
+  setSignal(CAN2::ICU_10_200ms::ICU_BS2SoC, 94);testWaitForTimeout(time);
+  setSignal(CAN2::ICU_10_200ms::ICU_BS2SoC, 95);testWaitForTimeout(time);
+  setSignal(CAN2::ICU_10_200ms::ICU_BS2SoC, 96);testWaitForTimeout(time);
+  setSignal(CAN2::ICU_10_200ms::ICU_BS2SoC, 97);testWaitForTimeout(time);
+  setSignal(CAN2::ICU_10_200ms::ICU_BS2SoC, 98);testWaitForTimeout(time);
+  setSignal(CAN2::ICU_10_200ms::ICU_BS2SoC, 99);testWaitForTimeout(time);
+  setSignal(CAN2::ICU_10_200ms::ICU_BS2SoC, 100);testWaitForTimeout(time);    
+}

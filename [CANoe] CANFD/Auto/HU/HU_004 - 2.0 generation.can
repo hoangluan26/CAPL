@@ -1,0 +1,524 @@
+/*@!Encoding:1252*/
+// Preconditions: ACC and IGN and ccNC/ccIC switch OFF state, AVN mode
+variables
+{ // Message Declaration
+  // CAN
+  message HU_CLOCK_PE_02 _HU_CLOCK_PE_02;
+  message HU_BLTN_CAM_E_00 _HU_BLTN_CAM_E_00;
+  message HU_BLTN_CAM_PE_00_200ms _HU_BLTN_CAM_PE_00_200ms;
+  // Global Variable Declaration
+  byte year;
+  byte check_DisplayYear2_value;
+  byte check_DisplayYear1_value;
+  byte check_DisplayHour_value;
+  byte check_DisplayMinute_value;
+  byte check_DisplaySecond_value;
+  byte check_DisplayMonth_value;
+  byte check_DisplayDay_value;
+  int flag_RecSet_error = 0;
+}
+
+void Check_time(){
+  check_DisplayYear2_value = getSignal(HU_DisplayYear2);
+  check_DisplayYear1_value = getSignal(HU_DisplayYear1);
+  check_DisplayHour_value  = getSignal(HU_DisplayHour);
+  check_DisplayMinute_value  = getSignal(HU_DisplayMinute);  
+  check_DisplaySecond_value  = getSignal(HU_DisplaySecond);
+  check_DisplayMonth_value = getSignal(HU_DisplayMonth);
+  check_DisplayDay_value = getSignal(HU_DisplayDay);
+}
+
+void KEY_ON(){
+  setSignal(SMK_TrmnlCtrlGrpStaBDC,0x1); // Power ON
+}
+void KEY_OFF(){
+   setSignal(SMK_TrmnlCtrlGrpStaBDC,0x0); // Power OFF
+}
+void Enter_BLTN_CAM(){
+  // CAN
+  _HU_BLTN_CAM_PE_00_200ms.HU_BLTN_CAM_UI_Mode=0x1;
+  output(_HU_BLTN_CAM_PE_00_200ms); //Enter BLTN_CAM mode    
+}
+
+void Exit_BLTN_CAM(){
+  // CAN
+  _HU_BLTN_CAM_PE_00_200ms.HU_BLTN_CAM_UI_Mode=0x0;
+  output(_HU_BLTN_CAM_PE_00_200ms);//Exit BLTN_CAM Mode      
+}
+
+void Clock_Down(long CD_time){
+  write("=== START CLOCK ===");
+  while (CD_time > 0){
+    write("Remaining time: %02d::%02d",CD_time/60,CD_time%60);
+    testWaitForTimeout(60000);
+    CD_time--;
+  }
+}
+
+void Turn_OFF_RecSet(){
+  if ($BLTN_CAM_RecSet_OWD == 0x2 || $BLTN_CAM_RecSet_OWP == 0x2 || $BLTN_CAM_RecSet_DEV == 0x2 || $BLTN_CAM_RecSet_PEV == 0x2){
+    @panel::Switch_CGWNM = 1;
+  
+    KEY_ON();
+    testWaitForTimeout(3000);
+
+      
+    do {
+      Enter_BLTN_CAM();
+      testWaitForTimeout(3000);
+      
+      if ($BLTN_CAM_RecSet_OWD == 0x2){
+        write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1; testWaitForTimeout(1000);
+      } 
+      
+      else if ($BLTN_CAM_RecSet_OWP == 0x2){
+        write("OWP Off"); @panel::LED_Ctrl_SetOWP = 1; testWaitForTimeout(1000);
+      } 
+      
+      else if ($BLTN_CAM_RecSet_DEV == 0x2){
+        write("DEV Off"); @panel::LED_Ctrl_SetDEV = 1; testWaitForTimeout(1000);
+      } 
+      
+      else if ($BLTN_CAM_RecSet_PEV == 0x2){
+        write("PEV Off"); @panel::LED_Ctrl_SetPEV = 1; testWaitForTimeout(1000);
+      } 
+
+      Exit_BLTN_CAM();
+      
+      flag_RecSet_error++;
+      
+    } while(($BLTN_CAM_RecSet_OWD == 0x2 || $BLTN_CAM_RecSet_OWP == 0x2 || $BLTN_CAM_RecSet_DEV == 0x2 || $BLTN_CAM_RecSet_PEV == 0x2) && (flag_RecSet_error <= 15));
+    
+    flag_RecSet_error = 0; 
+    
+    testWaitForTimeout(3000); 
+    KEY_OFF();
+  }
+  else {
+    write("Notifications: All recording setting are turned OFF.");
+  }
+}
+
+void Setup_End_test(){
+    do {
+      Enter_BLTN_CAM();
+      testWaitForTimeout(3000);
+      
+      if ($BLTN_CAM_RecSet_OWD == 0x2){
+        write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1; testWaitForTimeout(2000);
+      } 
+
+      Exit_BLTN_CAM();
+      
+      flag_RecSet_error++;
+      
+    } while($BLTN_CAM_RecSet_OWD == 0x2 && (flag_RecSet_error <= 15));
+    
+    flag_RecSet_error = 0;     
+}
+
+void Set_Time(byte hour, byte min, byte sec, byte day, byte month, byte year1,byte year2){
+// CAN FD 
+  _HU_CLOCK_PE_02.HU_TimeFormat=0x2; 
+  _HU_CLOCK_PE_02.HU_Status= 0x2; 
+  _HU_CLOCK_PE_02.HU_TimeSetting= 0x1; 
+  _HU_CLOCK_PE_02.HU_DisplayHour= hour; 
+  _HU_CLOCK_PE_02.HU_DisplayMinute= min; 
+  _HU_CLOCK_PE_02.HU_DisplaySecond= sec; 
+  _HU_CLOCK_PE_02.HU_DisplayYear1= year1; 
+  _HU_CLOCK_PE_02.HU_DisplayYear2= year2; 
+  _HU_CLOCK_PE_02.HU_DisplayMonth= month; 
+  _HU_CLOCK_PE_02.HU_DisplayDay= day; 
+  _HU_CLOCK_PE_02.HU_ClockInfo=0x1; 
+  _HU_CLOCK_PE_02.HU_ComRefresh=0x2; 
+  _HU_CLOCK_PE_02.HU_AM_PM_INFO=0x0; 
+  output(_HU_CLOCK_PE_02);
+}
+
+void Init(){
+  @panel::Switch_CGWNM = 1; 
+  
+  KEY_ON();
+  
+  while (getSignal(BLTN_CAM_SD_Format_Op_State) != 0x1){
+    @panel::Button_RecReset = 1; 
+    testWaitForSignalChange(BLTN_CAM_SD_Format_Op_State,500);
+  }
+    
+  KEY_OFF();
+  
+  @panel::Switch_CGWNM = 0; 
+}
+
+testcase HU_004_1(){
+  testStep("Notification","Start test HU_004_1");
+  write("=== START HU_004_1 ===");
+
+  @panel::Switch_CGWNM = 1;
+  
+  write("Run KEY_ON()"); KEY_ON();
+  testWaitForTimeout(3000);
+  
+  @panel::Switch_CGWNM = 0;
+  do {
+    write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    testWaitForTimeout(3000);
+  
+    write("OWD On"); @panel::LED_Ctrl_SetOWD = 1;
+    testWaitForTimeout(2000);
+  
+    @panel::Switch_Clock = 1; 
+  
+    write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+    
+  } while ($BLTN_CAM_RecSet_OWD == 0x1);
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWD,100000) == 1){
+    write("OWD recording is in progress...");
+    testWaitForTimeout(10000);
+  }
+  else{
+    write("OWD recording hasn't started. Stop test !!!");
+    
+    write("Run Setup_End_test()"); Setup_End_test();
+    
+    stop(); write("Run stop()");
+  }
+
+  write("Run Setup_End_test()"); Setup_End_test();
+  
+  @panel::Switch_Clock = 0;
+
+  testWaitForTimeout(3000);
+  
+  KEY_OFF(); write("Run KEY_OFF()");
+  
+  testStepPass("Notification","Done testcase HU_004_1");
+  write("=== FINISH HU_004_1 ===");
+}
+testcase HU_004_5_6(){
+  testStep("Notification","Start test HU_004_5 and HU_004_6");
+  write("=== START HU_004_5 & HU_004_6 ===");
+
+  @panel::Switch_CGWNM = 1;
+  
+  KEY_ON(); write("Run KEY_ON()");
+  testWaitForTimeout(3000);
+  
+  @panel::Switch_CGWNM = 0;
+  
+  do {
+    Enter_BLTN_CAM(); write("Run Enter_BLTN_CAM()"); 
+    testWaitForTimeout(3000);
+  
+    write("OWD On"); @panel::LED_Ctrl_SetOWD = 1;
+    testWaitForTimeout(1000);
+  
+    @panel::Switch_Clock = 1;
+    testWaitForTimeout(1000);
+  
+    Check_time(); write("Run Check time()");
+  
+    @panel::Switch_Clock = 0;
+    testWaitForTimeout(1000);
+  
+    testStep("Notification","Set time to 1 year later");
+    write("Set time to 1 year later");
+    Set_Time(check_DisplayHour_value,check_DisplayMinute_value,check_DisplaySecond_value, check_DisplayDay_value, check_DisplayMonth_value, check_DisplayYear1_value, check_DisplayYear2_value + 0x1);
+  
+    write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM(); 
+    
+  } while ($BLTN_CAM_RecSet_OWD == 0x1);
+
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWD,100000) == 1){
+    write("OWD recording is in progress...");
+    testWaitForTimeout(10000);
+  }
+  else{
+    write("Error: OWD recording hasn't started");
+
+    write("Run Setup_End_test()"); Setup_End_test();
+    
+    write("Run stop()"); stop(); 
+  }
+  
+  testStep("Notification","Enter Sleep to check the time are maintained");
+  write("=== ENTER SLEEP ===");
+  
+   write("Run KEY_OFF()"); KEY_OFF();
+  
+  testWaitForTimeout(25000);
+
+  testStep("Notification","Wake up and record OWD");
+  write("=== WAKE UP ===");
+  
+  @panel::Switch_CGWNM = 1;
+  
+  write("Run KEY_ON()");KEY_ON();
+  testWaitForTimeout(10000);
+  
+  @panel::Switch_CGWNM = 0;
+
+  write("Run Setup_End_test()"); Setup_End_test();  
+  
+  testWaitForTimeout(3000);
+  
+  write("Run KEY_OFF()"); KEY_OFF(); 
+  
+  testStepPass("Notification","Done testcase HU_004_5 and HU_004_6");
+  write("=== FINISH HU_004_5 & HU_004_6 ===");
+  
+}
+testcase HU_004_7_8(){
+  testStep("Notification","Start test HU_004_7 and HU_004_8");
+  write("=== START HU_004_7 & HU_004_8 ===");
+
+  @panel::Switch_CGWNM = 1;
+  
+  write("Run KEY_ON()"); KEY_ON();
+  testWaitForTimeout(3000);
+  
+  @panel::Switch_CGWNM = 0;
+
+  do {
+    write("Run Enter_BLTN_CAM()");  Enter_BLTN_CAM();
+    testWaitForTimeout(3000);
+  
+    write("OWD On"); @panel::LED_Ctrl_SetOWD = 1;
+    testWaitForTimeout(1000);
+  
+    @panel::Switch_Clock = 1;
+    testWaitForTimeout(1000);
+  
+    write("Run Check time()"); Check_time();
+  
+    @panel::Switch_Clock = 0;
+    testWaitForTimeout(1000);
+  
+    testStep("Notification","Set time to 2 year later");
+    write("Set time to 2 year later");
+    Set_Time(check_DisplayHour_value,check_DisplayMinute_value,check_DisplaySecond_value, check_DisplayDay_value, check_DisplayMonth_value, check_DisplayYear1_value, check_DisplayYear2_value + 0x2);
+  
+    write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM(); 
+    
+  } while ($BLTN_CAM_RecSet_OWD == 0x1);
+
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWD,100000) == 1){
+    write("OWD recording is in progress...");
+    testWaitForTimeout(10000);
+  }
+  else{
+    write("OWD recording hasn't started. Stop test !!!");
+
+    write("Run Setup_End_test()"); Setup_End_test();    
+    
+    write("Run stop()"); stop(); 
+  }
+  
+  testStep("Notification","Enter Sleep to check the time are maintained");
+  write("=== ENTER SLEEP ===");
+  
+  KEY_OFF(); write("Run KEY_OFF()");
+  
+  testWaitForTimeout(25000);
+
+  testStep("Notification","Wake up and record OWD");
+  write("=== WAKE UP ===");
+  
+  @panel::Switch_CGWNM = 1;
+  
+  write("Run KEY_ON()"); KEY_ON(); 
+  testWaitForTimeout(10000);
+  
+  @panel::Switch_CGWNM = 0;
+
+  write("Run Setup_End_test()"); Setup_End_test();
+  
+  testWaitForTimeout(3000);
+  
+  write("Run KEY_OFF()"); KEY_OFF(); 
+  
+  testStepPass("Notification","Done testcase HU_004_7 and HU_004_8");
+  write("=== FINISH HU_004_7 & HU_004_8 ===");
+  
+}
+testcase HU_004_9_10(){
+  testStep("Notification","Start test HU_004_9 and HU_004_10");
+  write("=== START HU_004_9 & HU_004_10 ===");
+
+  @panel::Switch_CGWNM = 1;
+  
+  write("Run KEY_ON()"); KEY_ON(); 
+  testWaitForTimeout(3000);
+  
+  @panel::Switch_CGWNM = 0;
+
+  do {
+    write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    testWaitForTimeout(3000);
+  
+    write("OWD On"); @panel::LED_Ctrl_SetOWD = 1;
+    testWaitForTimeout(1000);
+  
+    @panel::Switch_Clock = 1;
+    testWaitForTimeout(1000);
+  
+    write("Run Check time()"); Check_time(); 
+  
+    @panel::Switch_Clock = 0;
+    testWaitForTimeout(1000);
+  
+    testStep("Notification","Set time to 5 year later");
+    write("Set time to 5 year later");
+    Set_Time(check_DisplayHour_value,check_DisplayMinute_value,check_DisplaySecond_value, check_DisplayDay_value, check_DisplayMonth_value, check_DisplayYear1_value, check_DisplayYear2_value + 0x5);
+  
+    write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM(); 
+    
+  } while ($BLTN_CAM_RecSet_OWD == 0x1);
+  
+  testStep("Notification","Recording OWD...");
+
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWD,100000) == 1){
+    write("OWD recording is in progress...");
+    testWaitForTimeout(10000);
+  }
+  else{
+    write("OWD recording hasn't started. Stop test !!!");
+    
+    write("Run Setup_End_test()"); Setup_End_test();
+    
+    write("Run stop()"); stop();
+  }
+  
+  testStep("Notification","Enter Sleep to check the time are maintained");
+  write("=== ENTER SLEEP ===");
+  
+  KEY_OFF(); write("Run KEY_OFF()");
+  
+  testWaitForTimeout(25000);
+
+  testStep("Notification","Wake up and record OWD");
+  write("=== WAKE UP ===");
+  
+  @panel::Switch_CGWNM = 1;
+  
+  write("Run KEY_ON()"); KEY_ON(); 
+  testWaitForTimeout(10000);
+  
+  @panel::Switch_CGWNM = 0;
+
+  write("Run Setup_End_test()"); Setup_End_test();
+  
+  testWaitForTimeout(3000);
+  
+  write("Run KEY_OFF()"); KEY_OFF(); 
+  
+  testStepPass("Notification","Done testcase HU_004_9 and HU_004_10");
+  write("=== FINISH HU_004_9 & HU_004_10 ===");
+  
+}
+testcase HU_004_12(){
+  
+  testStep("Notification","Start test HU_004_12");
+  write("=== START HU_004_12 ===");
+
+  @panel::Switch_CGWNM = 1;
+  
+  write("Run KEY_ON()"); KEY_ON(); 
+  testWaitForTimeout(3000);
+  do {
+  write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();  
+  testWaitForTimeout(3000);
+  
+  write("OWD On"); @panel::LED_Ctrl_SetOWD = 1;
+  testWaitForTimeout(1000);
+  
+  @panel::Switch_Clock = 1;
+  
+  testWaitForTimeout(1000);
+  
+  write("Run Check_time()"); Check_time(); 
+  
+  testWaitForTimeout(1000);
+  
+  @panel::Switch_Clock = 0;
+  
+  write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM(); 
+  
+  } while ($BLTN_CAM_RecSet_OWD == 0x1);
+
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWD,100000) == 1){
+    write("OWD recording is in progress...");
+  }
+  else{
+    write("OWD recording hasn't started. Stop test !!!");
+    
+    write("Run Setup_End_test()"); Setup_End_test();
+    
+    write("Run stop()"); stop(); 
+  }
+  
+  testWaitForTimeout(15000);
+  
+  write("=== SET TIME ===");Set_Time(check_DisplayHour_value,check_DisplayMinute_value, check_DisplaySecond_value + 0x14, check_DisplayDay_value, check_DisplayMonth_value, check_DisplayYear1_value, check_DisplayYear2_value + 0x1); write("Run Set_time()");
+  
+  testWaitForTimeout(120000);
+  
+  write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM(); 
+  testWaitForTimeout(3000);
+    
+  write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM(); 
+  
+  testWaitForTimeout(11000);
+  
+  testStep("Notification","Check that the next recording file is created at the set time one year later");
+  write("=== NEXT VIDEO ===");
+ 
+  write("Run Setup_End_test()"); Setup_End_test();
+  
+  testWaitForTimeout(3000);
+  write("Run KEY_OFF()"); KEY_OFF(); 
+  
+  testStepPass("Notification","Done testcase HU_004_12");
+  write("=== FINISH HU_004_12 ===");
+}
+
+void MainTest(){
+  
+  write("Run Turn_OFF_RecSet()");Turn_OFF_RecSet();
+  
+  write("Run Init()"); Init();
+  
+  testWaitForValueInput("Notification: Enter the option you want ? (1/2/3/4)",300000);
+  
+  switch(testGetValueInput()){
+    case(1): HU_004_1();break; //Test case HU_004_1
+    case(2): 
+      HU_004_5_6();
+      
+      testWaitForTimeout(1000);
+      
+      HU_004_7_8();
+      
+      testWaitForTimeout(1000);
+      
+      HU_004_9_10();
+      
+      testWaitForTimeout(1000);
+      
+      break; //Test case HU_004_5 -> HU_004_10
+      
+    case(3): HU_004_12();break; //Test case HU_004_12
+      
+    case(4):
+      HU_004_1();
+      
+      HU_004_5_6();
+      
+      HU_004_7_8();
+      
+      HU_004_9_10();
+      
+      HU_004_12();
+  }
+}

@@ -1,0 +1,330 @@
+﻿/*@!Encoding:65001*/
+
+
+variables
+{
+  //Global Declaration
+  byte Check_var;
+  int flag_RecSet_error = 0; 
+  byte i;
+  char PLBM_Battery[4] = {'P','L','B','M'};
+  char eAGM_Battery[4] = {'E','A','G','M'};
+  char answer[4];
+  // Message Declaration for CAN FD
+  message HU_BLTN_CAM_02_200ms _HU_BLTN_CAM_02_200ms;
+  message HU_BLTN_CAM_01_00ms _HU_BLTN_CAM_01_00ms;
+  message HU_CLOCK_01_1000ms _HU_CLOCK_01_1000ms;
+//  //Message Declaration for CAN
+//  message HU_BLTN_CAM_PE_00_200ms _HU_BLTN_CAM_PE_00_200ms;
+//  message HU_BLTN_CAM_E_00 _HU_BLTN_CAM_E_00;
+//  message HU_CLOCK_PE_02 _HU_CLOCK_PE_02;  
+}
+
+int checkBatteryType(char a[], int size)
+{
+  int i, matchPLBM, matchEAGM;
+  
+  matchPLBM = 1;
+  
+  matchEAGM = 1;
+  
+  size = elcount(a);
+  
+  for (i = 0; i < size; i++)
+  {
+    if (a[i] != PLBM_Battery[i])
+    {
+      matchPLBM = 0;
+    }
+    if (a[i] != eAGM_Battery[i])
+    {
+      matchEAGM = 0;
+    }
+  }
+
+  if (matchPLBM)
+    return 1;
+  else if (matchEAGM)
+    return 2;
+  else
+    return 0;
+}
+
+void Set_Battery(){
+  int battery_Type = 0;
+  
+  @panel::Switch_CGWNM = 1;
+  
+  KEY_ON();
+  
+  do
+  {
+    testWaitForStringInput("Please enter kind of battery (PLBM or EAGM):", 300000);
+    
+    testGetStringInput(answer, 4);
+    
+    battery_Type = checkBatteryType(answer,4);
+    
+    if(battery_Type == 0){
+      write("Invalid input! Please enter 'PLBM' or 'EAGM'.");
+    }
+  } while(battery_Type == 0);
+  
+  switch(battery_Type){
+    case(1): 
+      write("Battery type is PLBM.");     
+      @ControlPowerSupply::RadioBtn_PwrSplyModel = 1; //Choose model power suplly TL305TP
+      @ControlPowerSupply::Numeric_PortNum = 3; //Choose numberic port to connect PC 
+  
+      if( @ControlPowerSupply::RadioBtn_PwrSplyModel == 1 && @ControlPowerSupply::Numeric_PortNum == 3 ){
+        @ControlPowerSupply::Button_Connect = 0; 
+        testWaitForTimeout(1000);
+        @ControlPowerSupply::Button_Connect = 1; 
+        @ControlPowerSupply::Button_Connect = 0; break;
+      }
+    case(2):
+      write("Battery type is EAGM.");
+      setSignal(ICU_BS2SoC, 0x64); break;
+  }
+
+  KEY_OFF();
+  
+  @panel::Switch_CGWNM = 0;
+}
+
+void BLTN_CAM_Settings(int Choose_Option){
+  switch (Choose_Option){
+    case(1):
+      // CAN FD
+      _HU_BLTN_CAM_01_00ms.BLTN_CAM_Rec_OWP_NvalueSet = 0x2;/*OWP setting ON*/break;
+//      // CAN
+//      _HU_BLTN_CAM_E_00.BLTN_CAM_Rec_OWP_NvalueSet = 0x2; break;
+    case(2):
+      // CAN FD
+      _HU_BLTN_CAM_01_00ms.BLTN_CAM_Rec_OWP_NvalueSet = 0x1;/*OWP setting OFF*/break;
+//      // CAN
+//      _HU_BLTN_CAM_E_00.BLTN_CAM_Rec_OWP_NvalueSet = 0x1; break;
+    case(3):
+      // CAN FD
+      _HU_BLTN_CAM_01_00ms.BLTN_CAM_Rec_OWP_NvalueSet = 0x2; // OWP setting ON 
+      _HU_BLTN_CAM_01_00ms.BLTN_CAM_PrkTime_NvalueSet = 0x2; //Parking recording time: 2h 
+      _HU_BLTN_CAM_01_00ms.BLTN_CAM_AppNoti_PEV_NvalueSet= 0x1; // App notification OFF
+      break;
+//      // CAN
+//      _HU_BLTN_CAM_E_00.BLTN_CAM_Rec_OWP_NvalueSet = 0x2; 
+//      _HU_BLTN_CAM_E_00.BLTN_CAM_PrkTime_NvalueSet = 0x2;
+//      _HU_BLTN_CAM_E_00.BLTN_CAM_AppNoti_PEV_NvalueSet= 0x1;
+//      break;
+    case(4):
+    // CAN FD  
+      _HU_BLTN_CAM_01_00ms.BLTN_CAM_Rec_OWD_NvalueSet = 0x1; //OWD setting OFF
+      _HU_BLTN_CAM_01_00ms.BLTN_CAM_Rec_OWP_NvalueSet = 0x1; //OWP setting OFF
+      _HU_BLTN_CAM_01_00ms.BLTN_CAM_Rec_DEV_NvalueSet = 0x1; //DEV setting OFF
+      _HU_BLTN_CAM_01_00ms.BLTN_CAM_Rec_PEV_NvalueSet = 0x1; //PEV setting OFF
+      _HU_BLTN_CAM_01_00ms.CF_AVN_BLTN_CAM_RecReset = 0x1; //Reset recorded video
+      break;
+//    // CAN  
+//      _HU_BLTN_CAM_E_00.BLTN_CAM_Rec_OWD_NvalueSet = 0x1;
+//      _HU_BLTN_CAM_E_00.BLTN_CAM_Rec_OWP_NvalueSet = 0x1;
+//      _HU_BLTN_CAM_E_00.BLTN_CAM_Rec_DEV_NvalueSet = 0x1; 
+//      _HU_BLTN_CAM_E_00.BLTN_CAM_Rec_PEV_NvalueSet = 0x1; 
+//      _HU_BLTN_CAM_E_00.CF_AVN_BLTN_CAM_RecReset = 0x1; 
+//      break;         
+  }
+  output(_HU_BLTN_CAM_01_00ms);
+//  output(_HU_BLTN_CAM_E_00);  
+}
+
+void KEY_ON(){
+  setSignal(SMK_TrmnlCtrlGrpStaBDCEV,0x1); // Power ON
+}
+
+void KEY_OFF(){
+   setSignal(SMK_TrmnlCtrlGrpStaBDCEV,0x0); // Power OFF
+}
+
+void Enter_BLTN_CAM(){
+  _HU_BLTN_CAM_02_200ms.HU_BLTN_CAM_UI_Mode = 0x1; //Enter BLTN_CAM mode
+  output(_HU_BLTN_CAM_02_200ms);
+}
+
+void Exit_BLTN_CAM(){
+  _HU_BLTN_CAM_02_200ms.HU_BLTN_CAM_UI_Mode = 0x0; //Enter AVN mode - Exit BLTN_CAM Mode
+  output(_HU_BLTN_CAM_02_200ms); 
+}
+
+void CaptureGraphics(){
+  testWaitForTimeout(3000);
+  testReportAddWindowCapture("Graphics 2","BLTN_CAM_RecSta_OWP;BLTN_CAM_Prk_Oprable_Time","Sreenshot","./Husign.jpg");
+}
+
+void Count_down_Clock(long CD_time){
+  write("===Start Count down clock ===");
+  while (CD_time > 0){
+  write("Remaining time: %02d::%02d", CD_time/60, CD_time%60);
+  testWaitForTimeout(60000);
+  CD_time--;
+  }
+}
+
+void Turn_OFF_RecSet(){
+  if (getSignal(BLTN_CAM_RecSet_OWD) == 0x2 || getSignal(BLTN_CAM_RecSet_OWP) == 0x2 || getSignal(BLTN_CAM_RecSet_DEV) == 0x2 || getSignal(BLTN_CAM_RecSet_PEV) == 0x2){
+    @panel::Switch_CGWNM = 1;
+  
+    KEY_ON();
+    testWaitForTimeout(3000);
+  
+    @panel::Switch_CGWNM = 0;
+  
+    Enter_BLTN_CAM();
+    testWaitForTimeout(3000);
+    
+    while((getSignal(BLTN_CAM_RecSet_OWD) == 0x2 || getSignal(BLTN_CAM_RecSet_OWP) == 0x2 || getSignal(BLTN_CAM_RecSet_DEV) == 0x2 || getSignal(BLTN_CAM_RecSet_PEV) == 0x2) && (flag_RecSet_error < 30)){
+      BLTN_CAM_Settings(4);
+      testWaitForTimeout(1000);
+      flag_RecSet_error++;
+    }
+    
+    flag_RecSet_error = 0; 
+    
+    Exit_BLTN_CAM();
+    testWaitForTimeout(3000);
+    
+    KEY_OFF();
+  }
+  else {
+    write("Notifications: All recording setting are turned OFF.");
+  }
+}
+
+void Setup_Function(){
+  @panel::Switch_CGWNM = 1;
+  
+  KEY_ON();
+  testWaitForTimeout(3000);
+  
+  Enter_BLTN_CAM();
+  testWaitForTimeout(3000);
+  
+  BLTN_CAM_Settings(3);
+  testWaitForTimeout(1000);
+  
+  @panel::Switch_Clock = 1;
+  
+  testWaitForTimeout(1000);
+  
+  @panel::Switch_Clock = 0;
+  
+  Exit_BLTN_CAM();
+  testWaitForTimeout(3000);
+  
+  KEY_OFF();
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWP,100000) == 1){
+    @panel::Switch_CGWNM = 0;
+    write("OWP recording is in progress...");
+  }
+  else{
+    write("Error: OWP recording hasn't started. Stop test !!!");
+    
+    Setup_End_test();
+    
+    KEY_OFF();
+  
+    stop();
+  }  
+}
+
+void Setup_End_test(){
+  
+  KEY_ON();
+  testWaitForTimeout(3000);
+  
+  Enter_BLTN_CAM();
+  testWaitForTimeout(3000);
+  
+  while(getSignal(BLTN_CAM_RecSet_OWP) == 0x2 && flag_RecSet_error < 30){
+    BLTN_CAM_Settings(2);
+    testWaitForTimeout(1000);
+    flag_RecSet_error++;
+  }
+  
+  flag_RecSet_error = 0;
+  
+  Exit_BLTN_CAM();
+  testWaitForTimeout(1000);      
+}
+
+testcase BAT_014_1(){
+  testStep("Notifications","Start BAT_014_1");
+  write("===Start BAT_014_1===");
+  
+  write("=== SETTING BEFORE TESTING ===");
+  
+  Turn_OFF_RecSet(); write("Run Turn_OFF_RecSet()");
+  
+//  Set_Battery(); write("Run Set_Battery()");
+  
+  write("=== START TEST ===");
+  
+  Setup_Function(); write("Run Setup Funtion()");
+  
+  Count_down_Clock(60);
+  
+  @panel::Switch_CGWNM = 1;
+
+  Check_var = testWaitForSignalChange(BLTN_CAM_Prk_Oprable_Time,20000);
+  
+  if (Check_var == 1) {
+    
+    testStep("Check value","Value of BLTN_CAM_Prk_Oprable_Time: 0x%X",$BLTN_CAM_Prk_Oprable_Time);	
+    
+    write("Value of BLTN_CAM_Prk_Oprable_Time: 0x%X",$BLTN_CAM_Prk_Oprable_Time);
+  }
+  
+  
+  CaptureGraphics(); write("Run CaptureGraphics()");
+  
+  @panel::Switch_CGWNM = 0;
+  
+  testStep("Notification","Done BAT_014_1");
+  write("Done BAT_04_1");
+}
+
+testcase BAT_014_2(){
+  testStep("Notifications","Start BAT_014_2");
+  write("===Start BAT_014_2===");
+  
+  @panel::Switch_CGWNM = 1;
+  
+  Check_var = testWaitForSignalChange(BLTN_CAM_Prk_Oprable_Time,20000);
+  
+  if (Check_var == 1) {
+    
+    testStep("Check value","Value of BLTN_CAM_Prk_Oprable_Time: 0x%X",$BLTN_CAM_Prk_Oprable_Time);	
+    
+    write("Value of BLTN_CAM_Prk_Oprable_Time: 0x%X",$BLTN_CAM_Prk_Oprable_Time);
+  }
+  
+  
+  CaptureGraphics(); write("Run CaptureGraphics()");
+  
+  Setup_End_test(); write("Run Setup_End_test()");
+  
+  KEY_OFF(); write("Run KEY_OFF");
+  
+  @panel::Switch_CGWNM = 0;
+  
+  testStep("Notification","Done BAT_014_2");
+  write("Done BAT_04_2");
+}
+
+void MainTest(){
+  BAT_014_1();
+  
+  Count_down_Clock(60);
+  
+  BAT_014_2();
+}
+
+

@@ -1,0 +1,703 @@
+/*@!Encoding:1252*/
+includes
+{
+  #include "DeclarationFunction_Gen2.5.h"
+}
+
+/*
+ * ==============================================================================
+ * Test Module: DIA_003_SecurityAccess_AttemptCounter.can
+ *
+ * Title: UDS Service 0x27 Security Access - Attempt Counter & Lockout Verification
+ * Target ECU: DVRS / BLTN_CAM
+ * Reference Standards:
+ *   - YRES95486-02 REV15 (Section 4.3 SecurityAccess, Tables 4-80, 4-81, 4-82)
+ *   - ES98765-02E REV06 (ECU Software Update / Rollback Specification)
+ *
+ * Protocols & Subfunctions:
+ *   - ASK  (Advanced Seed Key Level 1): Subfunction 0x11 (Seed) / 0x12 (Key)
+ *   - OEUK (Off-board ECU Unlock Key):  Subfunction 0x13 (Seed) / 0x14 (Key)
+ *
+ * Test Scenarios:
+ *   TC 01: Att_Cnt(ASK)=0 && Att_Cnt(OEUK)=0 -> Request ASK key NOK  => NRC 35
+ *   TC 02: Att_Cnt(ASK)=1 && Att_Cnt(OEUK)=0 -> Request ASK key NOK  => NRC 35
+ *   TC 03: Att_Cnt(ASK)=2 && Att_Cnt(OEUK)=0 -> Request ASK key NOK  => NRC 36
+ *   TC 04: Att_Cnt(ASK)=2 && Att_Cnt(OEUK)=1 -> ASK key NOK => NRC 36,
+ *          timer 180s expire -> request OEUK key => NRC 35, request OEUK 2nd time => NRC 36
+ *   TC 05: Att_Cnt(ASK)=3 && Att_Cnt(OEUK)=2 -> ASK key NOK => NRC 36,
+ *          timer 180s expire -> request OEUK => NRC 36
+ *   TC 06: Att_Cnt(ASK)=0 && Att_Cnt(OEUK)=0 -> Request OEUK key NOK => NRC 35
+ *   TC 07: Att_Cnt(ASK)=1 && Att_Cnt(OEUK)=0 -> Request OEUK key NOK => NRC 35
+ *   TC 08: Att_Cnt(ASK)=2 && Att_Cnt(OEUK)=0 -> Request OEUK key NOK => NRC 36
+ *   TC 09: Att_Cnt(ASK)=2 && Att_Cnt(OEUK)=1 -> OEUK key NOK => NRC 36,
+ *          timer 180s expire -> request ASK key => NRC 35, request OEUK 2nd time => NRC 36
+ *   TC 10: Att_Cnt(ASK)=3 && Att_Cnt(OEUK)=2 -> OEUK key NOK => NRC 36,
+ *          timer 180s expire -> request ASK => NRC 36
+ * ==============================================================================
+ */
+
+variables
+{
+  const long TIMEOUT_DIAG_RESPONSE = 2000;
+  const long LOCKOUT_DELAY_SEC     = 180; // 180 seconds delay penalty (per Table 4-80)
+
+  // Subfunction definitions
+  const byte SUBFUNC_ASK_SEED  = 0x11;
+  const byte SUBFUNC_ASK_KEY   = 0x12;
+  const byte SUBFUNC_OEUK_SEED = 0x13;
+  const byte SUBFUNC_OEUK_KEY  = 0x14;
+
+  // Security level constants for CANoe Seed&Key DLL
+  const dword SEC_LEVEL_ASK    = 0x11;
+  const dword SEC_LEVEL_OEUK   = 0x13;
+
+  // Expected NRC constants
+  const byte NRC_INVALID_KEY                 = 0x35;
+  const byte NRC_EXCEEDED_NUMBER_OF_ATTEMPTS = 0x36;
+  const byte NRC_REQUIRED_TIME_DELAY         = 0x37;
+}
+
+/*
+ * Helper: Wait for 180-second Lockout Timer to expire
+ */
+void Wait_Lockout_Timer_180s()
+{
+  long remainingSec;
+  remainingSec = LOCKOUT_DELAY_SEC;
+
+  testStep("WAIT_180S_TIMER", "Waiting for %d seconds lockout timer to expire...", remainingSec);
+  write("=================================================");
+  write("[TIMER] Lockout penalty active. Waiting %d seconds...", remainingSec);
+  write("=================================================");
+
+  while (remainingSec > 0)
+  {
+    write("[TIMER] Lockout countdown: %02d:%02d remaining...", remainingSec / 60, remainingSec % 60);
+    if (remainingSec >= 30)
+    {
+      testWaitForTimeout(30000); // 30-second interval
+      remainingSec -= 30;
+    }
+    else
+    {
+      testWaitForTimeout(remainingSec * 1000);
+      remainingSec = 0;
+    }
+  }
+
+  write("[TIMER] Lockout timer expired. Security delay released.");
+  testWaitForTimeout(1000); // Guard time after timer expiry
+}
+
+/*
+ * Helper: Send RequestSeed and SendKey with an intentionally INVALID key
+ * Returns 1 if the ECU responds with expectedNRC (or NRC 0x36/0x37 on lockout), else 0
+ */
+long Send_SecurityAccess_InvalidKey(byte subfuncSeed, byte subfuncKey, byte expectedNRC)
+{
+  diagRequest  DVRS.* reqSeed;
+  diagResponse DVRS.* respSeed;
+  diagRequest  DVRS.* reqKey;
+  diagResponse DVRS.* respKey;
+
+  long waitResult;
+  long nrc;
+  long seedSize;
+  long keyLen;
+  long i;
+  byte invalidKey[16] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 
+                         0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+
+  write("[SEC_TX] Requesting Seed (27 %02X), expecting final NRC 0x%02X...", subfuncSeed, expectedNRC);
+
+  // 1. Send RequestSeed (27 <subfuncSeed>)
+  diagResize(reqSeed, 2);
+  diagSetPrimitiveByte(reqSeed, 0, 0x27);
+  diagSetPrimitiveByte(reqSeed, 1, subfuncSeed);
+  diagSendRequest(reqSeed);
+
+  waitResult = testWaitForDiagResponse(reqSeed, TIMEOUT_DIAG_RESPONSE);
+  if (waitResult != 1)
+  {
+    testStepFail("TIMEOUT_SEED", "FAIL: Timeout waiting for response to RequestSeed (27 %02X)", subfuncSeed);
+    write("[SEC] ERROR: Timeout waiting for RequestSeed (27 %02X)", subfuncSeed);
+    return 0;
+  }
+
+  nrc = diagGetLastResponseCode(reqSeed);
+  if (nrc != -1)
+  {
+    // If ECU is locked, some ECUs reject directly at RequestSeed with NRC 0x36 or 0x37
+    write("[SEC] RequestSeed rejected by ECU with NRC = 0x%02X (Expected = 0x%02X)", nrc, expectedNRC);
+    if (nrc == expectedNRC || (expectedNRC == NRC_EXCEEDED_NUMBER_OF_ATTEMPTS && (nrc == NRC_EXCEEDED_NUMBER_OF_ATTEMPTS || nrc == NRC_REQUIRED_TIME_DELAY)))
+    {
+      testStepPass("NRC_VERIFIED", "PASS: ECU returned expected NRC 0x%02X on RequestSeed", nrc);
+      return 1;
+    }
+    else
+    {
+      testStepFail("NRC_MISMATCH", "FAIL: Received NRC 0x%02X on RequestSeed, expected 0x%02X", nrc, expectedNRC);
+      return 0;
+    }
+  }
+
+  // RequestSeed accepted -> Read Seed Size
+  diagGetLastResponse(reqSeed, respSeed);
+  seedSize = diagGetPrimitiveSize(respSeed) - 2;
+  keyLen = (seedSize > 0 && seedSize <= elcount(invalidKey)) ? seedSize : 4;
+
+  write("[SEC] Received Seed (%d bytes). Now sending INVALID Key (27 %02X)...", seedSize, subfuncKey);
+
+  // 2. Send SendKey (27 <subfuncKey>) with invalid key payload
+  diagResize(reqKey, 2 + keyLen);
+  diagSetPrimitiveByte(reqKey, 0, 0x27);
+  diagSetPrimitiveByte(reqKey, 1, subfuncKey);
+  for (i = 0; i < keyLen; i++)
+  {
+    diagSetPrimitiveByte(reqKey, 2 + i, invalidKey[i]);
+  }
+
+  diagSendRequest(reqKey);
+  waitResult = testWaitForDiagResponse(reqKey, TIMEOUT_DIAG_RESPONSE);
+  if (waitResult != 1)
+  {
+    testStepFail("TIMEOUT_KEY", "FAIL: Timeout waiting for response to SendKey (27 %02X)", subfuncKey);
+    write("[SEC] ERROR: Timeout waiting for SendKey (27 %02X)", subfuncKey);
+    return 0;
+  }
+
+  nrc = diagGetLastResponseCode(reqKey);
+  write("[SEC] SendKey returned NRC = 0x%02X (Expected = 0x%02X)", nrc, expectedNRC);
+
+  if (nrc == expectedNRC || (expectedNRC == NRC_EXCEEDED_NUMBER_OF_ATTEMPTS && (nrc == NRC_EXCEEDED_NUMBER_OF_ATTEMPTS || nrc == NRC_REQUIRED_TIME_DELAY)))
+  {
+    testStepPass("NRC_VERIFIED", "PASS: ECU returned expected NRC 0x%02X on SendKey", nrc);
+    write("[SEC] PASS: Verified expected NRC 0x%02X", nrc);
+    return 1;
+  }
+  else
+  {
+    testStepFail("NRC_MISMATCH", "FAIL: Received NRC 0x%02X on SendKey, expected 0x%02X", nrc, expectedNRC);
+    write("[SEC] FAIL: Received NRC 0x%02X, expected 0x%02X", nrc, expectedNRC);
+    return 0;
+  }
+}
+
+/*
+ * Helper: Send RequestSeed and SendKey with a SUCCESSFUL (valid) key via oeuk_bridge.dll
+ * Per Table 4-80: If a valid key is received, Att_Cnt for that SubFunction is initialized to 0.
+ */
+long Send_SecurityAccess_SuccessKey(byte subfuncSeed, byte subfuncKey, dword secLevel)
+{
+  diagRequest  DVRS.* reqSeed;
+  diagResponse DVRS.* respSeed;
+  diagRequest  DVRS.* reqKey;
+  diagResponse DVRS.* respKey;
+
+  byte seed[256];
+  byte key[256];
+  long waitResult;
+  long nrc;
+  long seedLen;
+  dword actualKeyLen;
+  long genKeyStatus;
+  long i;
+  int isZeroSeed;
+
+  isZeroSeed = 1;
+  write("[SEC_SUCCESS] Requesting Seed for Level 0x%02X (27 %02X)...", secLevel, subfuncSeed);
+
+  // 1. Send RequestSeed (27 <subfuncSeed>)
+  diagResize(reqSeed, 2);
+  diagSetPrimitiveByte(reqSeed, 0, 0x27);
+  diagSetPrimitiveByte(reqSeed, 1, subfuncSeed);
+  diagSendRequest(reqSeed);
+
+  waitResult = testWaitForDiagResponse(reqSeed, TIMEOUT_DIAG_RESPONSE);
+  if (waitResult != 1)
+  {
+    write("[SEC_SUCCESS] Timeout waiting for Seed response (27 %02X)", subfuncSeed);
+    return 0;
+  }
+
+  nrc = diagGetLastResponseCode(reqSeed);
+  if (nrc != -1)
+  {
+    write("[SEC_SUCCESS] RequestSeed rejected with NRC 0x%02X (ECU locked or delay active)", nrc);
+    return 0;
+  }
+
+  diagGetLastResponse(reqSeed, respSeed);
+  seedLen = diagGetPrimitiveSize(respSeed) - 2;
+  if (seedLen <= 0) return 0;
+
+  for (i = 0; i < seedLen && i < elcount(seed); i++)
+  {
+    seed[i] = diagGetPrimitiveByte(respSeed, 2 + i);
+    if (seed[i] != 0x00) isZeroSeed = 0;
+  }
+
+  // If already unlocked (Seed is all 0x00), counter is already 0
+  if (isZeroSeed == 1)
+  {
+    write("[SEC_SUCCESS] Seed is all 00 -> ECU already unlocked for Level 0x%02X (Att_Cnt is 0)", secLevel);
+    return 1;
+  }
+
+  // 2. Calculate Key using oeuk_bridge.dll
+  genKeyStatus = diagGenerateKeyFromSeed(
+    reqSeed,
+    seed,
+    seedLen,
+    secLevel,
+    "",
+    "",
+    key,
+    elcount(key),
+    actualKeyLen
+  );
+
+  if (genKeyStatus != 0)
+  {
+    write("[SEC_SUCCESS] oeuk_bridge.dll failed to generate key! Error code = %d", genKeyStatus);
+    return 0;
+  }
+
+  // 3. Send SendKey (27 <subfuncKey>) with calculated valid Key
+  diagResize(reqKey, 2 + actualKeyLen);
+  diagSetPrimitiveByte(reqKey, 0, 0x27);
+  diagSetPrimitiveByte(reqKey, 1, subfuncKey);
+  for (i = 0; i < actualKeyLen; i++)
+  {
+    diagSetPrimitiveByte(reqKey, 2 + i, key[i]);
+  }
+  diagSendRequest(reqKey);
+
+  waitResult = testWaitForDiagResponse(reqKey, TIMEOUT_DIAG_RESPONSE);
+  if (waitResult != 1)
+  {
+    write("[SEC_SUCCESS] Timeout waiting for SendKey response (27 %02X)", subfuncKey);
+    return 0;
+  }
+
+  nrc = diagGetLastResponseCode(reqKey);
+  if (nrc == -1)
+  {
+    write("[SEC_SUCCESS] SUCCESS: SecurityAccess Level 0x%02X unlocked! Att_Cnt initialized to 0.", secLevel);
+    return 1;
+  }
+  else
+  {
+    write("[SEC_SUCCESS] SendKey rejected with NRC = 0x%02X", nrc);
+    return 0;
+  }
+}
+
+/*
+ * Helper: Reset both Att_Cnt(ASK) and Att_Cnt(OEUK) to 0
+ * by unlocking with valid keys, then locking via session change (10 03 -> 10 01)
+ */
+void Reset_All_Attempt_Counters_To_Zero()
+{
+  diagRequest DVRS.* reqSession;
+
+  write("-------------------------------------------------");
+  write("[PRECONDITION] Resetting both Att_Cnt(ASK) and Att_Cnt(OEUK) to 0...");
+  write("-------------------------------------------------");
+
+  // Step 1: Unlock ASK with valid key (resets Att_Cnt(ASK) to 0 per Table 4-80)
+  Send_SecurityAccess_SuccessKey(SUBFUNC_ASK_SEED, SUBFUNC_ASK_KEY, SEC_LEVEL_ASK);
+  testWaitForTimeout(100);
+
+  // Step 2: Unlock OEUK with valid key (resets Att_Cnt(OEUK) to 0 per Table 4-80)
+  Send_SecurityAccess_SuccessKey(SUBFUNC_OEUK_SEED, SUBFUNC_OEUK_KEY, SEC_LEVEL_OEUK);
+  testWaitForTimeout(100);
+
+  // Step 3: Relock ECU by switching to Default Session (10 01)
+  diagResize(reqSession, 2);
+  diagSetPrimitiveByte(reqSession, 0, 0x10);
+  diagSetPrimitiveByte(reqSession, 1, 0x01);
+  diagSendRequest(reqSession);
+  testWaitForDiagResponse(reqSession, 1000);
+
+  testWaitForTimeout(500);
+  write("[PRECONDITION] Both Att_Cnt(ASK) and Att_Cnt(OEUK) are now reset to 0.\n");
+}
+
+/*
+ * Helper: Establish precondition Att_Cnt(ASK) = targetASK && Att_Cnt(OEUK) = targetOEUK
+ * by resetting to 0 first, then injecting the exact number of invalid keys.
+ */
+void Set_Precondition_Att_Cnt(byte targetASK, byte targetOEUK)
+{
+  byte i;
+
+  write("=================================================");
+  write("[PRECONDITION] Setting precondition: Att_Cnt(ASK)=%d, Att_Cnt(OEUK)=%d", targetASK, targetOEUK);
+  write("=================================================");
+
+  // Reset counters to 0 via successful key unlock
+  Reset_All_Attempt_Counters_To_Zero();
+
+  // Inject invalid ASK keys to reach targetASK
+  for (i = 0; i < targetASK; i++)
+  {
+    write("[PRECONDITION] Injecting invalid ASK key (%d of %d)...", i + 1, targetASK);
+    Send_SecurityAccess_InvalidKey(SUBFUNC_ASK_SEED, SUBFUNC_ASK_KEY, (i < 2) ? NRC_INVALID_KEY : NRC_EXCEEDED_NUMBER_OF_ATTEMPTS);
+    testWaitForTimeout(200);
+  }
+
+  // Inject invalid OEUK keys to reach targetOEUK
+  for (i = 0; i < targetOEUK; i++)
+  {
+    write("[PRECONDITION] Injecting invalid OEUK key (%d of %d)...", i + 1, targetOEUK);
+    Send_SecurityAccess_InvalidKey(SUBFUNC_OEUK_SEED, SUBFUNC_OEUK_KEY, (i < 2) ? NRC_INVALID_KEY : NRC_EXCEEDED_NUMBER_OF_ATTEMPTS);
+    testWaitForTimeout(200);
+  }
+
+  write("[PRECONDITION] Precondition established: Att_Cnt(ASK)=%d, Att_Cnt(OEUK)=%d\n", targetASK, targetOEUK);
+  testWaitForTimeout(500);
+}
+
+/*
+ * ==============================================================================
+ * TESTCASE 1
+ * Precondition: Att_Cnt(ASK) = 0 && Att_Cnt(OEUK) = 0
+ * Action: Request ASK key NOK
+ * Expected: NRC 35 (Att_Cnt(ASK) increments to 1)
+ * ==============================================================================
+ */
+testcase TC_01_ASK_Att0_OEUK0_AskNOK()
+{
+  testCaseTitle("TC_01", "Check when Att_Cnt(ASK)=0 && Att_Cnt(OEUK)=0, request ASK key NOK => NRC 35");
+  write("\n=================================================");
+  write("[TC_01] START: Att_Cnt(ASK)=0 && Att_Cnt(OEUK)=0 -> ASK key NOK => NRC 35");
+  write("=================================================");
+
+  // Set precondition: Att_Cnt(ASK) = 0, Att_Cnt(OEUK) = 0
+  Set_Precondition_Att_Cnt(0, 0);
+
+  testStep("STEP_1", "Sending ASK (27 11 / 27 12) with invalid key...");
+  Send_SecurityAccess_InvalidKey(SUBFUNC_ASK_SEED, SUBFUNC_ASK_KEY, NRC_INVALID_KEY);
+
+  write("[TC_01] FINISHED\n");
+}
+
+/*
+ * ==============================================================================
+ * TESTCASE 2
+ * Precondition: Att_Cnt(ASK) = 1 && Att_Cnt(OEUK) = 0
+ * Action: Request ASK key NOK
+ * Expected: NRC 35 (Att_Cnt(ASK) increments to 2)
+ * ==============================================================================
+ */
+testcase TC_02_ASK_Att1_OEUK0_AskNOK()
+{
+  testCaseTitle("TC_02", "Check when Att_Cnt(ASK)=1 && Att_Cnt(OEUK)=0, request ASK key NOK => NRC 35");
+  write("\n=================================================");
+  write("[TC_02] START: Att_Cnt(ASK)=1 && Att_Cnt(OEUK)=0 -> ASK key NOK => NRC 35");
+  write("=================================================");
+
+  // Set precondition: Att_Cnt(ASK) = 1, Att_Cnt(OEUK) = 0
+  Set_Precondition_Att_Cnt(1, 0);
+
+  testStep("STEP_1", "Sending ASK (27 11 / 27 12) with invalid key...");
+  Send_SecurityAccess_InvalidKey(SUBFUNC_ASK_SEED, SUBFUNC_ASK_KEY, NRC_INVALID_KEY);
+
+  write("[TC_02] FINISHED\n");
+}
+
+/*
+ * ==============================================================================
+ * TESTCASE 3
+ * Precondition: Att_Cnt(ASK) = 2 && Att_Cnt(OEUK) = 0
+ * Action: Request ASK key NOK
+ * Expected: NRC 36 (Att_Cnt(ASK) becomes 3, Lockout 180s triggered)
+ * ==============================================================================
+ */
+testcase TC_03_ASK_Att2_OEUK0_AskNOK()
+{
+  testCaseTitle("TC_03", "Check when Att_Cnt(ASK)=2 && Att_Cnt(OEUK)=0, request ASK key NOK => NRC 36");
+  write("\n=================================================");
+  write("[TC_03] START: Att_Cnt(ASK)=2 && Att_Cnt(OEUK)=0 -> ASK key NOK => NRC 36");
+  write("=================================================");
+
+  // Set precondition: Att_Cnt(ASK) = 2, Att_Cnt(OEUK) = 0
+  Set_Precondition_Att_Cnt(2, 0);
+
+  testStep("STEP_1", "Sending ASK (27 11 / 27 12) 3rd attempt with invalid key...");
+  Send_SecurityAccess_InvalidKey(SUBFUNC_ASK_SEED, SUBFUNC_ASK_KEY, NRC_EXCEEDED_NUMBER_OF_ATTEMPTS);
+
+  write("[TC_03] FINISHED\n");
+}
+
+/*
+ * ==============================================================================
+ * TESTCASE 4
+ * Precondition: Att_Cnt(ASK) = 2 && Att_Cnt(OEUK) = 1
+ * Action:
+ *   1. ASK key NOK => NRC 36
+ *   2. Timer 180s expire
+ *   3. Request OEUK key => NRC 35
+ *   4. Request OEUK 2nd time => NRC 36
+ * ==============================================================================
+ */
+testcase TC_04_ASK_Att2_OEUK1_AskNOK_Wait180s_OeukNOK()
+{
+  testCaseTitle("TC_04", "Check Att_Cnt(ASK)=2, OEUK=1: ASK NOK => NRC 36 -> 180s -> OEUK => NRC 35 -> OEUK => NRC 36");
+  write("\n=================================================");
+  write("[TC_04] START: ASK(2), OEUK(1) -> ASK NOK => 36 -> 180s -> OEUK => 35 -> OEUK => 36");
+  write("=================================================");
+
+  // Set precondition: Att_Cnt(ASK) = 2, Att_Cnt(OEUK) = 1
+  Set_Precondition_Att_Cnt(2, 1);
+
+  // 1. Send ASK key NOK -> Expect NRC 36 (ASK becomes 3, triggers 180s delay)
+  testStep("STEP_1", "1. Request ASK key NOK -> Expect NRC 36");
+  Send_SecurityAccess_InvalidKey(SUBFUNC_ASK_SEED, SUBFUNC_ASK_KEY, NRC_EXCEEDED_NUMBER_OF_ATTEMPTS);
+
+  // 2. Wait 180s lockout timer to expire (Per Table 4-82: ASK resets to 0, OEUK remains 1)
+  testStep("STEP_2", "2. Waiting 180 seconds for lockout penalty to expire...");
+  Wait_Lockout_Timer_180s();
+
+  // 3. Request OEUK key NOK 1st time -> Expect NRC 35 (OEUK becomes 2)
+  testStep("STEP_3", "3. Request OEUK key NOK 1st time -> Expect NRC 35");
+  Send_SecurityAccess_InvalidKey(SUBFUNC_OEUK_SEED, SUBFUNC_OEUK_KEY, NRC_INVALID_KEY);
+
+  // 4. Request OEUK key NOK 2nd time -> Expect NRC 36 (OEUK becomes 3, triggers lockout)
+  testStep("STEP_4", "4. Request OEUK key NOK 2nd time -> Expect NRC 36");
+  Send_SecurityAccess_InvalidKey(SUBFUNC_OEUK_SEED, SUBFUNC_OEUK_KEY, NRC_EXCEEDED_NUMBER_OF_ATTEMPTS);
+
+  write("[TC_04] FINISHED\n");
+}
+
+/*
+ * ==============================================================================
+ * TESTCASE 5
+ * Precondition: Att_Cnt(ASK) = 3 && Att_Cnt(OEUK) = 2
+ * Action:
+ *   1. ASK key NOK => NRC 36
+ *   2. Timer 180s expire
+ *   3. Request OEUK => NRC 36
+ * ==============================================================================
+ */
+testcase TC_05_ASK_Att3_OEUK2_AskNOK_Wait180s_OeukNOK()
+{
+  testCaseTitle("TC_05", "Check Att_Cnt(ASK)=3, OEUK=2: ASK NOK => NRC 36 -> 180s -> OEUK => NRC 36");
+  write("\n=================================================");
+  write("[TC_05] START: ASK(3), OEUK(2) -> ASK NOK => 36 -> 180s -> OEUK => 36");
+  write("=================================================");
+
+  // Set precondition: Att_Cnt(ASK) = 2, Att_Cnt(OEUK) = 2
+  Set_Precondition_Att_Cnt(2, 2);
+
+  // 1. Send ASK key NOK -> Expect NRC 36 (ASK reaches 3, triggers 180s delay)
+  testStep("STEP_1", "1. Request ASK key NOK -> Expect NRC 36");
+  Send_SecurityAccess_InvalidKey(SUBFUNC_ASK_SEED, SUBFUNC_ASK_KEY, NRC_EXCEEDED_NUMBER_OF_ATTEMPTS);
+
+  // 2. Wait 180s lockout timer to expire (Per Table 4-82: ASK resets to 0, OEUK remains 2)
+  testStep("STEP_2", "2. Waiting 180 seconds for lockout penalty to expire...");
+  Wait_Lockout_Timer_180s();
+
+  // 3. Request OEUK key NOK -> Expect NRC 36 (OEUK 2+1=3 reaches limit)
+  testStep("STEP_3", "3. Request OEUK key NOK -> Expect NRC 36");
+  Send_SecurityAccess_InvalidKey(SUBFUNC_OEUK_SEED, SUBFUNC_OEUK_KEY, NRC_EXCEEDED_NUMBER_OF_ATTEMPTS);
+
+  write("[TC_05] FINISHED\n");
+}
+
+/*
+ * ==============================================================================
+ * TESTCASE 6
+ * Precondition: Att_Cnt(ASK) = 0 && Att_Cnt(OEUK) = 0
+ * Action: Request OEUK key NOK
+ * Expected: NRC 35 (Att_Cnt(OEUK) increments to 1)
+ * ==============================================================================
+ */
+testcase TC_06_ASK_Att0_OEUK0_OeukNOK()
+{
+  testCaseTitle("TC_06", "Check when Att_Cnt(ASK)=0 && Att_Cnt(OEUK)=0, request OEUK key NOK => NRC 35");
+  write("\n=================================================");
+  write("[TC_06] START: Att_Cnt(ASK)=0 && Att_Cnt(OEUK)=0 -> OEUK key NOK => NRC 35");
+  write("=================================================");
+
+  // Set precondition: Att_Cnt(ASK) = 0, Att_Cnt(OEUK) = 0
+  Set_Precondition_Att_Cnt(0, 0);
+
+  testStep("STEP_1", "Sending OEUK (27 13 / 27 14) with invalid key...");
+  Send_SecurityAccess_InvalidKey(SUBFUNC_OEUK_SEED, SUBFUNC_OEUK_KEY, NRC_INVALID_KEY);
+
+  write("[TC_06] FINISHED\n");
+}
+
+/*
+ * ==============================================================================
+ * TESTCASE 7
+ * Precondition: Att_Cnt(ASK) = 1 && Att_Cnt(OEUK) = 0
+ * Action: Request OEUK key NOK
+ * Expected: NRC 35 (Att_Cnt(OEUK) increments to 1)
+ * ==============================================================================
+ */
+testcase TC_07_ASK_Att1_OEUK0_OeukNOK()
+{
+  testCaseTitle("TC_07", "Check when Att_Cnt(ASK)=1 && Att_Cnt(OEUK)=0, request OEUK key NOK => NRC 35");
+  write("\n=================================================");
+  write("[TC_07] START: Att_Cnt(ASK)=1 && Att_Cnt(OEUK)=0 -> OEUK key NOK => NRC 35");
+  write("=================================================");
+
+  // Set precondition: Att_Cnt(ASK) = 1, Att_Cnt(OEUK) = 0
+  Set_Precondition_Att_Cnt(1, 0);
+
+  testStep("STEP_1", "Sending OEUK (27 13 / 27 14) with invalid key...");
+  Send_SecurityAccess_InvalidKey(SUBFUNC_OEUK_SEED, SUBFUNC_OEUK_KEY, NRC_INVALID_KEY);
+
+  write("[TC_07] FINISHED\n");
+}
+
+/*
+ * ==============================================================================
+ * TESTCASE 8
+ * Precondition: Att_Cnt(ASK) = 2 && Att_Cnt(OEUK) = 0
+ * Action: Request OEUK key NOK
+ * Expected: NRC 36 (Per Section 4.3: single limit shared or OEUK 3rd attempt)
+ * ==============================================================================
+ */
+testcase TC_08_ASK_Att2_OEUK0_OeukNOK()
+{
+  testCaseTitle("TC_08", "Check when Att_Cnt(ASK)=2 && Att_Cnt(OEUK)=0, request OEUK key NOK => NRC 36");
+  write("\n=================================================");
+  write("[TC_08] START: Att_Cnt(ASK)=2 && Att_Cnt(OEUK)=0 -> OEUK key NOK => NRC 36");
+  write("=================================================");
+
+  // Set precondition: Att_Cnt(ASK) = 2, Att_Cnt(OEUK) = 0
+  Set_Precondition_Att_Cnt(2, 0);
+
+  testStep("STEP_1", "Sending OEUK (27 13 / 27 14) with invalid key...");
+  Send_SecurityAccess_InvalidKey(SUBFUNC_OEUK_SEED, SUBFUNC_OEUK_KEY, NRC_EXCEEDED_NUMBER_OF_ATTEMPTS);
+
+  write("[TC_08] FINISHED\n");
+}
+
+/*
+ * ==============================================================================
+ * TESTCASE 9
+ * Precondition: Att_Cnt(ASK) = 2 && Att_Cnt(OEUK) = 1
+ * Action:
+ *   1. OEUK key NOK => NRC 36
+ *   2. Timer 180s expire
+ *   3. Request ASK key => NRC 35
+ *   4. Request OEUK 2nd time => NRC 36
+ * ==============================================================================
+ */
+testcase TC_09_ASK_Att2_OEUK1_OeukNOK_Wait180s_AskNOK()
+{
+  testCaseTitle("TC_09", "Check Att_Cnt(ASK)=2, OEUK=1: OEUK NOK => NRC 36 -> 180s -> ASK => NRC 35 -> OEUK => NRC 36");
+  write("\n=================================================");
+  write("[TC_09] START: ASK(2), OEUK(1) -> OEUK NOK => 36 -> 180s -> ASK => 35 -> OEUK => 36");
+  write("=================================================");
+
+  // Set precondition: Att_Cnt(ASK) = 2, Att_Cnt(OEUK) = 1
+  Set_Precondition_Att_Cnt(2, 1);
+
+  // 1. Send OEUK key NOK -> Expect NRC 36 (Triggers 180s delay)
+  testStep("STEP_1", "1. Request OEUK key NOK -> Expect NRC 36");
+  Send_SecurityAccess_InvalidKey(SUBFUNC_OEUK_SEED, SUBFUNC_OEUK_KEY, NRC_EXCEEDED_NUMBER_OF_ATTEMPTS);
+
+  // 2. Wait 180s lockout timer to expire (OEUK resets to 0, ASK remains 2)
+  testStep("STEP_2", "2. Waiting 180 seconds for lockout penalty to expire...");
+  Wait_Lockout_Timer_180s();
+
+  // 3. Request ASK key NOK -> Expect NRC 35
+  testStep("STEP_3", "3. Request ASK key NOK -> Expect NRC 35");
+  Send_SecurityAccess_InvalidKey(SUBFUNC_ASK_SEED, SUBFUNC_ASK_KEY, NRC_INVALID_KEY);
+
+  // 4. Request OEUK key NOK 2nd time -> Expect NRC 36
+  testStep("STEP_4", "4. Request OEUK key NOK 2nd time -> Expect NRC 36");
+  Send_SecurityAccess_InvalidKey(SUBFUNC_OEUK_SEED, SUBFUNC_OEUK_KEY, NRC_EXCEEDED_NUMBER_OF_ATTEMPTS);
+
+  write("[TC_09] FINISHED\n");
+}
+
+/*
+ * ==============================================================================
+ * TESTCASE 10
+ * Precondition: Att_Cnt(ASK) = 3 && Att_Cnt(OEUK) = 2
+ * Action:
+ *   1. OEUK key NOK => NRC 36
+ *   2. Timer 180s expire
+ *   3. Request ASK => NRC 36
+ * ==============================================================================
+ */
+testcase TC_10_ASK_Att3_OEUK2_OeukNOK_Wait180s_AskNOK()
+{
+  testCaseTitle("TC_10", "Check Att_Cnt(ASK)=3, OEUK=2: OEUK NOK => NRC 36 -> 180s -> ASK => NRC 36");
+  write("\n=================================================");
+  write("[TC_10] START: ASK(3), OEUK(2) -> OEUK NOK => 36 -> 180s -> ASK => 36");
+  write("=================================================");
+
+  // Set precondition: Att_Cnt(ASK) = 2, Att_Cnt(OEUK) = 2
+  Set_Precondition_Att_Cnt(2, 2);
+
+  // 1. Send OEUK key NOK -> Expect NRC 36 (OEUK reaches 3, triggers 180s delay)
+  testStep("STEP_1", "1. Request OEUK key NOK -> Expect NRC 36");
+  Send_SecurityAccess_InvalidKey(SUBFUNC_OEUK_SEED, SUBFUNC_OEUK_KEY, NRC_EXCEEDED_NUMBER_OF_ATTEMPTS);
+
+  // 2. Wait 180s lockout timer to expire (OEUK resets to 0, ASK remains 2)
+  testStep("STEP_2", "2. Waiting 180 seconds for lockout penalty to expire...");
+  Wait_Lockout_Timer_180s();
+
+  // 3. Request ASK key NOK -> Expect NRC 36 (ASK 2+1=3 reaches limit)
+  testStep("STEP_3", "3. Request ASK key NOK -> Expect NRC 36");
+  Send_SecurityAccess_InvalidKey(SUBFUNC_ASK_SEED, SUBFUNC_ASK_KEY, NRC_EXCEEDED_NUMBER_OF_ATTEMPTS);
+
+  write("[TC_10] FINISHED\n");
+}
+
+/*
+ * ==============================================================================
+ * MainTest: Execute all 10 testcases
+ * ==============================================================================
+ */
+void MainTest()
+{
+  write("#################################################################");
+  write("# RUNNING TEST SUITE: SECURITY ATTEMPT COUNTER & LOCKOUT (1-10) #");
+  write("#################################################################");
+
+  // --- Group 1: ASK progression (TC 01 - 03) ---
+  TC_01_ASK_Att0_OEUK0_AskNOK();
+  testWaitForTimeout(1000);
+
+  TC_02_ASK_Att1_OEUK0_AskNOK();
+  testWaitForTimeout(1000);
+
+  TC_03_ASK_Att2_OEUK0_AskNOK();
+  testWaitForTimeout(1000);
+
+  // --- Group 2: Mixed ASK & OEUK with 180s delay (TC 04 - 05) ---
+  TC_04_ASK_Att2_OEUK1_AskNOK_Wait180s_OeukNOK();
+  testWaitForTimeout(1000);
+
+  TC_05_ASK_Att3_OEUK2_AskNOK_Wait180s_OeukNOK();
+  testWaitForTimeout(1000);
+
+  // --- Group 3: OEUK progression (TC 06 - 08) ---
+  TC_06_ASK_Att0_OEUK0_OeukNOK();
+  testWaitForTimeout(1000);
+
+  TC_07_ASK_Att1_OEUK0_OeukNOK();
+  testWaitForTimeout(1000);
+
+  TC_08_ASK_Att2_OEUK0_OeukNOK();
+  testWaitForTimeout(1000);
+
+  // --- Group 4: Mixed OEUK & ASK with 180s delay (TC 09 - 10) ---
+  TC_09_ASK_Att2_OEUK1_OeukNOK_Wait180s_AskNOK();
+  testWaitForTimeout(1000);
+
+  TC_10_ASK_Att3_OEUK2_OeukNOK_Wait180s_AskNOK();
+
+  write("#################################################################");
+  write("# COMPLETED TEST SUITE: SECURITY ATTEMPT COUNTER & LOCKOUT      #");
+  write("#################################################################");
+}

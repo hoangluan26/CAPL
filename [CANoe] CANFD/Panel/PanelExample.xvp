@@ -1,0 +1,110 @@
+<?xml version="1.0"?>
+<Panel Type="Vector.CANalyzer.Panels.PanelSerializer, Vector.CANalyzer.Panels.Serializer, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null">
+  <Object Type="Vector.CANalyzer.Panels.Runtime.Panel, Vector.CANalyzer.Panels.Common, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="Panel" Children="Controls" ControlName="PanelExample">
+    <Object Type="Vector.CANalyzer.Panels.Design.GroupBoxControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="GroupBoxControl3" Children="Controls" ControlName="Group Box 3">
+      <Object Type="Vector.CANalyzer.Panels.Design.SwitchControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="SwitchControl1" ControlName="Switch/Indicator 1">
+        <Property Name="Name">SwitchControl1</Property>
+        <Property Name="Size">30, 33</Property>
+        <Property Name="Location">47, 43</Property>
+        <Property Name="StateCnt">2</Property>
+        <Property Name="Activation">Left</Property>
+        <Property Name="SwitchValues">1;2;0;1</Property>
+        <Property Name="SwitchValuesRx">1;2;0;1</Property>
+        <Property Name="SwitchValuesVT">1;2;0/Lower/0;1/Lower/1</Property>
+        <Property Name="SwitchValuesVTXml">&lt;Version&gt;2&lt;/Version&gt;&lt;Count&gt;2&lt;/Count&gt;&lt;RxValue&gt;0&lt;/RxValue&gt;&lt;LowerUpper&gt;Lower&lt;/LowerUpper&gt;&lt;TxValue&gt;0&lt;/TxValue&gt;&lt;RxValue&gt;1&lt;/RxValue&gt;&lt;LowerUpper&gt;Lower&lt;/LowerUpper&gt;&lt;TxValue&gt;1&lt;/TxValue&gt;</Property>
+        <Property Name="IsProportional">False</Property>
+        <Property Name="SymbolConfiguration">8;16;panel;;;Switch_CGWNM;1;;;-1;;;;;;0</Property>
+        <Property Name="TabIndex">132</Property>
+      </Object>
+      <Object Type="Vector.CANalyzer.Panels.Design.StaticTextControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="StaticTextControl9" Children="Controls" ControlName="Static Text 9">
+        <Property Name="Name">StaticTextControl9</Property>
+        <Property Name="Size">59, 12</Property>
+        <Property Name="Location">83, 54</Property>
+        <Property Name="Text">CGW_NM</Property>
+      </Object>
+      <Property Name="Name">GroupBoxControl3</Property>
+      <Property Name="Size">193, 107</Property>
+      <Property Name="Location">240, 134</Property>
+      <Property Name="Text">예제 3 Timer</Property>
+      <Property Name="TabIndex">135</Property>
+    </Object>
+    <Object Type="Vector.CANalyzer.Panels.Design.GroupBoxControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="GroupBoxControl2" Children="Controls" ControlName="Group Box 2">
+      <Object Type="Vector.CANalyzer.Panels.Design.StaticTextControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="StaticTextControl1" Children="Controls" ControlName="Static Text 1">
+        <Property Name="Name">StaticTextControl1</Property>
+        <Property Name="Size">106, 12</Property>
+        <Property Name="Location">50, 80</Property>
+        <Property Name="Text">20s     15s      10s</Property>
+      </Object>
+      <Object Type="Vector.CANalyzer.Panels.Design.TrackBarControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="TrackBarControl1" Children="Controls" ControlName="Track Bar 1">
+        <Property Name="Name">TrackBarControl1</Property>
+        <Property Name="Size">117, 47</Property>
+        <Property Name="Location">39, 45</Property>
+        <Property Name="MaximumSize">100000, 47</Property>
+        <Property Name="Maximum">3</Property>
+        <Property Name="BackColor">White</Property>
+        <Property Name="Minimum">1</Property>
+        <Property Name="LargeChange">1</Property>
+        <Property Name="LargeChangeDouble">1</Property>
+        <Property Name="MaximumDouble">3</Property>
+        <Property Name="MinimumDouble">1</Property>
+        <Property Name="CommitValue">OnlyLastValue</Property>
+        <Property Name="SymbolConfiguration">8;16;panel;;;TrackBar_EV_Time_Before;1;;;-1;;;;;;0</Property>
+        <Property Name="TabIndex">48</Property>
+      </Object>
+      <Object Type="Vector.CANalyzer.Panels.Design.StaticTextControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="StaticTextControl5" Children="Controls" ControlName="Static Text 5">
+        <Property Name="Name">StaticTextControl5</Property>
+        <Property Name="Size">115, 12</Property>
+        <Property Name="Location">39, 27</Property>
+        <Property Name="Text">Event Time(Before)</Property>
+      </Object>
+      <Property Name="Name">GroupBoxControl2</Property>
+      <Property Name="Size">193, 109</Property>
+      <Property Name="Location">240, 14</Property>
+      <Property Name="Text">예제 2 Event handler</Property>
+      <Property Name="TabIndex">11</Property>
+    </Object>
+    <Object Type="Vector.CANalyzer.Panels.Design.GroupBoxControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="GroupBoxControl1" Children="Controls" ControlName="Group Box 1">
+      <Object Type="Vector.CANalyzer.Panels.Design.LEDControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="LEDControl1" ControlName="LED Control 1">
+        <Property Name="Name">LEDControl1</Property>
+        <Property Name="Size">24, 24</Property>
+        <Property Name="Location">152, 55</Property>
+        <Property Name="UsedLEDColorOn">Yellow</Property>
+        <Property Name="SwitchValuesVTXml">&lt;Version&gt;2&lt;/Version&gt;&lt;Count&gt;2&lt;/Count&gt;&lt;RxValue&gt;0&lt;/RxValue&gt;&lt;LowerUpper&gt;Lower&lt;/LowerUpper&gt;&lt;TxValue&gt;0&lt;/TxValue&gt;&lt;Color&gt;Gray&lt;/Color&gt;&lt;RxValue&gt;1&lt;/RxValue&gt;&lt;LowerUpper&gt;Lower&lt;/LowerUpper&gt;&lt;TxValue&gt;1&lt;/TxValue&gt;&lt;Color&gt;Yellow&lt;/Color&gt;</Property>
+        <Property Name="SymbolConfiguration">8;2;HS_B2;BLTN_CAM;BLTN_CAM_STAT_PE_00_200ms;BLTN_CAM_RecSta_OWD;1;CAN2;;-1;;;;;;0</Property>
+        <Property Name="TabIndex">7</Property>
+        <Property Name="TabStopActive">False</Property>
+        <Property Name="ReadOnlyControl">True</Property>
+      </Object>
+      <Object Type="Vector.CANalyzer.Panels.Design.StaticTextControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="StaticTextControl3" Children="Controls" ControlName="Static Text 3">
+        <Property Name="Name">StaticTextControl3</Property>
+        <Property Name="Size">113, 12</Property>
+        <Property Name="Location">33, 55</Property>
+        <Property Name="Text">주행 상시 녹화 상태</Property>
+      </Object>
+      <Object Type="Vector.CANalyzer.Panels.Design.ComboBoxControl, Vector.CANalyzer.Panels.CommonControls, Version=15.5.23.0, Culture=neutral, PublicKeyToken=null" Name="ComboBoxControl2" Children="Controls" ControlName="Combo Box 2">
+        <Property Name="Name">ComboBoxControl2</Property>
+        <Property Name="Size">155, 37</Property>
+        <Property Name="Location">24, 120</Property>
+        <Property Name="DropDownWidth">155</Property>
+        <Property Name="BackColor">Window</Property>
+        <Property Name="ForeColor">WindowText</Property>
+        <Property Name="TextBackColor">White</Property>
+        <Property Name="DisplayLabel">Top</Property>
+        <Property Name="DescriptionText">BLTN_CAM_RecSta_DEV:</Property>
+        <Property Name="DescriptionSize">155, 17</Property>
+        <Property Name="SymbolConfiguration">8;2;HS_B2;BLTN_CAM;BLTN_CAM_STAT_PE_00_200ms;BLTN_CAM_RecSta_DEV;1;CAN2;;-1;;;;;;0</Property>
+        <Property Name="TabIndex">2</Property>
+        <Property Name="TabStopActive">False</Property>
+        <Property Name="ReadOnlyControl">True</Property>
+      </Object>
+      <Property Name="Name">GroupBoxControl1</Property>
+      <Property Name="Size">221, 227</Property>
+      <Property Name="Location">13, 14</Property>
+      <Property Name="Text">예제 1 신호 모니터링</Property>
+      <Property Name="TabIndex">11</Property>
+    </Object>
+    <Property Name="Name">Panel</Property>
+    <Property Name="Size">455, 256</Property>
+    <Property Name="BackColor">White</Property>
+  </Object>
+</Panel>

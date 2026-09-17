@@ -1,0 +1,41 @@
+/*@!Encoding:1252*/
+
+variables {
+  // Global Variable Declaration
+  byte i = 0x3;
+  // Message Declaration
+  // CAN FD
+  message HU_BLTN_CAM_02_200ms _HU_BLTN_CAM_02_200ms;
+}
+/*Preconditions:- Add signal HU_BLTN_CAM_UI_Mode, BLTN_CAM_HU_UI_Mode
+                - Turn OFF ccIC/ccNC switch*/ 
+testcase HU_002(){
+  for(i = 0x3; i <= 0xF; i++){
+    testStep("Case %d","Start test HU_002_%d", i - 0x2, i - 0x2);
+    write("Start test HU_002_%d", i - 0x2, i - 0x2);
+  // CAN FD
+    _HU_BLTN_CAM_02_200ms.HU_BLTN_CAM_UI_Mode=i;
+    output(_HU_BLTN_CAM_02_200ms);
+  
+    if (testWaitForSignalChange(BLTN_CAM_HU_UI_Mode,2000) == 0){
+      testStepPass("Pass","Test-case is OK");
+      write("Test-case is OK");
+    }
+    else {
+      testStepFail("Fail","Test-case is NG");
+      write("Test-case is NG");      
+    }
+  }
+}
+
+void Maintest(){
+  write("===START TEST===");
+
+  HU_002();  
+
+  testReportAddWindowCapture("Graphics 2","HU_BLTN_CAM_UI_Mode;BLTN_CAM_HU_UI_Mode","Sreenshot","./HU_002_result.jpg");
+
+  write("===FINISH TEST===");
+}
+
+

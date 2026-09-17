@@ -1,0 +1,566 @@
+/*@!Encoding:949*/
+includes
+{
+}
+
+variables
+{
+  //정품인증
+  #define CERTI_KEY_1 0xA7U
+  #define CERTI_KEY_2	0x12U
+  #define CERTI_KEY_3	0xC3U
+  #define CERTI_KEY_4	0x62U
+  
+  dword receiveRdmVal1;
+  dword receiveRdmVal2;
+  dword receiveRdmVal3;
+  dword receiveRdmVal4;
+  dword transmitRdmRval1;
+  dword transmitRdmRval2;
+  dword transmitRdmRval3;
+  dword transmitRdmRval4;
+    
+  dword receiveOperationControl;
+  dword transmitBmsStatus; 
+  
+  int PowerSupplyModel;
+  
+  //파워서플라이 COMPORT Number입력.
+  int rs232_PortNum;
+  
+  //파워서플라이 모델
+  enum Model_PowerSupply
+  {
+    OPE305QI = 0x0,
+    TL305TP = 0x1,
+    GPP2323 = 0x2
+  };
+  
+  msTimer timer_RS232SendInterval;
+  int TIME_timer_timer_RS232SendInterval = 100;
+  int messageIndex = 0;
+  
+  char buffer[3][50];
+  char initvalue[50]; //버퍼 초기화용
+  
+  //char text[150] = "원하는 메시지";
+  //배열 확인하기
+  //int j;
+  //for(j=0; j<30; j++) write("%d %c", j, buffer[j]);
+}
+
+on start
+{
+  //파워서플라이 모델 선택
+  PowerSupplyModel = @ControlPowerSupply::RadioBtn_PwrSplyModel;
+
+  //파워서플라이 포트 설정
+  rs232_PortNum = @ControlPowerSupply::Numeric_PortNum;
+  
+  //파워서플라이 초기값 설정(전압은 이전 값 유지하려고 안함)
+  @ControlPowerSupply::Numeric_Curr_CH1 = 5;
+  @ControlPowerSupply::Numeric_Curr_CH2 = 5;
+  
+  //LIN Master 상태로 시작
+  //@ControlPowerSupply::RadioBtn_SetMasterSlave = 0;
+}
+
+on preStop
+{
+  if(RS232Close(rs232_PortNum))
+  {
+    @ControlPowerSupply::isConectedPwrSply = 0;
+    SetControlBackColor("ControlPowerSupply", "Button 5", MakeRGB(50,205,50));
+    setControlProperty("ControlPowerSupply", "Button 5", "Text", "Connect");
+    write("Port is closed.");
+  }
+}
+
+
+
+on sysvar ControlPowerSupply::Numeric_PortNum
+{
+  rs232_PortNum = @ControlPowerSupply::Numeric_PortNum;
+}
+
+
+//if(RS232Open(rs232_PortNum)) write("Opened");
+//if (rs232Configure(rs232_PortNum, 9600, 8, 1, 0)) write("Config done");
+
+on sysvar ControlPowerSupply::Button_Connect
+{
+  if(@ControlPowerSupply::Button_Connect == 1) //Button Pressed
+  {
+    if(@ControlPowerSupply::isConectedPwrSply == 0)
+    {
+        if(RS232Open(rs232_PortNum))
+        {
+          if(!rs232Configure(rs232_PortNum, 9600, 8, 1, 0)) write("Config failed.");
+      
+          @ControlPowerSupply::isConectedPwrSply = 1;
+          SetControlBackColor("ControlPowerSupply", "Button 5", MakeRGB(255,99,71));
+          setControlProperty("ControlPowerSupply", "Button 5", "Text", "Disconnect");
+          
+          write("Port open is successed.");
+          putValueToControl("Battery Control","CAPL Output View 2", "Port open is successed.");
+          
+          //GPP2323 Current max 3.2A
+          if(PowerSupplyModel == GPP2323)
+          {
+            @ControlPowerSupply::Numeric_Curr_CH1 = 3.2;
+            @ControlPowerSupply::Numeric_Curr_CH2 = 3.2;
+          }
+        }
+        
+        else
+        {
+          @ControlPowerSupply::isConectedPwrSply = 0;
+          SetControlBackColor("ControlPowerSupply", "Button 5", MakeRGB(50,205,50));
+          setControlProperty("ControlPowerSupply", "Button 5", "Text", "Connect");
+          
+          write("Port open failed. Check the power supply COMPORT number.");
+          putValueToControl("Battery Control","CAPL Output View 2", "Port open failed. Check the power supply COMPORT number.");
+        }
+    }
+
+    else
+    {
+      if(RS232Close(rs232_PortNum))
+      {
+        @ControlPowerSupply::isConectedPwrSply = 0;
+        SetControlBackColor("ControlPowerSupply", "Button 5", MakeRGB(50,205,50));
+        setControlProperty("ControlPowerSupply", "Button 5", "Text", "Connect");
+        write("Port is closed.");
+      }
+    }
+  }
+}
+
+/// <Power Supply>
+//Setting Power Supply COMPORT
+on sysvar ControlPowerSupply::RadioBtn_PwrSplyModel
+{
+  PowerSupplyModel = @ControlPowerSupply::RadioBtn_PwrSplyModel;
+}
+
+on sysvar_update SimulationPLBM::RadioBtn_SetMasterSlave
+{
+  linSetChannelMasterMode(@SimulationPLBM::RadioBtn_SetMasterSlave);
+}
+
+/// <Power Supply>
+on sysvar_update ControlPowerSupply::Button_OutputON
+{
+  if(@ControlPowerSupply::Button_OutputON == 1)//Pressed
+  {
+    Switch(PowerSupplyModel)
+    {
+      case OPE305QI:
+        Rs232SendString(rs232_PortNum, OPE305QI, "OUTP ON"); break;
+        
+      case TL305TP:
+        Rs232SendString(rs232_PortNum, TL305TP, "OUTPUT1/n"); break;
+        
+      case GPP2323:
+        Rs232SendString(rs232_PortNum, GPP2323, "ALLOUTON"); break;
+    }
+  } 
+}
+
+/// <Power Supply>
+on sysvar_update ControlPowerSupply::Button_OutputOFF
+{  
+  if(@ControlPowerSupply::Button_OutputOFF == 1)//Pressed
+  {
+    Switch(PowerSupplyModel)
+    {
+      case OPE305QI:
+        Rs232SendString(rs232_PortNum, OPE305QI, "OUTP OFF"); break;
+        
+      case TL305TP:
+        Rs232SendString(rs232_PortNum, TL305TP, "OUTPUT0/n"); break;
+        
+      case GPP2323:
+        Rs232SendString(rs232_PortNum, GPP2323, "ALLOUTOFF"); break;
+    }
+  }
+}
+
+/// <Power Supply>
+on sysvar_update ControlPowerSupply::Button_Set_CH1
+{  
+  int i = 0;
+  double Volt, Curr = 0;
+ 
+  Volt = @ControlPowerSupply::Numeric_Volt_CH1;
+  Curr = @ControlPowerSupply::Numeric_Curr_CH1;
+  
+  if(@ControlPowerSupply::Button_Set_CH1 == 1)//Pressed
+  {
+    Switch(PowerSupplyModel)
+    {
+      case OPE305QI:
+        strncpy(buffer[0], "INST OUTP1", 11); //CH1 선택
+        string_PLUS_double("VOLT ", Volt, buffer[1]); //VOLT 12
+        string_PLUS_double("CURR ", Curr, buffer[2]); //CURR 5
+        
+        //Interval 간격으로 날리기
+        timer_RS232SendInterval.Set(TIME_timer_timer_RS232SendInterval);
+        break;
+        
+      case TL305TP:
+        //커맨드 양식 SET:001,VS:12.00,IS:5.00
+        string_PLUS_double("SET:000,VS:", Volt, buffer[0]); //SET:000,VS: + 12
+        string_PLUS_double("0,IS:", Curr, buffer[1]);//+ ,IS:5
+        
+        strncat(buffer[0],buffer[1], strlen(buffer[0]) + strlen(buffer[1]) + 1); //buffer[0] += buffer[1]
+        strncat(buffer[0],"0/n", strlen(buffer[0]) + strlen("/n") + 2); // buffer[0] += "/n"       
+
+        Rs232SendString(rs232_PortNum, TL305TP, buffer[0]); break;       
+        
+      case GPP2323:
+        //커멘드 양식 VSET1:12
+        //커멘드 양식 ISET:3.5
+        string_PLUS_double("VSET1:", Volt, buffer[0]);
+        Rs232SendString(rs232_PortNum, GPP2323, buffer[0]);
+        
+        string_PLUS_double("ISET:", Curr, buffer[1]);
+        Rs232SendString(rs232_PortNum, GPP2323, buffer[1]); break;
+    }
+  }
+}
+
+
+/// <Power Supply>
+on sysvar_update ControlPowerSupply::Button_Set_CH2
+{  
+  int i = 0;
+  double Volt, Curr = 0;
+  char buffer_snprintf[50];
+  
+  Volt = @ControlPowerSupply::Numeric_Volt_CH2;
+  Curr = @ControlPowerSupply::Numeric_Curr_CH2;
+  
+  if(@ControlPowerSupply::Button_Set_CH2 == 1)//Pressed
+  {
+    Switch(PowerSupplyModel)
+    {
+      case OPE305QI:
+        strncpy(buffer[0], "INST OUTP2", 11); //CH2 선택
+        string_PLUS_double("VOLT ", Volt, buffer[1]); //VOLT 12
+        string_PLUS_double("CURR ", Curr, buffer[2]); //CURR 5
+        
+        //Interval 간격으로 날리기
+        timer_RS232SendInterval.Set(TIME_timer_timer_RS232SendInterval);
+        break;
+        
+      case TL305TP:
+        //커맨드 양식 SET:001,VS:12.00,IS:5.00
+        snprintf(buffer_snprintf, 50, "SET:Sang,VS:%05.2f,IS:%4.2f/n", Volt, Curr); //double to string 총 5자릿 수, 앞자리 없으면 0으로 채워, 소수점 2자리
+        write(buffer_snprintf);
+        if(Volt < 10)
+        {
+          write("VS:%05.2f",Volt);
+          string_PLUS_double("SET:001,VS:0", Volt, buffer[0]); //SET:000,VS: + 12
+        }
+        else
+        {
+          string_PLUS_double("SET:001,VS:", Volt, buffer[0]); //SET:000,VS: + 12
+        }
+        string_PLUS_double("0,IS:", Curr, buffer[1]);//+ ,IS:5
+        
+        strncat(buffer[0],buffer[1], strlen(buffer[0]) + strlen(buffer[1]) + 1); //buffer[0] += buffer[1]
+        strncat(buffer[0],"0/n", strlen(buffer[0]) + strlen("/n") + 2); // buffer[0] += "/n" 
+
+        Rs232SendString(rs232_PortNum, TL305TP, buffer[0]); break;       
+        
+      case GPP2323:
+        //커멘드 양식 VSET1:12
+        //커멘드 양식 ISET:3.5
+        string_PLUS_double("VSET1:", Volt, buffer[0]);
+        Rs232SendString(rs232_PortNum, GPP2323, buffer[0]);
+        
+        string_PLUS_double("ISET:", Curr, buffer[1]);
+        Rs232SendString(rs232_PortNum, GPP2323, buffer[1]); break;
+    }
+  }
+}
+
+
+
+on sysvar_update SimulationPLBM::Button_WakeUp
+{
+  if(@SimulationPLBM::Button_WakeUp == 1)//Pressed
+  {
+    if(linBusIsAwake())
+    {
+      //linGotoSleep();
+      //setControlProperty("Battery Control","Button_LINWakeUp","Text","Wake up");
+    }
+    else
+    {
+      //linWakeup(300, 1000, 1000);
+      //setControlProperty("Battery Control","Button_LINWakeUp","Text","Go to Sleep");
+    }
+    linWakeup(300, 10, 1000);
+  }
+}
+
+
+
+on sysvar_update SimulationPLBM::Button_PLBM_SetValue
+{
+  if($BLTN_CAM_AuxBat_Conn_State == 0x1)
+  {
+    InitPLBM();
+  }
+  else
+  {
+    putValueToControl("Battery Control","CAPL Output View 2", "Auxiliary battery not recognized");
+  }
+}
+
+on message BLTN_CAM_FD_STAT_01_200ms //CANFD
+//on message BLTN_CAM_STAT_PE_00_200ms //CAN
+{
+  if($BLTN_CAM_AuxBat_Conn_State == 0x1)
+  {
+    putValueToControl("Battery Control","CAPL Output View 2", "Auxiliary battery recognized");
+  }
+  else if($BLTN_CAM_AuxBat_Conn_State == 0x2)
+  {
+    putValueToControl("Battery Control","CAPL Output View 2", "Auxiliary battery not recognized");
+  }
+  else if($BLTN_CAM_AuxBat_Conn_State == 0x3)
+  {
+    putValueToControl("Battery Control","CAPL Output View 2", "This specification does not allow the use of auxiliary batteries.");
+  }
+}
+
+//BMS Certification Response Frame / ID : 0x11
+/// <BMS_CERTI>
+on linFrame BMS_CERTI
+{
+  putValueToControl("Battery Control", "CAPL Output View 1", "receive BMS_CERTI");
+  
+  receiveRdmVal1 = getSignal(Rdm_Val1);
+  receiveRdmVal2 = getSignal(Rdm_Val2);
+  receiveRdmVal3 = getSignal(Rdm_Val3);
+  receiveRdmVal4 = getSignal(Rdm_Val4);
+  
+  transmitRdmRval1 = receiveRdmVal1 + 0xA0;
+  transmitRdmRval2 = receiveRdmVal2 + 0xB2;
+  transmitRdmRval3 = receiveRdmVal3 + 0xC1;
+  transmitRdmRval4 = receiveRdmVal4 + 0xD3;
+  
+  setSignal(Rdm_Rval1, transmitRdmRval1);
+  setSignal(Rdm_Rval2, transmitRdmRval2);
+  setSignal(Rdm_Rval3, transmitRdmRval3);
+  setSignal(Rdm_Rval4, transmitRdmRval4);
+  
+  InitPLBM();
+}
+
+/// <BMS_CERTI>
+on linFrame BMS_CERTI_CHECK
+{
+  //putValueToControl("Battery Control", "CAPL Output View 1", "receive BMS_CERTI_CHECK");
+}
+
+//BMS Information Frame1 / ID : 0x12
+on linFrame BMS_INFO_01
+{
+  if($BAT_Capa_for_BLTN_CAM == 0x0) putValueToControl("Battery Control","CAPL Output View 1", "★★Choose between 19.2Ah and 28.8Ah specifications★★");
+}
+
+//BMS_OPERATION_CONTROL (ID 0x15)
+on linFrame BMS_OPERATION_CONTROL
+{
+  //////////// <BMS_CERTI>
+  receiveOperationControl = getSignal(BAT_Charge_Control);
+  if(receiveOperationControl == 1)
+  {
+      transmitBmsStatus = 2;
+  }
+  else if(receiveOperationControl == 2)
+  {
+      transmitBmsStatus = 3;
+  }
+  else
+  {
+      transmitBmsStatus = 0;
+  }
+  setSignal(BAT_Status , transmitBmsStatus);
+  /////////// <BMS_CERTI>
+  
+  linWakeup(300, 10, 1000);
+  
+  if($BLTN_CAM_AuxBat_Conn_State == 0x1)//배터리 인증된 상태에서만 동작
+  {   
+    if(!@ControlPowerSupply::isConectedPwrSply) @ControlPowerSupply::Button_Connect = 1;
+      
+    if($BAT_Charge_Control == 0x2) //discharging 신호 수신 시
+    {
+      setSignal(BAT_Status, 0x3); //PLBM discharging 신호 셋
+
+      //보조배터리측 파워서플라이 전원 인가
+      Switch(PowerSupplyModel)
+      {
+        case OPE305QI:
+          strncpy(buffer[0], "INST OUTP1", 11); //CH1 선택
+          strncpy(buffer[1], "Volt 12", 8);
+          strncpy(buffer[2], "Curr 5", 7);
+          
+          //Interval 간격으로 날리기
+          timer_RS232SendInterval.Set(TIME_timer_timer_RS232SendInterval); break;
+
+        case TL305TP:
+          Rs232SendString(rs232_PortNum, TL305TP, "SET:000,VS:12.00,IS:5.000/n"); break;       
+
+        case GPP2323:
+          Rs232SendString(rs232_PortNum, GPP2323, "VSET1:12"); break;
+      }
+      putValueToControl("Battery Control","CAPL Output View 1", "Discharge command received. Outputs auxiliary power from the power supply.");
+    }
+    
+    else if($BAT_Charge_Control == 0x0) //stop 신허 수신 시
+    {
+      setSignal(BAT_Status, 0x0); //PLBM discharging 신호 셋
+
+      //보조배터리측 파워서플라이 전원 차단
+      Switch(PowerSupplyModel)
+      {
+        case OPE305QI:
+          strncpy(buffer[0], "INST OUTP1", 11); //CH1 선택
+          strncpy(buffer[1], "Volt 0", 7);
+          strncpy(buffer[2], "Curr 5", 7);
+          
+          //Interval 간격으로 날리기
+          timer_RS232SendInterval.Set(TIME_timer_timer_RS232SendInterval); break;
+          
+        case TL305TP:
+          Rs232SendString(rs232_PortNum, TL305TP, "SET:000,VS:0.00,IS:0.000/n"); break;       
+
+        case GPP2323:
+          Rs232SendString(rs232_PortNum, GPP2323, "VSET1:0"); break;
+      }
+      
+      putValueToControl("Battery Control","CAPL Output View 1", "Stop command received. Turn off the auxiliary power.");
+    }
+  }
+}
+
+void InitPLBM()
+{
+    setsignal(BMS_INFO_01::BAT_Type, 1);
+    setsignal(BMS_INFO_01::BAT_Option_Type, 1);
+    setsignal(BMS_INFO_01::BAT_Capa_for_BLTN_CAM, 12);
+    setsignal(BMS_INFO_01::BAT_SOH, 100);
+    setsignal(BMS_INFO_01::B_VOLTAGE, 12);
+    setsignal(BMS_INFO_01::IGN_VOLTAGE, 12);
+    setsignal(BMS_INFO_01::BMS_INFO_01_Reserved7, 0);
+
+    setsignal(BMS_INFO_02::BAT_SOC_for_BLTN_CAM, 100);
+    setsignal(BMS_INFO_02::BAT_Volt, 10);
+    setsignal(BMS_INFO_02::BAT_Current, 0);
+    setsignal(BMS_INFO_02::BAT_Temp, 24.7);
+    setsignal(BMS_INFO_02::BMS_INFO_02_Reserved6, 0x0);
+    setsignal(BMS_INFO_02::BMS_INFO_02_Reserved7, 0x0);
+
+    setsignal(BMS_INFO_03::BAT_Status, 0x0);
+    setsignal(BMS_INFO_03::BAT_Volt_Fault_Info, 0x0);
+    setsignal(BMS_INFO_03::BAT_Current_Fault_Info, 0x0);
+    setsignal(BMS_INFO_03::BAT_Discharging_Time_Info, 0x0);
+    setsignal(BMS_INFO_03::BLTM_CAM_Current, 0x0);
+    setsignal(BMS_INFO_03::LBM_Maxdischr_Info, 0x0);
+    setsignal(BMS_INFO_03::BLTN_CAM_End_Request, 0x0);
+    setsignal(BMS_INFO_03::BMS_INFO_03_Reserved1, 0x0);
+    setsignal(BMS_INFO_03::BMS_INFO_03_Reserved2, 0x0);
+  
+  if(@SimulationPLBM::RadioBtn_SelcectPLBM == 0) //19Ah
+  {
+    setsignal(BMS_INFO_01::BAT_Capa_Total, 19.2);
+    putValueToControl("Battery Control","CAPL Output View 1", "NCM battery 19.2Ah specification applied. Check the SoC value again.");
+  }
+  
+  else //28.8Ah
+  {
+    setsignal(BMS_INFO_01::BAT_Capa_Total, 28.8);
+    putValueToControl("Battery Control","CAPL Output View 1", "NCM battery 28.8Ah specification applied. Check the SoC value again.");
+  }
+}
+
+
+
+void Rs232SendString(int port, int PowerSupplyModel, char text[])
+{
+  byte buffer[50];
+  int i, j;
+  int length;
+  length=strlen(text);
+  
+  if(@ControlPowerSupply::isConectedPwrSply)
+  {
+    //버퍼 초기화
+    for (i = 0; i < length ; i++) buffer[i] = 0; 
+    
+    //char to byte
+    for (i=0;i<length;i++) buffer[i]=text[i];
+    
+    //개행문자 달기
+    if((PowerSupplyModel == OPE305QI) || (PowerSupplyModel == GPP2323))
+    {
+      //Line Feed(개행문자)
+      buffer[length] = 0xA; 
+      
+      //for(j=0; j<length+1; j++) write("%d %c", j, buffer[j]);
+      if ( 1==RS232Send(port, buffer, length+1) ) write("Send: %s", text);
+    }
+    
+    else if(PowerSupplyModel == TL305TP)
+    {
+      //개행문자 앞에서 붙임
+      //for(j=0; j<length+1; j++) write("%d %c", j, buffer[j]);
+      if ( 1==RS232Send(port, buffer, length) ) write("Send: %s", text);
+    }
+  }
+  else
+  {
+    write("The powersupply is not connected . Connect the powersupply.");
+  }
+}
+
+void string_PLUS_double(char inputString[], double inputValue, char outputString[])
+{
+  char STRING[50];
+  char buffer[50];
+  
+  strncpy(outputString, initvalue, 50); //버퍼 초기화
+  strncpy(STRING, inputString, 50);
+  
+  snprintf(buffer, elcount(buffer), "%.1f", inputValue); //double to char
+  //write("snprintf: %s, %d", buffer, strlen(buffer));
+
+  strncpy(outputString, STRING, 50); //
+  strncat(outputString, buffer, strlen(STRING) + strlen(buffer) + 1); //char + char
+}
+
+on timer timer_RS232SendInterval
+{
+  int i;
+  
+  if(messageIndex < 3)
+  {
+    Rs232SendString(rs232_PortNum, OPE305QI, buffer[messageIndex]);
+    messageIndex++;
+    
+    timer_RS232SendInterval.set(TIME_timer_timer_RS232SendInterval);
+  }
+  else
+  {
+    for(i=0; i<3; i++) strncpy(buffer[i], initvalue, 50); //버퍼 초기화
+    messageIndex = 0;
+    
+    cancelTimer(timer_RS232SendInterval);
+  }
+}

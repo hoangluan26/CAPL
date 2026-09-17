@@ -1,0 +1,327 @@
+/*@!Encoding:1252*/
+//Precondition: Simulation Setup -> Block CGW_CCU; ccNC/ccIC switch OFF; All recording setting OFF; Enter AVN mode
+//Add signal: BLTN_CAM_RecSta_OWD;
+//Note: Set the time range in graphic to 12s
+includes 
+{
+  #include "DeclarationFunction_Gen2.h"
+}
+
+variables
+{ 
+  byte i;
+  int flag_RecSet_error = 0;
+  char arr_ICE_modeType[3] = {'I','C','E'};
+  char arr_HEV_modeType[3] = {'H','E','V'};
+  char arr_EV_modeType[2] = {'E','V'};
+  char answer[3];    
+  // Message Declaration
+  message HU_BLTN_CAM_PE_00_200ms _HU_BLTN_CAM_PE_00_200ms;
+  message HU_BLTN_CAM_E_00 _HU_BLTN_CAM_E_00;
+  message TCU_01_10ms_1 _TCU_01_10ms;
+  message HTCU_05_10ms_1 _HTCU_05_10ms_1;
+  message HTCU_04_10ms_1 _HTCU_04_10ms_1;
+  message VCU_01_10ms_1 _VCU_01_10ms_1;
+  // Timer Declaration
+  msTimer send_CLU_01_20ms_timer;
+  msTimer send_TCU_01_10ms_timer;
+  msTimer send_HTCU_04_10ms_timer;
+  msTimer send_VCU_01_10ms_timer;
+  msTimer send_ICU_ModState_timer;  
+}
+
+void BLTN_CAM_Settings(){
+  Enter_BLTN_CAM(); testWaitForTimeout(3000);
+
+  if ($BLTN_CAM_RecSet_OWP == 0x1) {write("OWP On"); @panel::LED_Ctrl_SetOWP = 1; testWaitForTimeout(1000);}     
+
+  Exit_BLTN_CAM();
+}
+
+testcase INF_012_1_2(){
+  testStep("Notifications","Start test INF_012_1_2");
+  write("Start INF_012_1_2. Step 1 will be executed");
+  
+  Send_Message(0x5,6500);
+  testWaitForTimeout(4000);
+  Enter_BLTN_CAM();
+  testStepPass("Notifications","Done step 1");
+  
+  testWaitForTimeout(2000);
+  testReportAddWindowCapture("Graphics 2","BLTN_CAM_RecSta_OWD; TCU_GearSlctDis","Sreenshot","./Husign.jpg");
+  Exit_BLTN_CAM();
+  
+  write("Step 2 will be excecuted");
+  testWaitForTimeout(6000);
+  Send_Message(0x5,4000);
+  Enter_BLTN_CAM();
+  testStepPass("Notifications","Done step 2");
+  
+  testWaitForTimeout(2000);
+  testReportAddWindowCapture("Graphics 2","BLTN_CAM_RecSta_OWD; TCU_GearSlctDis","Sreenshot","./Husign.jpg");
+}
+
+testcase INF_012_3_to_19(){
+  testStep("Notifications","Start test INF_012_3_to_19");
+  write("Start INF_012_3_to_18");
+  
+  for(i=0x0;i<=0xF;i++){
+    testStep("Notifications","Step %d will be executed", i+0x1);
+    Exit_BLTN_CAM();
+    Send_Message(i,10000);
+   
+    write("Done Step %d", i+0x1);
+    testStepPass("Notifications","Done step %d", i+0x1);
+    Enter_BLTN_CAM();
+    
+    testWaitForTimeout(2000);
+    testReportAddWindowCapture("Graphics 2","BLTN_CAM_RecSta_OWD; TCU_GearSlctDis","Sreenshot","./Husign.jpg");
+  }
+  
+  write("Start INF_012_19");
+  testStep("Notifications","Step 19 will be executed");
+  Exit_BLTN_CAM();
+  testWaitForTimeout(10000);
+  
+  write("Done Step 19");
+  testStepPass("Notifications","Done step 19");
+  Enter_BLTN_CAM();
+  
+  testWaitForTimeout(2000);
+  testReportAddWindowCapture("Graphics 2","BLTN_CAM_RecSta_OWD; TCU_GearSlctDis","Sreenshot","./Husign.jpg");
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+testcase INF_013_1_2(){
+  testStep("Notifications","Start test INF_013_1_2");
+  write("Start INF_013_1_2. Step 1 will be executed");
+  
+  Send_Message(0x5,6500);
+  testWaitForTimeout(4000);
+  Enter_BLTN_CAM();
+  testStepPass("Notifications","Done step 1");
+  testWaitForTimeout(2000);
+  testReportAddWindowCapture("Graphics 2","BLTN_CAM_RecSta_OWD; HDCT_GearSelDis","Sreenshot","./Husign.jpg");
+  Exit_BLTN_CAM();
+  
+  write("Step 2 will be excecuted");
+  testWaitForTimeout(6000);
+  Send_Message(0x5,4000);
+  Enter_BLTN_CAM();
+  testStepPass("Notifications","Done step 2");
+  testWaitForTimeout(2000);
+  testReportAddWindowCapture("Graphics 2","BLTN_CAM_RecSta_OWD; HDCT_GearSelDis","Sreenshot","./Husign.jpg");
+}
+
+testcase INF_013_3_to_19(){
+  testStep("Notifications","Start test INF_013_3_to_19");
+  write("Start INF_013_3_to_18");
+  
+  for(i=0x0;i<=0xF;i++){
+    testStep("Notifications","Step %d will be executed", i+0x1);
+    Exit_BLTN_CAM();
+    Send_Message(i,10000);
+    write("Done Step %d", i+0x1);
+    testStepPass("Notifications","Done step %d", i+0x1);
+    Enter_BLTN_CAM();
+    
+    testWaitForTimeout(2000);
+    testReportAddWindowCapture("Graphics 2","BLTN_CAM_RecSta_OWD; HDCT_GearSelDis","Sreenshot","./Husign.jpg");    
+  }
+  
+  write("Start INF_013_19");
+  testStep("Notifications","Step 19 will be executed");
+  Exit_BLTN_CAM();
+  testWaitForTimeout(10000);
+
+  write("Done Step 19");
+  testStepPass("Notifications","Done step 19");
+  Enter_BLTN_CAM();
+  
+  testWaitForTimeout(2000);
+  testReportAddWindowCapture("Graphics 2","BLTN_CAM_RecSta_OWD; HDCT_GearSelDis","Sreenshot","./Husign.jpg");
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+testcase INF_014_1_2(){
+  testStep("Notifications","Start test INF_014_1_2");
+  write("Start INF_014_1_2. Step 1 will be executed");
+  
+  Send_Message(0x5,6500);
+  testWaitForTimeout(4000);
+  Enter_BLTN_CAM();
+  testStepPass("Notifications","Done step 1");
+  testWaitForTimeout(2000);
+  testReportAddWindowCapture("Graphics 2","BLTN_CAM_RecSta_OWD; HTCU_GearSlctDis","Sreenshot","./Husign.jpg");
+  Exit_BLTN_CAM();
+  
+  write("Step 2 will be excecuted");
+  testWaitForTimeout(6000);
+  Send_Message(0x5,4000);
+  Enter_BLTN_CAM();
+  testStepPass("Notifications","Done step 2");
+  testWaitForTimeout(2000);
+  testReportAddWindowCapture("Graphics 2","BLTN_CAM_RecSta_OWD; HTCU_GearSlctDis","Sreenshot","./Husign.jpg");
+}
+
+testcase INF_014_3_to_19(){
+  testStep("Notifications","Start test INF_014_3_to_19");
+  write("Start INF_014_3_to_18");
+  
+  for(i=0x0;i<=0xF;i++){
+    testStep("Notifications","Step %d will be executed", i+0x1);
+    Exit_BLTN_CAM();
+    Send_Message(i,10000);
+    
+    write("Done Step %d", i+0x1);
+    testStepPass("Notifications","Done step %d", i+0x1);
+    Enter_BLTN_CAM();
+    
+    testWaitForTimeout(2000);
+    testReportAddWindowCapture("Graphics 2","BLTN_CAM_RecSta_OWD; HTCU_GearSlctDis","Sreenshot","./Husign.jpg");
+  }
+  
+  write("Start INF_014_19");
+  testStep("Notifications","Step 19 will be executed");
+  Exit_BLTN_CAM();
+  testWaitForTimeout(10000);
+  
+  write("Done Step 19");
+  testStepPass("Notifications","Done step 19");
+  Enter_BLTN_CAM();
+  
+  testWaitForTimeout(2000);
+  testReportAddWindowCapture("Graphics 2","BLTN_CAM_RecSta_OWD; HDCT_GearSlctDis","Sreenshot","./Husign.jpg");
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+testcase INF_015_1_2(){
+  testStep("Notifications","Start test INF_015_1_2");
+  write("Start INF_015_1_2. Step 1 will be executed");
+  
+  Send_Message(0x5,6500);
+  testWaitForTimeout(4000);
+  Enter_BLTN_CAM();
+  testStepPass("Notifications","Done step 1");
+  
+  testWaitForTimeout(2000);
+  testReportAddWindowCapture("Graphics 2","BLTN_CAM_RecSta_OWD; VCU_GearPosSta","Sreenshot","./Husign.jpg");
+  
+  Exit_BLTN_CAM();
+  
+  write("Step 2 will be excecuted");
+  testWaitForTimeout(6000);
+  Send_Message(0x5,4000);
+  Enter_BLTN_CAM();
+  testStepPass("Notifications","Done step 2");
+  
+  testWaitForTimeout(2000);
+  testReportAddWindowCapture("Graphics 2","BLTN_CAM_RecSta_OWD; VCU_GearPosSta","Sreenshot","./Husign.jpg");
+}
+
+testcase INF_015_3_to_19(){
+  testStep("Notifications","Start test INF_015_3_to_19");
+  write("Start INF_015_3_to_18");
+  
+  for(i=0x0;i<=0xF;i++){
+    testStep("Notifications","Step %d will be executed", i+0x1);
+    Exit_BLTN_CAM();
+    Send_Message(i,10000);
+    
+    write("Done Step %d", i+0x1);
+    testStepPass("Notifications","Done step %d", i+0x1);
+    Enter_BLTN_CAM();
+    
+    testWaitForTimeout(2000);
+    testReportAddWindowCapture("Graphics 2","BLTN_CAM_RecSta_OWD; VCU_GearPosSta","Sreenshot","./Husign.jpg");
+      
+}
+  
+  write("Start INF_014_19");
+  testStep("Notifications","Step 19 will be executed");
+  Exit_BLTN_CAM();
+  testWaitForTimeout(10000);
+  
+  write("Done Step 19");
+  testStepPass("Notifications","Done step 19");
+  Enter_BLTN_CAM();
+  testWaitForTimeout(2000);
+  testReportAddWindowCapture("Graphics 2","BLTN_CAM_RecSta_OWD; VCU_GearPosSta","Sreenshot","./Husign.jpg");
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void MainTest(){
+  write("===START TEST===");
+  @panel::Switch_Clock=1;
+  testWaitForValueInput("Enter testcase ID (Example: if you want test INF_012, please enter '12' on keyboard)", 300000);
+  if(testGetValueInput()==12){
+    BLTN_CAM_Settings();
+    
+    INF_012_1_2();
+    write("Done INF_012_1_2");
+    
+    testWaitForTimeout(2000);
+    
+    INF_012_3_to_19();
+    write("Done INF_012_3_to_19");
+    
+    testWaitForTimeout(1000);
+  
+    _HU_BLTN_CAM_E_00.BLTN_CAM_Rec_OWD_NvalueSet = 0x1; //OWD setting OFF state
+    output(_HU_BLTN_CAM_E_00);
+    write("===FINISH TEST INF_012===");     
+  }
+  else if(testGetValueInput()==13){
+    BLTN_CAM_Settings();
+    
+    INF_013_1_2();
+    write("Done INF_013_1_2");
+    
+    testWaitForTimeout(2000);
+    
+    INF_013_3_to_19();
+    write("Done INF_013_3_to_19");
+    
+    testWaitForTimeout(1000);
+  
+    _HU_BLTN_CAM_E_00.BLTN_CAM_Rec_OWD_NvalueSet = 0x1; //OWD setting OFF state
+    output(_HU_BLTN_CAM_E_00);
+    write("===FINISH TEST INF_013===");      
+  }
+   else if(testGetValueInput()==14){
+    BLTN_CAM_Settings();
+    
+    INF_014_1_2();
+    write("Done INF_014_1_2");
+    
+    testWaitForTimeout(2000);
+    
+    INF_014_3_to_19();
+    write("Done INF_014_3_to_19");
+    
+    testWaitForTimeout(1000);
+  
+    _HU_BLTN_CAM_E_00.BLTN_CAM_Rec_OWD_NvalueSet = 0x1; //OWD setting OFF state
+    output(_HU_BLTN_CAM_E_00);
+    write("===FINISH TEST INF_014===");   
+  }
+   else if(testGetValueInput()==15){
+    BLTN_CAM_Settings();
+    
+    INF_015_1_2();
+    write("Done INF_015_1_2");
+    
+    testWaitForTimeout(2000);
+    
+    INF_015_3_to_19();
+    write("Done INF_015_3_to_19");
+    
+    testWaitForTimeout(1000);
+  
+    _HU_BLTN_CAM_E_00.BLTN_CAM_Rec_OWD_NvalueSet = 0x1; //OWD setting OFF state
+    output(_HU_BLTN_CAM_E_00);
+    write("===FINISH TEST INF_015===");   
+  }  
+  
+  write("===FINISH TEST===");
+}

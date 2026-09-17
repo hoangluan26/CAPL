@@ -1,0 +1,94 @@
+﻿/*@!Encoding:65001*/
+/*@!Encoding:949*/
+variables
+{
+  // Global Variable Declaration
+  int i;
+  byte arr_BS2SoC_input[20]= {0x58, 0x57, 0x56, 0x55, 0x54, 0x53, 0x52, 0x51, 0x50, 0x4F, 0x4E, 0x4D, 0x4C, 0x4B, 0x4A, 0x49, 0x48, 0x47, 0x46, 0x45};
+  byte arr_BS2SoC_Invalid_input[2] = {0x0,0xFF};
+  byte GetVal_BS2_SoC;
+  byte MeasuredOperableTime;
+  byte Oprable_Time_Expect;
+  long CD_time;
+  int Wait_Signal_change;
+  // Message Declaration
+  message HU_BLTN_CAM_01_00ms _HU_BLTN_CAM_01_00ms;
+}
+//Preconditions: Add signal to graphic:  ICU_BS2SoC,BLTN_CAM_Prk_Oprable_Time
+
+void InitSignal()
+{
+  @panel::Switch_CGWNM = 1; //CAN Network Wake up
+}
+
+testcase BAT_032_22_23(){
+  Oprable_Time_Expect= 0x0;
+  for(i = 0; i < 2; i++){
+    
+    testStep("Notifications","Start BAT_032 step %d (BS2Soc = Invalid)", 22+i);
+    write("Start BAT_032 step %d (BS2Soc = Invalid)", 22+1);
+    
+    setSignal(ICU_BS2SoC,0x58);
+    
+    testWaitForTimeout(2000);
+    
+    setSignal(ICU_BS2SoC,arr_BS2SoC_Invalid_input[i]);
+    
+    testWaitForTimeout(10000); 
+    
+    MeasuredOperableTime = getSignal(BLTN_CAM_Prk_Oprable_Time);  
+    if (MeasuredOperableTime == Oprable_Time_Expect){
+	    testStepPass("Detailed results", "Expected: %d hours, Measured: %d hours", Oprable_Time_Expect, MeasuredOperableTime);
+    }	  
+    else {
+	    testStepFail("Detailed results", "Expected: %d hours, Measured: %d hours", Oprable_Time_Expect, MeasuredOperableTime);
+    }
+    testReportAddWindowCapture("Graphics 2","ICU_BS2SoC;BLTN_CAM_Prk_Oprable_Time","Sreenshot");
+  }  
+}  
+
+testcase BAT_032_1_to_21(){ 
+ Oprable_Time_Expect= 0x14;
+ for(i = 0; i < 20; i++){ 
+  if (i < 10 || i > 10){
+    setSignal(ICU_BS2SoC,arr_BS2SoC_input[i]);
+    testWaitForTimeout(2000);
+    GetVal_BS2_SoC = getSignal(ICU_BS2SoC);
+
+    testStep("Notifications","Start BAT_032 step %d (BS2Soc = %d%%)", i+1, GetVal_BS2_SoC);
+    write("Start BAT_032 step %d (BS2Soc = %d%%)", i+1, GetVal_BS2_SoC);
+  
+    testWaitForTimeout(2000);
+  
+    MeasuredOperableTime= getSignal(BLTN_CAM_Prk_Oprable_Time);
+  
+    if (MeasuredOperableTime == Oprable_Time_Expect){
+	    testStepPass("Detailed results", "Expected: %d hours, Measured: %d hours", Oprable_Time_Expect, MeasuredOperableTime);
+    }	  
+    else {
+	    testStepFail("Detailed results", "Expected: %d hours, Measured: %d hours", Oprable_Time_Expect, MeasuredOperableTime);
+    }
+    Oprable_Time_Expect--;    
+  }
+  else {
+    testStep("Notification","Do not display 10 hours. Skip...");
+    write("Do not display 10 hours. Skip...");  
+  }
+}
+  testReportAddWindowCapture("Graphics 2","ICU_BS2SoC;BLTN_CAM_Prk_Oprable_Time","Sreenshot");
+
+}
+
+
+void Maintest(){
+  write("===START TEST===");
+  InitSignal();
+  
+  testWaitForTimeout(1000);
+  
+  BAT_032_22_23();
+  
+  BAT_032_1_to_21();
+  write("===FINISH TEST===");
+}
+

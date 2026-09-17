@@ -1,0 +1,979 @@
+/*@!Encoding:1252*/
+// Preconditions: - Block CCU, ACC and IGN and ccNC/ccIC switch OFF state, AVN mode
+includes 
+{
+  
+  #include "DeclarationFunction_Gen2.5.h"
+  
+}
+
+variables
+{
+  // Message Declaration
+  // CAN FD 
+  message HU_BLTN_CAM_01_00ms _HU_BLTN_CAM_01_00ms;
+  message HU_BLTN_CAM_02_200ms _HU_BLTN_CAM_02_200ms;
+  message BDC_FD_SMK_03_200ms _BDC_FD_SMK_03_200ms;
+  message PDC_FD_10_200ms _PDC_FD_10_200ms;
+  message IAU_FD_04_200ms _IAU_FD_04_200ms;
+  message PDC_FD_11_200ms _PDC_FD_11_200ms;
+  //Global Variable Declaration
+  byte set_120h_value = 0x1; // For model using 120h parking but I turn OFF this setting 
+//  byte set_120h_value = 0x0;  // For model don't have 120h parking 
+  byte arr_RecSet[2] = {0x1,0x2};
+  byte arr_OWPTime[19] = {0x2,0x3,0x4,0x5,0x6,0x7,0x8,0x9,0xA,0xB,0xC,0xD,0xE,0xF,0x10,0x11,0x12,0x13,0x14}; 
+  byte arr_EVtime[3] = {0x0,0x5,0xA};
+  byte arr_TMLinterval[3] = {0x1,0x2,0x5};
+  byte arr_CAMAngle[10] = {0x1,0x2,0x3,0x4,0x5,0x11,0x12,0x13,0x14,0x15};
+  byte arr_EVSen[5] = {0x1,0x2,0x3,0x4,0x5};
+  byte arr_random_setting[21];
+  byte arr_get_setting[21];
+  byte arr_Profile_Guest_setting[21];
+  byte arr_Profile_Driver1_setting[21];
+  byte arr_Profile_Driver2_setting[21];
+  byte arr_Default_Setting[21] = {0x1,0x1,0x1,0x1,0x1,0x14,0x1,0x0,0x0,0x2,0x2,0x2,0x2,0x2,0x2,0x2,0x0,0x0,0x3,0x3,0x2}; 
+  int index;
+  int i;
+  int flag = 0;
+  int flag_RecSet_error = 0;
+  int condition1 = 0, condition2 = 0, condition3 = 0;
+  byte KEY_state = 0x0;
+  byte Profile_value = 0x0;
+  byte Mode_state = 0x0;
+  byte Bat_val = 0x50; //80%
+  int OWP_memvar;
+  char PLBM_Battery[4] = {'P','L','B','M'};
+  char eAGM_Battery[4] = {'E','A','G','M'};
+  char answer[4];     
+  // Timer Declaration
+  msTimer send_SMK_TrmnlCtrlGrpStaBDC_timer;
+  msTimer send_ICU_PowerAutoCutModSta_timer;
+  msTimer send_IAU_ProfileIDRVal_timer;
+  msTimer send_ICU_BS2SoC_timer;
+}
+
+on timer send_SMK_TrmnlCtrlGrpStaBDC_timer {
+  _BDC_FD_SMK_03_200ms.SMK_TrmnlCtrlGrpStaBDC = KEY_state; //IGN
+  output(_BDC_FD_SMK_03_200ms);
+  send_SMK_TrmnlCtrlGrpStaBDC_timer.set(200);
+}
+
+on timer send_IAU_ProfileIDRVal_timer {
+  _IAU_FD_04_200ms.IAU_ProfileIDRVal = Profile_value;
+  output(_IAU_FD_04_200ms);
+  send_IAU_ProfileIDRVal_timer.set(200);
+}
+
+on timer send_ICU_PowerAutoCutModSta_timer {
+  _PDC_FD_10_200ms.ICU_PowerAutoCutModSta = Mode_state;
+  output(_PDC_FD_10_200ms);
+  send_ICU_PowerAutoCutModSta_timer.set(200);
+}
+
+on timer send_ICU_BS2SoC_timer {
+  _PDC_FD_11_200ms.ICU_BS2SoC = Bat_val;
+  output(_PDC_FD_11_200ms);
+  send_ICU_BS2SoC_timer.set(200);
+}
+
+testcase BAS_017_1(){
+  testStep("Notifications","Start test-case BAS_017_1");
+  write("=== START BAS_017_1 ===");
+  
+  write("=== PREPARE BEFORE SETTING ===");
+  
+  KEY_state = 0x1; testWaitForTimeout(3000);
+  
+  if ($BLTN_CAM_RecSet_OWD == 0x1 || $BLTN_CAM_RecSet_OWP == 0x1 || $BLTN_CAM_RecSet_DEV == 0x1 || $BLTN_CAM_RecSet_PEV == 0x1) {
+    
+    write("Run Set_All_Recording_OFF()"); Set_All_Recording_OFF();
+  
+  }
+  else {
+    
+    write("All settings are set to Off");
+  
+  }
+  
+  KEY_state = 0x0;
+    
+  write("=== Create Recorded File ===");
+  
+  Create_PRK_Recorded_vid_17();
+  
+  Mode_state = 0x0; testWaitForTimeout(10000); /*send_ICU_PowerAutoCutModSta_timer.cancel();*/
+  
+  Create_DRV_Recorded_vid_17();
+  
+  write("=== Random Settings ==="); send_ICU_PowerAutoCutModSta_timer.cancel();
+  
+  Set_Profile_Guest_17();
+  
+  write("KEY_OFF"); KEY_state = 0x0;
+  
+  if(testWaitForSignalChange(BLTN_CAM_RecSta_OWP,10000) != 1){
+    
+    write("Parking recording is not avaiable in Factory Mode State");
+    
+    condition1 = 1;
+    
+    testReportAddWindowCapture("Graphics 2","","BLTN_CAM_RecSta_OWP;ICU_PowerAutoCutModSta","./envidence.jpg");
+  }
+  
+  write("KEY_ON"); KEY_state = 0x2;
+  
+  testWaitForTimeout(5000);
+  
+  Get_setting();
+  
+  for (i = 0; i <= 20; i++) {
+    if(arr_get_setting[i] == arr_Default_Setting[i]) {
+      
+      flag++;
+    
+    }
+    else {
+      switch(i){
+        case(0): write("Mismatch >> OWD: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(1): write("Mismatch >> OWP: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(2): write("Mismatch >> DEV: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(3): write("Mismatch >> PEV: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(4): write("Mismatch >> 120h: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(5): write("Mismatch >> Parking Time: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(6): write("Mismatch >> TML Interval: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(7): write("Mismatch >> Bfr Time: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(8): write("Mismatch >> Aft Time: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(9): write("Mismatch >> EV Sen Stamp: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(10): write("Mismatch >> Gear Stamp: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(11): write("Mismatch >> Location Stamp: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(12): write("Mismatch >> Velocity Stamp: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(13): write("Mismatch >> Time Stamp: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(14): write("Mismatch >> Turn Signal Stamp: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(15): write("Mismatch >> Audio: get = 0x%X, get = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(16): write("Mismatch >> FCAM Angle: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(17): write("Mismatch >> RCAM Angle: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(18): write("Mismatch >> DEV Sen Level: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(19): write("Mismatch >> PEV Sen Level: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(20): write("Mismatch >> App Notification: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+      }
+      break;      
+    }
+  }
+  
+  if (flag == 21) {
+    
+    write("All settings are initialized to default settings");
+      
+    condition2 = 1;
+      
+    testReportAddWindowCapture("Profile Settings 2.5","","Initial Settings","./profile_setting.jpg");
+  
+  } 
+  
+  if (testWaitForMessageBox("Turn ON ACC and IGN and ccNC/ccIC to check whether the recorded files are deleted",300000,"Choose Yes/No",4) == 6){
+        
+    write("Recorded files are deleted");
+        
+    condition3 = 1;
+    
+  }
+  else {
+    
+    write("Recorded files aren't deleted");
+    
+  }
+
+  
+  if (condition1 == 1 && condition2 == 1 && condition3 == 1){
+    testStepPass("Pass","All conditions have met. Test-case is OK");
+    write("Test-case is OK");
+  }
+  else {
+    int arr[3];
+    
+    arr[0] = condition1;
+    arr[1] = condition2;
+    arr[2] = condition3;
+    
+    testStepFail("Fail","Condition hasn't met. Test-case is NG");
+    
+    for (i = 0; i < 3; i++){
+      
+      if (arr[i] != 1){
+        
+        write("Condition %d is not met", i+1);
+        
+      }   
+    }
+  }
+
+  Init_17();
+  @panel::Switch_CGWNM = 0;
+  
+  testStep("Notifications","Done test-case BAS_017_1");
+  write("=== FINISH BAS_017_1 ===");  
+}
+  
+testcase BAS_017_4(){
+  testStep("Notifications","Start test-case BAS_017_4");
+  write("=== START BAS_017_4 ===");
+  
+  write("=== PREPARE BEFORE SETTING ===");
+  
+  KEY_state = 0x1; testWaitForTimeout(3000);
+  
+  if ($BLTN_CAM_RecSet_OWD == 0x1 || $BLTN_CAM_RecSet_OWP == 0x1 || $BLTN_CAM_RecSet_DEV == 0x1 || $BLTN_CAM_RecSet_PEV == 0x1) {
+    
+    write("Run Set_All_Recording_OFF()"); Set_All_Recording_OFF();
+  
+  }
+  else {
+    
+    write("All settings are set to Off");
+  
+  }
+  
+  KEY_state = 0x0;
+    
+  write("=== Create Recorded File ===");
+  
+  Create_PRK_Recorded_vid_17();
+  
+  Mode_state = 0x1; testWaitForTimeout(5000);
+  
+  Create_DRV_Recorded_vid_17();
+  
+  write("=== Random Settings ===");  send_ICU_PowerAutoCutModSta_timer.cancel();
+  
+  Set_Profile_Guest_17();
+  
+  write("KEY_OFF"); KEY_state = 0x0;
+  
+  if(testWaitForSignalChange(BLTN_CAM_RecSta_OWP,10000) != 1){
+  
+    write("Parking recording is not avaiable in Dealer Mode State");
+    
+    condition1 = 1;
+
+    testReportAddWindowCapture("Graphics 2","","BLTN_CAM_RecSta_OWP;ICU_PowerAutoCutModSta","./envidence.jpg");
+  
+  }    
+    
+  write("KEY_ON"); KEY_state = 0x2;
+  testWaitForTimeout(5000);
+  
+  Get_setting();
+  
+  for (i = 0; i <= 20; i++){
+    if(arr_get_setting[i] == arr_Default_Setting[i]){
+      flag++;
+    }
+    else{
+      switch(i){
+        case(0): write("Mismatch >> OWD: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(1): write("Mismatch >> OWP: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(2): write("Mismatch >> DEV: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(3): write("Mismatch >> PEV: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(4): write("Mismatch >> 120h: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(5): write("Mismatch >> Parking Time: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(6): write("Mismatch >> TML Interval: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(7): write("Mismatch >> Bfr Time: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(8): write("Mismatch >> Aft Time: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(9): write("Mismatch >> EV Sen Stamp: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(10): write("Mismatch >> Gear Stamp: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(11): write("Mismatch >> Location Stamp: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(12): write("Mismatch >> Velocity Stamp: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(13): write("Mismatch >> Time Stamp: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(14): write("Mismatch >> Turn Signal Stamp: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(15): write("Mismatch >> Audio: get = 0x%X, get = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(16): write("Mismatch >> FCAM Angle: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(17): write("Mismatch >> RCAM Angle: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(18): write("Mismatch >> DEV Sen Level: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(19): write("Mismatch >> PEV Sen Level: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(20): write("Mismatch >> App Notification: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+      }
+      break;      
+    }
+  }
+  
+  if (flag == 21){
+  
+    write("All settings are initialized to default settings");
+      
+    condition2 = 1;
+      
+    testReportAddWindowCapture("Profile Settings 2.5","","Initial Settings","./profile_setting.jpg");
+  
+  }    
+  if (testWaitForMessageBox("Turn ON ACC and IGN and ccNC/ccIC to check whether the recorded files are deleted",300000,"Choose Yes/No",4) == 6){
+    
+    write("Recorded files are deleted");
+        
+    condition3 = 1;
+      
+  }
+  
+  else {
+        
+    write("Recorded files aren't deleted");
+      
+  }
+  
+  if (condition1 == 1 && condition2 == 1 && condition3 == 1){
+    
+    testStepPass("Pass","All conditions have met. Test-case is OK");
+    
+    write("Test-case is OK");
+    
+  }
+  else {
+    int arr[3];
+    
+    arr[0] = condition1;
+    arr[1] = condition2;
+    arr[2] = condition3;
+    
+    testStepFail("Fail","Condition hasn't met. Test-case is NG");
+    
+    for (i = 0; i < 3; i++){
+      
+      if (arr[i] != 1){
+        
+        write("Condition %d is not met", i+1);
+        
+      }   
+    }
+  }
+
+  Init_17();
+  @panel::Switch_CGWNM = 0;
+  
+  testStep("Notifications","Done test-case BAS_017_4");
+  write("=== FINISH BAS_017_4 ===");      
+}
+
+testcase BAS_017_7(){
+  testStep("Notifications","Start test-case BAS_017_7");
+  write("=== START BAS_017_7 ===");
+  
+  write("=== PREPARE BEFORE SETTING ===");
+  
+  KEY_state = 0x1; testWaitForTimeout(3000);
+  
+  if ($BLTN_CAM_RecSet_OWD == 0x1 || $BLTN_CAM_RecSet_OWP == 0x1 || $BLTN_CAM_RecSet_DEV == 0x1 || $BLTN_CAM_RecSet_PEV == 0x1) {
+    
+    write("Run Set_All_Recording_OFF()"); Set_All_Recording_OFF();
+  
+  }
+  else {
+    
+    write("All settings are set to Off");
+  
+  }
+  
+  KEY_state = 0x0;
+    
+  write("=== Create Recorded File ===");
+  
+  Create_PRK_Recorded_vid_17();
+  
+  Mode_state = 0x2; testWaitForTimeout(5000);
+  
+  Create_DRV_Recorded_vid_17();
+  
+  write("KEY_ON"); KEY_state = 0x2; 
+  
+  write("=== Random Settings ==="); send_ICU_PowerAutoCutModSta_timer.cancel();
+  
+  Set_Profile_Guest_17();
+  
+  testReportAddWindowCapture("Profile Settings 2.5","","Profile Guest","./profile_setting.jpg");  
+  
+  do {
+    Enter_BLTN_CAM();
+    testWaitForTimeout(3000);
+      
+    if(getSignal(BLTN_CAM_RecSet_OWP) == 0x1){      
+      @panel::LED_Ctrl_SetOWP = 1;
+      write("OWP ON"); OWP_memvar = 2;
+      testWaitForTimeout(500);
+    } 
+    
+    Exit_BLTN_CAM();
+    testWaitForTimeout(3000);
+  } while ($BLTN_CAM_RecSet_OWP == 0x1);  
+  
+  write("KEY_OFF"); KEY_state = 0x0;
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWP,10000) == 1) {
+    
+    write("Parking recording is avaiable in Customer Mode State");
+    
+    condition1 = 1;
+    
+    testWaitForTimeout(5000);
+  
+  }
+    
+  write("KEY_ON"); KEY_state = 0x2; 
+  testWaitForTimeout(5000);
+  
+  if (OWP_memvar == 2) {
+      do {
+        Enter_BLTN_CAM();
+        testWaitForTimeout(3000);
+        
+        @panel::LED_Ctrl_SetOWP = 1;
+        write("OWP OFF"); OWP_memvar = 1;
+        
+        Exit_BLTN_CAM();
+        testWaitForTimeout(3000); 
+      } while ($BLTN_CAM_RecSet_OWP == 0x2);
+    }  
+  
+  Get_setting();
+  
+  for (i = 0; i <= 20; i++){
+    
+    if(arr_get_setting[i] == arr_Profile_Guest_setting[i]){
+      
+      flag++;
+    
+    }
+    else{
+      switch(i){
+        case(0): write("Mismatch >> OWD: get = 0x%X, guest = 0x%X", arr_get_setting[i], arr_Profile_Guest_setting[i]); break;
+        case(1): write("Mismatch >> OWP: get = 0x%X, guest = 0x%X", arr_get_setting[i], arr_Profile_Guest_setting[i]); break;
+        case(2): write("Mismatch >> DEV: get = 0x%X, guest = 0x%X", arr_get_setting[i], arr_Profile_Guest_setting[i]); break;
+        case(3): write("Mismatch >> PEV: get = 0x%X, guest = 0x%X", arr_get_setting[i], arr_Profile_Guest_setting[i]); break;
+        case(4): write("Mismatch >> 120h: get = 0x%X, guest = 0x%X", arr_get_setting[i], arr_Profile_Guest_setting[i]); break;
+        case(5): write("Mismatch >> Parking Time: get = 0x%X, guest = 0x%X", arr_get_setting[i], arr_Profile_Guest_setting[i]); break;
+        case(6): write("Mismatch >> TML Interval: get = 0x%X, guest = 0x%X", arr_get_setting[i], arr_Profile_Guest_setting[i]); break;
+        case(7): write("Mismatch >> Bfr Time: get = 0x%X, guest = 0x%X", arr_get_setting[i], arr_Profile_Guest_setting[i]); break;
+        case(8): write("Mismatch >> Aft Time: get = 0x%X, guest = 0x%X", arr_get_setting[i], arr_Profile_Guest_setting[i]); break;
+        case(9): write("Mismatch >> EV Sen Stamp: get = 0x%X, guest = 0x%X", arr_get_setting[i], arr_Profile_Guest_setting[i]); break;
+        case(10): write("Mismatch >> Gear Stamp: get = 0x%X, guest = 0x%X", arr_get_setting[i], arr_Profile_Guest_setting[i]); break;
+        case(11): write("Mismatch >> Location Stamp: get = 0x%X, guest = 0x%X", arr_get_setting[i], arr_Profile_Guest_setting[i]); break;
+        case(12): write("Mismatch >> Velocity Stamp: get = 0x%X, guest = 0x%X", arr_get_setting[i], arr_Profile_Guest_setting[i]); break;
+        case(13): write("Mismatch >> Time Stamp: get = 0x%X, guest = 0x%X", arr_get_setting[i], arr_Profile_Guest_setting[i]); break;
+        case(14): write("Mismatch >> Turn Signal Stamp: get = 0x%X, guest = 0x%X", arr_get_setting[i], arr_Profile_Guest_setting[i]); break;
+        case(15): write("Mismatch >> Audio: get = 0x%X, get = 0x%X", arr_get_setting[i], arr_Profile_Guest_setting[i]); break;
+        case(16): write("Mismatch >> FCAM Angle: get = 0x%X, guest = 0x%X", arr_get_setting[i], arr_Profile_Guest_setting[i]); break;
+        case(17): write("Mismatch >> RCAM Angle: get = 0x%X, guest = 0x%X", arr_get_setting[i], arr_Profile_Guest_setting[i]); break;
+        case(18): write("Mismatch >> DEV Sen Level: get = 0x%X, guest = 0x%X", arr_get_setting[i], arr_Profile_Guest_setting[i]); break;
+        case(19): write("Mismatch >> PEV Sen Level: get = 0x%X, guest = 0x%X", arr_get_setting[i], arr_Profile_Guest_setting[i]); break;
+        case(20): write("Mismatch >> App Notification: get = 0x%X, guest = 0x%X", arr_get_setting[i], arr_Profile_Guest_setting[i]); break;
+      }
+      break;      
+    }
+  }
+  
+  if (flag == 21){
+    
+    write("All settings remain unchanged");
+      
+    condition2 = 1;
+      
+    testReportAddWindowCapture("Profile Settings 2.5","","Unchanged Settings","./profile_setting.jpg");
+  
+  }  
+    
+  if (testWaitForMessageBox("Turn ON ACC and IGN and ccNC/ccIC to check whether the recorded files are deleted",300000,"Choose Yes/No",4) == 7){
+  
+    write("Recorded files are deleted");
+        
+    condition3 = 1;
+  
+  }
+  else {
+  
+    write("Recorded files aren't deleted");
+  
+  }
+  
+  if (condition1 == 1 && condition2 == 1 && condition3 == 1){
+    
+    testStepPass("Pass","All conditions have met. Test-case is OK");
+    
+    write("Test-case is OK");
+  
+  }
+  else {
+    int arr[3];
+    
+    arr[0] = condition1;
+    arr[1] = condition2;
+    arr[2] = condition3;
+    
+    testStepFail("Fail","Condition hasn't met. Test-case is NG");
+    
+    for (i = 0; i < 3; i++){
+      
+      if (arr[i] != 1){
+        
+        write("Condition %d is not met", i+1);
+        
+      } 
+    
+    }
+  }
+  
+  @panel::Switch_CGWNM = 0;  
+  
+  testStep("Notifications","Done test-case BAS_017_7");
+  write("=== FINISH BAS_017_7 ===");    
+}
+
+testcase BAS_017_8(){
+  testStep("Notifications","Start test-case BAS_017_8");
+  write("=== START BAS_017_8 ===");
+  
+  write("=== PREPARE BEFORE SETTING ===");
+  
+  KEY_state = 0x1; testWaitForTimeout(3000);
+  
+  if ($BLTN_CAM_RecSet_OWD == 0x1 || $BLTN_CAM_RecSet_OWP == 0x1 || $BLTN_CAM_RecSet_DEV == 0x1 || $BLTN_CAM_RecSet_PEV == 0x1) {
+    
+    write("Run Set_All_Recording_OFF()"); Set_All_Recording_OFF();
+  
+  }
+  else {
+    
+    write("All settings are set to Off");
+  
+  }
+  
+  KEY_state = 0x0;
+    
+  write("=== Create Recorded File ===");
+  
+  Create_PRK_Recorded_vid_17();
+  
+  Mode_state = 0x0; testWaitForTimeout(5000);
+  
+  Create_DRV_Recorded_vid_17();
+  
+  write("=== Random Settings ==="); Mode_state = 0x3;
+  
+  Set_Profile_Guest_17();
+  
+  write("KEY_OFF"); KEY_state = 0x0;
+  
+  if(testWaitForSignalChange(BLTN_CAM_RecSta_OWP,10000) != 1){
+  
+    write("Parking recording is not avaiable in Factory Mode State");
+    
+    condition1 = 1;
+    
+    testReportAddWindowCapture("Graphics 2","","BLTN_CAM_RecSta_OWP;ICU_PowerAutoCutModSta","./envidence.jpg");
+  
+  }
+    
+  write("KEY_ON"); KEY_state = 0x2;
+  testWaitForTimeout(5000);
+  
+  Get_setting();
+  
+  for (i = 0; i <= 20; i++){
+    
+    if(arr_get_setting[i] == arr_Default_Setting[i]){
+        
+      flag++;
+      
+    }
+    else {
+      switch(i){
+        case(0): write("Mismatch >> OWD: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(1): write("Mismatch >> OWP: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(2): write("Mismatch >> DEV: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(3): write("Mismatch >> PEV: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(4): write("Mismatch >> 120h: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(5): write("Mismatch >> Parking Time: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(6): write("Mismatch >> TML Interval: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(7): write("Mismatch >> Bfr Time: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(8): write("Mismatch >> Aft Time: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(9): write("Mismatch >> EV Sen Stamp: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(10): write("Mismatch >> Gear Stamp: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(11): write("Mismatch >> Location Stamp: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(12): write("Mismatch >> Velocity Stamp: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(13): write("Mismatch >> Time Stamp: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(14): write("Mismatch >> Turn Signal Stamp: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(15): write("Mismatch >> Audio: get = 0x%X, get = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(16): write("Mismatch >> FCAM Angle: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(17): write("Mismatch >> RCAM Angle: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(18): write("Mismatch >> DEV Sen Level: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(19): write("Mismatch >> PEV Sen Level: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(20): write("Mismatch >> App Notification: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+      }
+      break;      
+    }
+  }
+  
+  if (flag == 21){
+    
+    write("All settings are initialized to default settings");
+      
+    condition2 = 1;
+        
+    testReportAddWindowCapture("Profile Settings 2.5","","Initial Settings","./profile_setting.jpg");
+  
+  }    
+  
+  if (testWaitForMessageBox("Turn ON ACC and IGN and ccNC/ccIC to check whether the recorded files are deleted",300000,"Choose Yes/No",4) == 6){
+    
+    write("Recorded files are deleted");
+        
+    condition3 = 1;
+  
+  }
+  else {
+    
+    write("Recorded files aren't deleted");
+      
+  }
+  
+  if (condition1 == 1 && condition2 == 1 && condition3 == 1){
+    
+    testStepPass("Pass","All conditions have met. Test-case is OK");
+    
+    write("Test-case is OK");
+  
+  }
+  else {
+    int arr[3];
+    
+    arr[0] = condition1;
+    arr[1] = condition2;
+    arr[2] = condition3;
+    
+    testStepFail("Fail","Condition hasn't met. Test-case is NG");
+    
+    for (i = 0; i < 3; i++){
+      
+      if (arr[i] != 1){
+        
+        write("Condition %d is not met", i+1);
+        
+      } 
+    
+    }
+  }
+
+  Init_17();
+  @panel::Switch_CGWNM = 0;
+  
+  testStep("Notifications","Done test-case BAS_017_8");
+  write("=== FINISH BAS_017_8 ===");  
+}
+
+testcase BAS_017_11(){
+  testStep("Notifications","Start test-case BAS_017_11");
+  write("=== START BAS_017_11 ===");
+  
+  write("=== PREPARE BEFORE SETTING ===");
+  
+  KEY_state = 0x1; testWaitForTimeout(3000);
+  
+  if ($BLTN_CAM_RecSet_OWD == 0x1 || $BLTN_CAM_RecSet_OWP == 0x1 || $BLTN_CAM_RecSet_DEV == 0x1 || $BLTN_CAM_RecSet_PEV == 0x1) {
+    
+    write("Run Set_All_Recording_OFF()"); Set_All_Recording_OFF();
+  
+  }
+  else {
+    
+    write("All settings are set to Off");
+  
+  }
+  
+  KEY_state = 0x0;
+    
+  write("=== Create Recorded File ===");
+  
+  Create_PRK_Recorded_vid_17();
+  
+  Mode_state = 0x1; testWaitForTimeout(5000);
+  
+  Create_DRV_Recorded_vid_17();
+  
+  write("=== Random Settings ==="); Mode_state = 0x3;
+  
+  Set_Profile_Guest_17();
+  
+  write("KEY_OFF"); KEY_state = 0x0;
+  
+  if(testWaitForSignalChange(BLTN_CAM_RecSta_OWP,10000) != 1){
+  
+    write("Parking recording is not avaiable in Factory Mode State");
+    
+    condition1 = 1;
+    
+    testReportAddWindowCapture("Graphics 2","","BLTN_CAM_RecSta_OWP;ICU_PowerAutoCutModSta","./envidence.jpg");
+  
+  }
+    
+  write("KEY_ON"); KEY_state = 0x2;
+  testWaitForTimeout(5000);
+  
+  Get_setting();
+  
+  for (i = 0; i <= 20; i++){
+    if(arr_get_setting[i] == arr_Default_Setting[i]){
+        
+      flag++;
+      
+    }
+    else{
+      switch(i){
+        case(0): write("Mismatch >> OWD: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;  
+        case(1): write("Mismatch >> OWP: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(2): write("Mismatch >> DEV: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(3): write("Mismatch >> PEV: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(4): write("Mismatch >> 120h: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(5): write("Mismatch >> Parking Time: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(6): write("Mismatch >> TML Interval: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(7): write("Mismatch >> Bfr Time: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(8): write("Mismatch >> Aft Time: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(9): write("Mismatch >> EV Sen Stamp: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(10): write("Mismatch >> Gear Stamp: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(11): write("Mismatch >> Location Stamp: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(12): write("Mismatch >> Velocity Stamp: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(13): write("Mismatch >> Time Stamp: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(14): write("Mismatch >> Turn Signal Stamp: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(15): write("Mismatch >> Audio: get = 0x%X, get = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(16): write("Mismatch >> FCAM Angle: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(17): write("Mismatch >> RCAM Angle: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(18): write("Mismatch >> DEV Sen Level: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(19): write("Mismatch >> PEV Sen Level: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+        case(20): write("Mismatch >> App Notification: get = 0x%X, default = 0x%X", arr_get_setting[i], arr_Default_Setting[i]); break;
+      }
+      break;      
+    }
+  }
+  
+  if (flag == 21){
+    
+    write("All settings are initialized to default settings");
+      
+    condition2 = 1;
+      
+    testReportAddWindowCapture("Profile Settings 2.5","","Initial Settings","./profile_setting.jpg");
+  
+  }  
+    
+  if (testWaitForMessageBox("Turn ON ACC and IGN and ccNC/ccIC to check whether the recorded files are deleted",300000,"Choose Yes/No",4) == 6){
+        
+    write("Recorded files are deleted");
+        
+    condition3 = 1;
+      
+  }
+  else {
+        
+  write("Recorded files aren't deleted");
+      
+  }
+  
+  if (condition1 == 1 && condition2 == 1 && condition3 == 1){
+    testStepPass("Pass","All conditions have met. Test-case is OK");
+    write("Test-case is OK");
+  }
+
+  Init_17();
+  @panel::Switch_CGWNM = 0;
+  
+  testStep("Notifications","Done test-case BAS_017_11");
+  write("=== FINISH BAS_017_11 ===");
+}
+
+testcase BAS_017_14(){
+  testStep("Notifications","Start test-case BAS_017_14");
+  write("=== START BAS_017_14 ===");
+  
+  write("=== PREPARE BEFORE SETTING ===");
+  
+  KEY_state = 0x1; testWaitForTimeout(3000);
+  
+  if ($BLTN_CAM_RecSet_OWD == 0x1 || $BLTN_CAM_RecSet_OWP == 0x1 || $BLTN_CAM_RecSet_DEV == 0x1 || $BLTN_CAM_RecSet_PEV == 0x1) {
+    
+    write("Run Set_All_Recording_OFF()"); Set_All_Recording_OFF();
+  
+  }
+  else {
+    
+    write("All settings are set to Off");
+  
+  }
+  
+  KEY_state = 0x0;
+    
+  write("=== Create Recorded File ===");
+  
+  Create_PRK_Recorded_vid_17();
+  
+  Mode_state = 0x2; testWaitForTimeout(5000);
+  
+  Create_DRV_Recorded_vid_17();
+  
+  write("=== Random Settings ==="); Mode_state = 0x3;
+  
+  Set_Profile_Guest_17();
+  
+  testReportAddWindowCapture("Profile Settings 2.5","","Profile Guest","./profile_setting.jpg");  
+  
+  do {
+    Enter_BLTN_CAM();
+    testWaitForTimeout(3000);
+      
+    if(getSignal(BLTN_CAM_RecSet_OWP) == 0x1){      
+      @panel::LED_Ctrl_SetOWP = 1;
+      write("OWP ON"); OWP_memvar = 2;
+      testWaitForTimeout(500);
+    } 
+    
+    Exit_BLTN_CAM();
+    testWaitForTimeout(3000);
+  } while ($BLTN_CAM_RecSet_OWP == 0x1);    
+  
+  write("KEY_OFF"); KEY_state = 0x0;
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWP,10000) == 1) {
+    
+    write("Parking recording is avaiable in Customer Mode State");
+    
+    condition1 = 1;
+    
+    testWaitForTimeout(5000);
+  
+  }
+    
+  write("KEY_ON"); KEY_state = 0x2; 
+  testWaitForTimeout(5000);
+  
+  if (OWP_memvar == 2) {
+      do {
+        Enter_BLTN_CAM();
+        testWaitForTimeout(3000);
+        
+        @panel::LED_Ctrl_SetOWP = 1;
+        write("OWP OFF"); OWP_memvar = 1;
+        
+        Exit_BLTN_CAM();
+        testWaitForTimeout(3000); 
+      } while ($BLTN_CAM_RecSet_OWP == 0x2);
+    }  
+  
+  Get_setting();
+  
+  for (i = 0; i <= 20; i++){
+    if(arr_get_setting[i] == arr_Profile_Guest_setting[i]){
+      flag++;
+    }
+    else{
+      switch(i){
+        case(0): write("Mismatch >> OWD: get = 0x%X, guest = 0x%X", arr_get_setting[i], arr_Profile_Guest_setting[i]); break;
+        case(1): write("Mismatch >> OWP: get = 0x%X, guest = 0x%X", arr_get_setting[i], arr_Profile_Guest_setting[i]); break;
+        case(2): write("Mismatch >> DEV: get = 0x%X, guest = 0x%X", arr_get_setting[i], arr_Profile_Guest_setting[i]); break;
+        case(3): write("Mismatch >> PEV: get = 0x%X, guest = 0x%X", arr_get_setting[i], arr_Profile_Guest_setting[i]); break;
+        case(4): write("Mismatch >> 120h: get = 0x%X, guest = 0x%X", arr_get_setting[i], arr_Profile_Guest_setting[i]); break;
+        case(5): write("Mismatch >> Parking Time: get = 0x%X, guest = 0x%X", arr_get_setting[i], arr_Profile_Guest_setting[i]); break;
+        case(6): write("Mismatch >> TML Interval: get = 0x%X, guest = 0x%X", arr_get_setting[i], arr_Profile_Guest_setting[i]); break;
+        case(7): write("Mismatch >> Bfr Time: get = 0x%X, guest = 0x%X", arr_get_setting[i], arr_Profile_Guest_setting[i]); break;
+        case(8): write("Mismatch >> Aft Time: get = 0x%X, guest = 0x%X", arr_get_setting[i], arr_Profile_Guest_setting[i]); break;
+        case(9): write("Mismatch >> EV Sen Stamp: get = 0x%X, guest = 0x%X", arr_get_setting[i], arr_Profile_Guest_setting[i]); break;
+        case(10): write("Mismatch >> Gear Stamp: get = 0x%X, guest = 0x%X", arr_get_setting[i], arr_Profile_Guest_setting[i]); break;
+        case(11): write("Mismatch >> Location Stamp: get = 0x%X, guest = 0x%X", arr_get_setting[i], arr_Profile_Guest_setting[i]); break;
+        case(12): write("Mismatch >> Velocity Stamp: get = 0x%X, guest = 0x%X", arr_get_setting[i], arr_Profile_Guest_setting[i]); break;
+        case(13): write("Mismatch >> Time Stamp: get = 0x%X, guest = 0x%X", arr_get_setting[i], arr_Profile_Guest_setting[i]); break;
+        case(14): write("Mismatch >> Turn Signal Stamp: get = 0x%X, guest = 0x%X", arr_get_setting[i], arr_Profile_Guest_setting[i]); break;
+        case(15): write("Mismatch >> Audio: get = 0x%X, get = 0x%X", arr_get_setting[i], arr_Profile_Guest_setting[i]); break;
+        case(16): write("Mismatch >> FCAM Angle: get = 0x%X, guest = 0x%X", arr_get_setting[i], arr_Profile_Guest_setting[i]); break;
+        case(17): write("Mismatch >> RCAM Angle: get = 0x%X, guest = 0x%X", arr_get_setting[i], arr_Profile_Guest_setting[i]); break;
+        case(18): write("Mismatch >> DEV Sen Level: get = 0x%X, guest = 0x%X", arr_get_setting[i], arr_Profile_Guest_setting[i]); break;
+        case(19): write("Mismatch >> PEV Sen Level: get = 0x%X, guest = 0x%X", arr_get_setting[i], arr_Profile_Guest_setting[i]); break;
+        case(20): write("Mismatch >> App Notification: get = 0x%X, guest = 0x%X", arr_get_setting[i], arr_Profile_Guest_setting[i]); break;
+      }
+      break;      
+    }
+  }
+  
+  if (flag == 21){
+  
+    write("All settings remain unchanged");
+      
+    condition2 = 1;
+      
+    testReportAddWindowCapture("Profile Settings 2.5","","Unchanged Settings","./profile_setting.jpg");
+  
+  }   
+  
+  if (testWaitForMessageBox("Turn ON ACC and IGN and ccNC/ccIC to check whether the recorded files are deleted",300000,"Choose Yes/No",4) == 7){
+    
+    write("Recorded files are deleted");
+        
+    condition3 = 1;
+    
+  }
+  else {
+      
+    write("Recorded files aren't deleted");
+    
+  }
+  
+  if (condition1 == 1 && condition2 == 1 && condition3 == 1){
+    
+    testStepPass("Pass","All conditions have met. Test-case is OK");
+    
+    write("Test-case is OK");
+  
+  }
+  else {
+    int arr[3];
+    
+    arr[0] = condition1;
+    arr[1] = condition2;
+    arr[2] = condition3;
+    
+    testStepFail("Fail","Condition hasn't met. Test-case is NG");
+    
+    for (i = 0; i < 3; i++){
+      
+      if (arr[i] != 1){
+        
+        write("Condition %d is not met", i+1);
+        
+      } 
+    
+    }
+  }
+  
+  Init_17();
+  @panel::Switch_CGWNM = 0;  
+  
+  testStep("Notifications","Done test-case BAS_017_14");
+  write("=== FINISH BAS_017_14 ===");  
+}
+
+void Run_timrer() {
+  send_SMK_TrmnlCtrlGrpStaBDC_timer.set(10);
+  send_ICU_PowerAutoCutModSta_timer.set(10);
+  send_ICU_BS2SoC_timer.set(10);
+  send_IAU_ProfileIDRVal_timer.set(10);
+}
+
+void MainTest(){
+  Run_timrer();
+  
+  TestWaitForValueInput("Please enter the test ID (1/2/3/4/5/6/7)", 300000);
+  switch (TestGetValueInput()){
+    
+   case(1) : BAS_017_1(); break;
+   case(2) : BAS_017_4(); break;
+   case(3) : BAS_017_7(); break; 
+   case(4) : BAS_017_8(); break;
+   case(5) : BAS_017_11(); break;
+   case(6) : BAS_017_14(); break;
+   
+   case(7) : BAS_017_1();  Run_timrer(); BAS_017_4();  Run_timrer(); BAS_017_7();  Run_timrer(); BAS_017_8();  Run_timrer(); BAS_017_11();  Run_timrer(); BAS_017_14(); break;
+  }    
+} 
+

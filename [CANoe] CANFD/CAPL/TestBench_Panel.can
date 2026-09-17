@@ -1,0 +1,579 @@
+/*@!Encoding:949*/
+includes
+{
+}
+////////////////
+variables
+{
+  enum DoorState
+  {
+    Open = 1, Closed = 0
+  };
+  
+  //Turn Siganl Timer
+  msTimer timer_HazrdLmp;
+  msTimer timer_RightTurnSignal;
+  msTimer timer_LeftTurnSignal;
+  int TIME_BlinkLmp = 400;
+  
+  int state_Lamp_TrnSigLmpRtOnReq = 0;
+  int state_Lamp_TrnSigLmpLftOnReq = 0;
+  
+  //Gear Timer
+  msTimer timer_GearShifting;
+  int TIME_GearShifting = 500;
+  int GearSelect;
+  
+  //read DTC interval
+  msTimer timer_ReadDTC;
+  int TIME_ReadDTC = 2000;
+  
+  diagRequest DVRS.Read_DVRS_CPU_Version_Read diag_ReadCPUVersion_req;
+  diagRequest DVRS.Read_DVRS_MCU_Version_Read diag_ReadMCUVersion;
+  diagRequest DVRS.HMC_KMC_Part_Number_Read diag_ReadPartNumber;
+  diagRequest DVRS.DVRS_Input_Output_Record_Local_Identifier_1_Byte_Read diag_Identifier_1_Byte_Rea;
+  diagRequest DVRS.Default_Session_Start diag_Default_Session_Start;
+  diagRequest DVRS.Extended_Session_Start diag_Extended_Session_Start;
+}
+
+on start
+{
+  @panel::SwitchIndi_HazardLamp = 0;
+  @panel::SwitchIndi_TurnSignal_Right = 0;
+  @panel::SwitchIndi_TurnSignal_Left = 0;
+}
+
+/// <Turn Siganl>
+on sysvar_update panel::SwitchIndi_HazardLamp
+{
+  if(@panel::SwitchIndi_HazardLamp)
+  {
+    //턴시그널 끄고 시작
+    cancelTimer(timer_LeftTurnSignal);
+    cancelTimer(timer_RightTurnSignal);
+    @panel::SwitchIndi_TurnSignal_Right = 0;
+    @panel::SwitchIndi_TurnSignal_Left = 0;
+    
+    //값 동기화
+    state_Lamp_TrnSigLmpRtOnReq = 1;
+    state_Lamp_TrnSigLmpLftOnReq = 1;
+    setTimer(timer_HazrdLmp, TIME_BlinkLmp);
+  }
+  else
+  {
+    setSignal(Lamp_TrnSigLmpRtOnReq, 1);//Right(2: ON, 1: OFF)
+    setSignal(Lamp_TrnSigLmpLftOnReq, 1);//Left(2: ON, 1: OFF)
+    cancelTimer(timer_HazrdLmp);
+    
+    setControlProperty("Panel_TestBench", "Switch/Indicator 7", "Display Only", "False");
+    setControlProperty("Panel_TestBench", "Switch/Indicator 6", "Display Only", "False");
+  }
+}
+
+/// <Turn Siganl>
+on timer timer_HazrdLmp
+{
+  //하자드 동작중에 턴시그널 켜면 바로 꺼버려
+  if(@panel::SwitchIndi_TurnSignal_Right) @panel::SwitchIndi_TurnSignal_Right = 0;
+  if(@panel::SwitchIndi_TurnSignal_Left) @panel::SwitchIndi_TurnSignal_Left = 0;
+  
+  state_Lamp_TrnSigLmpRtOnReq = !state_Lamp_TrnSigLmpRtOnReq;
+  state_Lamp_TrnSigLmpLftOnReq = !state_Lamp_TrnSigLmpLftOnReq;
+
+  setSignal(Lamp_TrnSigLmpRtOnReq, state_Lamp_TrnSigLmpRtOnReq +1);//Right(2: ON, 1: OFF)
+  setSignal(Lamp_TrnSigLmpLftOnReq, state_Lamp_TrnSigLmpLftOnReq +1);//Left(2: ON, 1: OFF)
+
+  setTimer(timer_HazrdLmp, TIME_BlinkLmp);
+}
+
+/// <Turn Siganl>
+on sysvar_update panel::SwitchIndi_TurnSignal_Right
+{
+  if(@panel::SwitchIndi_TurnSignal_Right)
+  {
+    //hazard off, turnsignal on
+    if(@panel::SwitchIndi_HazardLamp) @panel::SwitchIndi_HazardLamp = 0;
+    @panel::SwitchIndi_TurnSignal_Left = 0;
+    @panel::SwitchIndi_TurnSignalSwitch = 1;//Right image
+    setTimer(timer_RightTurnSignal, TIME_BlinkLmp);
+  }
+  
+  else
+  {
+    @panel::SwitchIndi_TurnSignalSwitch = 0;//Off image
+    setSignal(Lamp_TrnSigLmpRtOnReq, 1);//Right(2: ON, 1: OFF)
+    cancelTimer(timer_RightTurnSignal);
+  }
+}
+
+/// <Turn Siganl>
+on timer timer_RightTurnSignal
+{
+  @panel::SwitchIndi_TurnSignalSwitch = 1;//Right image
+  
+  state_Lamp_TrnSigLmpRtOnReq = !state_Lamp_TrnSigLmpRtOnReq;
+
+  setSignal(Lamp_TrnSigLmpRtOnReq, state_Lamp_TrnSigLmpRtOnReq +1);//Right(2: ON, 1: OFF)
+
+  setTimer(timer_RightTurnSignal, TIME_BlinkLmp);
+}
+
+/// <Turn Siganl>
+on sysvar_update panel::SwitchIndi_TurnSignal_Left
+{  
+  if(@panel::SwitchIndi_TurnSignal_Left)
+  {
+    //hazard off, turnsignal on
+    if(@panel::SwitchIndi_HazardLamp) @panel::SwitchIndi_HazardLamp = 0;
+    @panel::SwitchIndi_TurnSignal_Right = 0;
+    @panel::SwitchIndi_TurnSignalSwitch = 2;//Left image
+    setTimer(timer_LeftTurnSignal, TIME_BlinkLmp);
+  }
+  
+  else
+  {
+    @panel::SwitchIndi_TurnSignalSwitch = 0;//Left image
+    setSignal(Lamp_TrnSigLmpLftOnReq, 1);//Right(2: ON, 1: OFF)
+    cancelTimer(timer_LeftTurnSignal);
+  }
+}
+
+/// <Turn Siganl>
+on timer timer_LeftTurnSignal
+{
+  @panel::SwitchIndi_TurnSignalSwitch = 2;//Left image
+  
+  state_Lamp_TrnSigLmpLftOnReq = !state_Lamp_TrnSigLmpLftOnReq;
+
+  setSignal(Lamp_TrnSigLmpLftOnReq, state_Lamp_TrnSigLmpLftOnReq +1);//Right(2: ON, 1: OFF)
+
+  setTimer(timer_LeftTurnSignal, TIME_BlinkLmp);
+}
+
+/// <Turn Siganl>
+on sysvar_update panel::SwitchIndi_TurnSignal_Zero
+{
+  @panel::SwitchIndi_TurnSignal_Right = 0;
+  @panel::SwitchIndi_TurnSignal_Left = 0;
+}
+
+
+/// <Door Siganl>
+on signal_update Warn_AsstDrSwSta
+{
+  if( $Warn_AsstDrSwSta == Open) setControlVisibility("Panel_TestBench","Picture_Box_FR", 1);    
+  Else if( $Warn_AsstDrSwSta == Closed) setControlVisibility("Panel_TestBench","Picture_Box_FR", 0);
+}
+
+/// <Door Siganl>
+on signal_update Warn_DrvDrSwSta
+{
+  if( $Warn_DrvDrSwSta == Open) setControlVisibility("Panel_TestBench","Picture_Box_FL", 1);    
+  Else if( $Warn_DrvDrSwSta == Closed) setControlVisibility("Panel_TestBench","Picture_Box_FL", 0);
+}
+
+/// <Door Siganl>
+on signal_update Warn_RrRtDrSwSta
+{
+  if( $Warn_RrRtDrSwSta == Open) setControlVisibility("Panel_TestBench","Picture_Box_RR", 1);    
+  Else if( $Warn_RrRtDrSwSta == Closed) setControlVisibility("Panel_TestBench","Picture_Box_RR", 0);
+}
+
+/// <Door Siganl>
+on signal_update Warn_RrLftDrSwSta
+{
+  if( $Warn_RrLftDrSwSta == Open) setControlVisibility("Panel_TestBench","Picture_Box_RL", 1);    
+  Else if( $Warn_RrLftDrSwSta == Closed) setControlVisibility("Panel_TestBench","Picture_Box_RL", 0);
+}
+
+/// <Door Siganl>
+on signal_update Warn_HoodSwSta
+{
+  if( $Warn_HoodSwSta == Open) setControlVisibility("Panel_TestBench","Picture_Box_Hood", 1);    
+  Else if( $Warn_HoodSwSta == Closed) setControlVisibility("Panel_TestBench","Picture_Box_Hood", 0);
+}
+
+/// <Door Siganl>
+on signal_update Trunk_TrnkTlgtSwSta
+{
+  if( $Trunk_TrnkTlgtSwSta == Open) setControlVisibility("Panel_TestBench","Picture_Box_Trunk", 1);    
+  Else if( $Trunk_TrnkTlgtSwSta == Closed) setControlVisibility("Panel_TestBench","Picture_Box_Trunk", 0);
+}
+
+/// <Gear Siganl>
+on sysvar_update panel::Button_Gear
+{
+  int vehicleType;
+  int currentGear;
+  
+  if(@panel::Button_Gear != 15)
+  {
+    GearSelect = @panel::Button_Gear;
+
+    vehicleType = @panel::RadioBtn_Vehicle_Type;
+
+    if (vehicleType == 0) currentGear = $TCU_GearSlctDis;
+    else if (vehicleType == 1) currentGear = $HTCU_GearSlctrDis;
+    else if (vehicleType == 2) currentGear = $VCU_GearPosStaDisp;
+
+    if(currentGear != GearSelect)
+    {
+      if (vehicleType == 0) setSignal(TCU_GearSlctDis, 6);
+      else if (vehicleType == 1) setSignal(HTCU_GearSlctrDis, 6);
+      else if (vehicleType == 2) setSignal(VCU_GearPosStaDisp, 6);
+
+      @panel::SwitchIndi_Gear = 6;
+      setTimer(timer_GearShifting, TIME_GearShifting);
+    }
+  }
+}
+
+/// <Gear Siganl>
+on timer timer_GearShifting
+{
+  if(@panel::RadioBtn_Vehicle_Type == 0) setSignal(TCU_GearSlctDis, GearSelect);
+  if(@panel::RadioBtn_Vehicle_Type == 1) setSignal(HTCU_GearSlctrDis, GearSelect);
+  if(@panel::RadioBtn_Vehicle_Type == 2) setSignal(VCU_GearPosStaDisp, GearSelect);
+
+  //기어 이미지 변경
+  @panel::SwitchIndi_Gear = GearSelect;
+}
+
+//자동차 타입 변경 시 다른 타입 신호는 P 단으로 변경
+/// <Vehicle Type>
+on sysvar_update panel::RadioBtn_Vehicle_Type
+{
+  if(@panel::RadioBtn_Vehicle_Type == 0)
+  {
+    setSignal(HTCU_GearSlctrDis, 0);
+    setSignal(VCU_GearPosStaDisp, 0);
+  }
+  else if(@panel::RadioBtn_Vehicle_Type == 1)
+  {
+    setSignal(TCU_GearSlctDis, 0);
+    setSignal(VCU_GearPosStaDisp, 0);
+  }
+  else if(@panel::RadioBtn_Vehicle_Type == 2)
+  {
+    setSignal(TCU_GearSlctDis, 0);
+    setSignal(HTCU_GearSlctrDis, 0);
+  }
+}
+
+/// <Diagnostic>
+on sysvar_update panel::Button_diag_getECUInfo
+{
+  if(@panel::Button_diag_getECUInfo)
+  {
+    diagSendRequest(diag_ReadCPUVersion_req);
+    diagSendRequest(diag_ReadMCUVersion);
+    diagSendRequest(diag_ReadPartNumber);
+  }
+}
+
+/// <Diagnostic>
+on diagResponse DVRS.Read_DVRS_CPU_Version_Read
+{
+  long ret;
+  byte buffer[50];
+  char text[50];
+  char textReturn[50];
+
+  if(diagIsPositiveResponse(this))
+  {
+    ret = diagGetParameterRaw(this, "DataRecord", buffer, elCount(buffer));
+
+    DecodeString(text, elCount(buffer), buffer, elCount(buffer), 0);
+
+    if(ret>=0)
+    {
+      makeText_putValueToControl(textReturn, "CPU: ", text);
+      DeleteControlContent("Panel_TestBench","CAPL Output View 1");
+      putValueToControl("Panel_TestBench","CAPL Output View 1", textReturn);
+    }
+    else
+      write("Could not retrieve parameter");
+  }
+  else
+  {
+   write("Negative response code: 0x%02X", 
+   diagGetResponseCode(this));
+  }
+}
+
+/// <Diagnostic>
+on diagResponse DVRS.Read_DVRS_MCU_Version_Read
+{
+  long ret;
+  byte buffer[50];
+  char text[50];
+  char textReturn[50];
+
+  if(diagIsPositiveResponse(this))
+  {
+     ret = diagGetParameterRaw(this, "DataRecord", buffer, elCount(buffer));
+
+     DecodeString(text, elCount(buffer), buffer, elCount(buffer), 0);
+      
+    if(ret>=0)
+    {
+      makeText_putValueToControl(textReturn, "MCU: ", text);
+      DeleteControlContent("Panel_TestBench","CAPL Output View 1");
+      putValueToControl("Panel_TestBench","CAPL Output View 1", textReturn);
+    }
+    else
+      write("Could not retrieve parameter");
+  }
+  else
+  {
+   write("Negative response code: 0x%02X", 
+   diagGetResponseCode(this));
+  }
+}
+
+/// <Diagnostic>
+on diagResponse DVRS.HMC_KMC_Part_Number_Read
+{
+  long ret;
+  byte buffer[50];
+  char text[50];
+  char textReturn[50];
+
+  if(diagIsPositiveResponse(this))
+  {
+    ret = diagGetParameterRaw(this, "HKMC_Part_Number", buffer, elCount(buffer));
+
+    DecodeString(text, elCount(buffer), buffer, elCount(buffer), 0);
+
+    if(ret>=0)
+    {
+      makeText_putValueToControl(textReturn, "Part Number: ", text);
+      DeleteControlContent("Panel_TestBench","CAPL Output View 1");
+      putValueToControl("Panel_TestBench","CAPL Output View 1", textReturn);
+    }
+    else
+     write("Could not retrieve parameter");
+  }
+  else
+  {
+   write("Negative response code: 0x%02X", 
+   diagGetResponseCode(this));
+  }
+}
+
+/// <Diagnostic>
+void makeText_putValueToControl(char output[], char discription[], char data[])
+{
+  int i;
+  int length;
+  length=strlen(output);
+  
+  //버퍼 초기화
+  for (i = 0; i < length ; i++) output[i] = 0;
+  
+  strncpy(output, discription, strlen(discription) + 1);
+  strncat(output, data, strlen(output) + strlen(data) + 1);
+  strncat(output, "\n", strlen(output) + 2);
+}
+
+/// <빌트인캠 상태>
+on signal_update BLTN_CAM_State
+{
+  switch ($BLTN_CAM_State)
+  {
+    case 0: 
+      setControlProperty("Panel_TestBench", "text_BLTN_CAM_State", "Text", "정상"); break;
+    case 1:
+      setControlProperty("Panel_TestBench", "text_BLTN_CAM_State", "Text", "전방카메라 미인식"); break;
+    case 2:
+      setControlProperty("Panel_TestBench", "text_BLTN_CAM_State", "Text", "후방카메라 미인식"); break;
+    case 3:
+     setControlProperty("Panel_TestBench", "text_BLTN_CAM_State", "Text", "전/후방카메라 미인식"); break;
+    case 4:
+     setControlProperty("Panel_TestBench", "text_BLTN_CAM_State", "Text", "녹화 불가"); break;
+    case 5:
+     setControlProperty("Panel_TestBench", "text_BLTN_CAM_State", "Text", "내부오류/이더넷 통신불량"); break;
+  }
+}
+
+
+/// <Diagnostic>
+on sysvar_update panel::Switch_ReadDTC
+{
+  if(@panel::Switch_ReadDTC)
+    setTimer(timer_ReadDTC, TIME_ReadDTC);
+  
+  else
+    cancelTimer(timer_ReadDTC);
+}
+
+/// <Diagnostic>
+on diagResponse DVRS.DVRS_Input_Output_Record_Local_Identifier_1_Byte_Read
+{
+  long ret;
+  byte buffer_CurrentHIGH[2];
+  byte buffer_CurrentLOW[2];
+  byte buffer_ConfirmedHIGH[2];
+  byte buffer_ConfirmedLOW[2];
+  
+  char DTC_Current_RCAM[10];
+  char DTC_Current_FCAM[10];
+  char DTC_Current_CAMPower[10];
+  char DTC_Current_LowVolt[10];
+  char DTC_Current_HighVolt[10];
+  char DTC_Current_Gsensor[10];
+  char DTC_Current_CPU[10];
+  char DTC_Current_MCU[10];
+  
+  char DTC_Current_ExtMemoryCAM[10];
+  char DTC_Current_WiFiModule[10];
+  char DTC_Current_BCANBusOff[10];
+  char DTC_Current_EventSwitch[10];
+
+  char DTC_Confirmed_RCAM[10];
+  char DTC_Confirmed_FCAM[10];
+  char DTC_Confirmed_CAMPower[10];
+  char DTC_Confirmed_LowVolt[10];
+  char DTC_Confirmed_HighVolt[10];
+  char DTC_Confirmed_Gsensor[10];
+  char DTC_Confirmed_CPU[10];
+  char DTC_Confirmed_MCU[10];
+
+  char DTC_Confirmed_ExtMemoryCAM[10];
+  char DTC_Confirmed_WiFiModule[10];
+  char DTC_Confirmed_BCANBusOff[10];
+  char DTC_Confirmed_EventSwitch[10];
+  
+  char text[50];
+  char textReturn[50];
+
+  if(diagIsPositiveResponse(this))
+  {
+    ret = diagGetParameterRaw(this, "DTC_Current_High", buffer_CurrentHIGH, elCount(buffer_CurrentHIGH));
+    diagGetParameterRaw(this, "DTC_Current_Low", buffer_CurrentLOW, elCount(buffer_CurrentLOW));
+    diagGetParameterRaw(this, "DTC_Confirmed_High", buffer_ConfirmedHIGH, elCount(buffer_ConfirmedHIGH));
+    diagGetParameterRaw(this, "DTC_Confirmed_Low", buffer_ConfirmedLOW, elCount(buffer_ConfirmedLOW));
+    
+    write("buffer_CurrentHIGH %X %X", buffer_CurrentHIGH[0],  buffer_CurrentHIGH[1]);
+    write("buffer_CurrentLOW %X %X", buffer_CurrentLOW[0],  buffer_CurrentLOW[1]);
+    write("buffer_ConfirmedHIGH %X %X", buffer_ConfirmedHIGH[0],  buffer_ConfirmedHIGH[1]);
+    write("buffer_ConfirmedLOW %X %X", buffer_ConfirmedLOW[0],  buffer_ConfirmedLOW[1]);
+    
+    write("buffer_CurrentHIGH[0] & 0x1 : %x", buffer_CurrentHIGH[0] & 0x1);
+    write("buffer_CurrentHIGH[0] & 0x2 : %x", buffer_CurrentHIGH[0] & 0x2);
+    write("buffer_CurrentHIGH[0] & 0x3 : %x", buffer_CurrentHIGH[0] & 0x3);
+    write("buffer_CurrentHIGH[0] & 0x4 : %x", buffer_CurrentHIGH[0] & 0x4);
+    write("buffer_CurrentHIGH[1] & 0x1 : %x", buffer_CurrentHIGH[1] & 0x1);
+    write("buffer_CurrentHIGH[1] & 0x2 : %x", buffer_CurrentHIGH[1] & 0x2);
+    write("buffer_CurrentHIGH[1] & 0x3 : %x", buffer_CurrentHIGH[1] & 0x3);
+    write("buffer_CurrentHIGH[1] & 0x4 : %x", buffer_CurrentHIGH[1] & 0x4);
+    
+    if(buffer_CurrentHIGH[0] & 0x1) strncpy(DTC_Current_RCAM, "현재", 2); else strncpy(DTC_Current_RCAM, "과거", 2);
+    if(buffer_CurrentHIGH[0] & 0x2) strncpy(DTC_Current_FCAM, "현재", 2); else strncpy(DTC_Current_FCAM, "과거", 2);
+    if(buffer_CurrentHIGH[0] & 0x3) strncpy(DTC_Current_CAMPower, "현재", 2); else strncpy(DTC_Current_CAMPower, "과거", 2);
+    if(buffer_CurrentHIGH[0] & 0x4) strncpy(DTC_Current_LowVolt, "현재", 2); else strncpy(DTC_Current_LowVolt, "과거", 2);
+    if(buffer_CurrentHIGH[1] & 0x1) strncpy(DTC_Current_HighVolt, "현재", 2); else strncpy(DTC_Current_HighVolt, "과거", 2);
+    if(buffer_CurrentHIGH[1] & 0x2) strncpy(DTC_Current_Gsensor, "현재", 2); else strncpy(DTC_Current_Gsensor, "과거", 2);
+    if(buffer_CurrentHIGH[1] & 0x3) strncpy(DTC_Current_CPU, "현재", 2); else strncpy(DTC_Current_CPU, "과거", 2);
+    if(buffer_CurrentHIGH[1] & 0x4) strncpy(DTC_Current_MCU, "현재", 2); else strncpy(DTC_Current_MCU, "과거", 2);
+    
+    if(buffer_CurrentLOW[0] & 0x1) strncpy(DTC_Current_ExtMemoryCAM, "현재", 2); else strncpy(DTC_Current_RCAM, "과거", 2);
+    if(buffer_CurrentLOW[0] & 0x2) strncpy(DTC_Current_WiFiModule, "현재", 2); else strncpy(DTC_Current_RCAM, "과거", 2);
+    //if(buffer_CurrentLOW[0] & 0x3) strncpy(, "현재", 2); else strncpy(, "과거", 2);
+    if(buffer_CurrentLOW[0] & 0x4) strncpy(DTC_Current_BCANBusOff, "현재", 2); else strncpy(DTC_Current_RCAM, "과거", 2);
+    if(buffer_CurrentLOW[1] & 0x1) strncpy(DTC_Current_EventSwitch, "현재", 2); else strncpy(DTC_Current_RCAM, "과거", 2);
+    //if(buffer_CurrentLOW[1] & 0x2) strncpy(, "현재", 2); else strncpy(, "과거", 2);
+    //if(buffer_CurrentLOW[1] & 0x3) strncpy(, "현재", 2); else strncpy(, "과거", 2);
+    //if(buffer_CurrentLOW[1] & 0x4) strncpy(, "현재", 2); else strncpy(, "과거", 2);
+    
+    if(buffer_ConfirmedHIGH[0] & 0x1) strncpy(DTC_Confirmed_RCAM, "현재", 2); else strncpy(DTC_Confirmed_RCAM, "과거", 2);
+    if(buffer_ConfirmedHIGH[0] & 0x2) strncpy(DTC_Confirmed_FCAM, "현재", 2); else strncpy(DTC_Confirmed_FCAM, "과거", 2);
+    if(buffer_ConfirmedHIGH[0] & 0x3) strncpy(DTC_Confirmed_CAMPower, "현재", 2); else strncpy(DTC_Confirmed_CAMPower, "과거", 2);
+    if(buffer_ConfirmedHIGH[0] & 0x4) strncpy(DTC_Confirmed_LowVolt, "현재", 2); else strncpy(DTC_Confirmed_LowVolt, "과거", 2);
+    if(buffer_ConfirmedHIGH[1] & 0x1) strncpy(DTC_Confirmed_HighVolt, "현재", 2); else strncpy(DTC_Confirmed_HighVolt, "과거", 2);
+    if(buffer_ConfirmedHIGH[1] & 0x2) strncpy(DTC_Confirmed_Gsensor, "현재", 2); else strncpy(DTC_Confirmed_Gsensor, "과거", 2);
+    if(buffer_ConfirmedHIGH[1] & 0x3) strncpy(DTC_Confirmed_CPU, "현재", 2); else strncpy(DTC_Confirmed_CPU, "과거", 2);
+    if(buffer_ConfirmedHIGH[1] & 0x4) strncpy(DTC_Confirmed_MCU, "현재", 2); else strncpy(DTC_Confirmed_MCU, "과거", 2);
+    
+    if(buffer_ConfirmedLOW[0] & 0x1) strncpy(DTC_Confirmed_ExtMemoryCAM, "현재", 2); else strncpy(DTC_Confirmed_RCAM, "과거", 2);
+    if(buffer_ConfirmedLOW[0] & 0x2) strncpy(DTC_Confirmed_WiFiModule, "현재", 2); else strncpy(DTC_Confirmed_RCAM, "과거", 2);
+    //if(buffer_ConfirmedLOW[0] & 0x3) strncpy(, "현재", 2); else strncpy(, "과거", 2);
+    if(buffer_ConfirmedLOW[0] & 0x4) strncpy(DTC_Confirmed_BCANBusOff, "현재", 2); else strncpy(DTC_Confirmed_RCAM, "과거", 2);
+    if(buffer_ConfirmedLOW[1] & 0x1) strncpy(DTC_Confirmed_EventSwitch, "현재", 2); else strncpy(DTC_Confirmed_RCAM, "과거", 2);
+    //if(buffer_ConfirmedLOW[1] & 0x2) strncpy(, "현재", 2); else strncpy(, "과거", 2);
+    //if(buffer_ConfirmedLOW[1] & 0x3) strncpy(, "현재", 2); else strncpy(, "과거", 2);
+    //if(buffer_ConfirmedLOW[1] & 0x4) strncpy(, "현재", 2); else strncpy(, "과거", 2);
+    
+    if(ret>=0)
+    {
+//      write("현재 고장");
+//      write("F-CAM: %d,R-CAM: %d", buffer_CurrentHIGH[0], buffer_CurrentHIGH[1]);
+//      write("Ext Memory: %d,WiFi Module: %d", buffer_CurrentLOW[0] , buffer_CurrentLOW[1]);
+//      write("과거 고장");
+//      write("F-CAM: %d,R-CAM: %d", buffer_ConfirmedHIGH[0] , buffer_ConfirmedHIGH[1]);
+//      write("Ext Memory: %d,WiFi Module: %d", buffer_ConfirmedLOW[0] , buffer_ConfirmedLOW[1]);
+      
+      DeleteControlContent("Panel_TestBench","CAPL Output View 2");
+
+      makeText_putValueToControl(textReturn, "RCAM : ", DTC_Current_RCAM);
+      putValueToControl("Panel_TestBench","CAPL Output View 2", textReturn);
+
+      makeText_putValueToControl(textReturn, "FCAM : ", DTC_Current_FCAM);
+      putValueToControl("Panel_TestBench","CAPL Output View 2", textReturn);
+
+      makeText_putValueToControl(textReturn, "CAMPower : ", DTC_Current_CAMPower);
+      putValueToControl("Panel_TestBench","CAPL Output View 2", textReturn);
+
+      makeText_putValueToControl(textReturn, "LowVolt: ", DTC_Current_LowVolt);
+      putValueToControl("Panel_TestBench","CAPL Output View 2", textReturn);
+
+      makeText_putValueToControl(textReturn, "HighVolt: ", DTC_Current_HighVolt);
+      putValueToControl("Panel_TestBench","CAPL Output View 2", textReturn);
+      
+      makeText_putValueToControl(textReturn, "Gsensor: ", DTC_Current_Gsensor);
+      putValueToControl("Panel_TestBench","CAPL Output View 2", textReturn);
+
+      makeText_putValueToControl(textReturn, "CPU: ", DTC_Current_CPU);
+      putValueToControl("Panel_TestBench","CAPL Output View 2", textReturn);
+
+      makeText_putValueToControl(textReturn, "MCU: ", DTC_Current_MCU);
+      putValueToControl("Panel_TestBench","CAPL Output View 2", textReturn);
+
+      makeText_putValueToControl(textReturn, "ExtMemoryCAM: ", DTC_Current_ExtMemoryCAM);
+      putValueToControl("Panel_TestBench","CAPL Output View 2", textReturn);
+
+      makeText_putValueToControl(textReturn, "WiFiModule: ", DTC_Current_WiFiModule);
+      putValueToControl("Panel_TestBench","CAPL Output View 2", textReturn);
+      
+      makeText_putValueToControl(textReturn, "BCANBusOff: ", DTC_Current_BCANBusOff);
+      putValueToControl("Panel_TestBench","CAPL Output View 2", textReturn);
+      
+      makeText_putValueToControl(textReturn, "EventSwitch: ", DTC_Current_EventSwitch);
+      putValueToControl("Panel_TestBench","CAPL Output View 2", textReturn);
+    }
+    
+    else
+      write("Could not retrieve parameter");
+  }
+  
+  else
+  {
+     write("Negative response code: 0x%02X", 
+     diagGetResponseCode(this));
+  }
+}
+
+
+on timer timer_ReadDTC
+{
+  write("timer_ReadDTC");
+  diagSendRequest(diag_Extended_Session_Start);
+  diagSendRequest(diag_Identifier_1_Byte_Rea);
+  
+  setTimer(timer_ReadDTC, TIME_ReadDTC);
+}
+
+on signal_update CLU_DisSpdVal
+{
+  setControlProperty("Panel_TestBench", "text_Speed", "Text", $CLU_DisSpdVal);
+}

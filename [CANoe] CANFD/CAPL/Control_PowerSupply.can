@@ -1,0 +1,208 @@
+/*@!Encoding:949*/
+includes
+{
+  #include "../CAPL/RS232.h"
+}
+
+variables
+{
+    //파워서플라이 COMPORT Number입력.
+  int PowerSupplyModel;
+}
+
+on start
+{
+  //파워서플라이 모델 선택
+  PowerSupplyModel = @ControlPowerSupply::RadioBtn_PwrSplyModel;
+
+  //파워서플라이 초기값 설정(전압은 이전 값 유지하려고 안함)
+  @ControlPowerSupply::Numeric_Curr_CH1 = 5;
+  @ControlPowerSupply::Numeric_Curr_CH2 = 5;
+}
+
+on sysvar ControlPowerSupply::Numeric_PortNum
+{
+}
+
+on sysvar ControlPowerSupply::Button_Connect
+{
+  if(@ControlPowerSupply::Button_Connect == 1) //Button Pressed
+  {
+    ConnectPowerSupply();
+  }
+}
+
+//Setting Power Supply COMPORT
+on sysvar ControlPowerSupply::RadioBtn_PwrSplyModel
+{
+  PowerSupplyModel = @ControlPowerSupply::RadioBtn_PwrSplyModel;
+}
+
+on sysvar_update ControlPowerSupply::Button_OutputON
+{
+  if(@ControlPowerSupply::Button_OutputON == 1)//Pressed
+  {
+    Switch(PowerSupplyModel)
+    {
+      case OPE305QI:
+        Rs232SendStirng(@ControlPowerSupply::Numeric_PortNum, OPE305QI, "OUTP ON"); break;
+        
+      case TL305TP:
+        Rs232SendStirng(@ControlPowerSupply::Numeric_PortNum, TL305TP, "OUTPUT1/n"); break;
+        
+      case GPP2323:
+        Rs232SendStirng(@ControlPowerSupply::Numeric_PortNum, GPP2323, "ALLOUTON"); break;
+    }
+  } 
+}
+
+on sysvar_update ControlPowerSupply::Button_OutputOFF
+{  
+  if(@ControlPowerSupply::Button_OutputOFF == 1)//Pressed
+  {
+    Switch(PowerSupplyModel)
+    {
+      case OPE305QI:
+        Rs232SendStirng(@ControlPowerSupply::Numeric_PortNum, OPE305QI, "OUTP OFF"); break;
+        
+      case TL305TP:
+        Rs232SendStirng(@ControlPowerSupply::Numeric_PortNum, TL305TP, "OUTPUT0/n"); break;
+        
+      case GPP2323:
+        Rs232SendStirng(@ControlPowerSupply::Numeric_PortNum, GPP2323, "ALLOUTOFF"); break;
+    }
+  }
+}
+
+on sysvar ControlPowerSupply::Button_Set_CH1
+{  
+  int i = 0;
+  double Volt, Curr = 0;
+  char buffer_snprintf[50];
+ 
+  //버퍼 초기화
+  for (i = 0; i < strlen(buffer_snprintf) ; i++) buffer_snprintf[i] = 0; 
+    
+  Volt = @ControlPowerSupply::Numeric_Volt_CH1;
+  Curr = @ControlPowerSupply::Numeric_Curr_CH1;  
+  
+  if(@ControlPowerSupply::Button_Set_CH1 == 1)//Pressed
+  {
+    Switch(PowerSupplyModel)
+    {
+      case OPE305QI:
+        strncpy(buffer[0], "INST OUTP1", 11); //CH1 선택
+        string_PLUS_double("VOLT ", Volt, buffer[1]); //VOLT 12
+        string_PLUS_double("CURR ", Curr, buffer[2]); //CURR 5
+        
+        //Interval 간격으로 날리기
+        timer_RS232SendInterval.Set(TIME_RS232SendInterval);
+        break;
+        
+      case TL305TP:
+        //커맨드 양식 SET:001,VS:12.00,IS:5.00
+        snprintf(buffer_snprintf, 50, "SET:000,VS:%05.2f,IS:%4.2f/n", Volt, Curr); //double to string 총 5자릿 수, 앞자리 없으면 0으로 채워, 소수점 2자리
+        //write("%s", buffer_snprintf);
+        Rs232SendStirng(@ControlPowerSupply::Numeric_PortNum, TL305TP, buffer_snprintf);
+        break;       
+        
+      case GPP2323:
+        //커멘드 양식 VSET1:12
+        //커멘드 양식 ISET:3.5
+        string_PLUS_double("VSET1:", Volt, buffer[0]);
+        Rs232SendStirng(@ControlPowerSupply::Numeric_PortNum, GPP2323, buffer[0]);
+        
+        string_PLUS_double("ISET:", Curr, buffer[1]);
+        Rs232SendStirng(@ControlPowerSupply::Numeric_PortNum, GPP2323, buffer[1]);
+        break;
+    }
+  }
+}
+
+on sysvar_update ControlPowerSupply::Button_Set_CH2
+{  
+  int i = 0;
+  double Volt, Curr = 0;
+  char buffer_snprintf[50];
+  
+  Volt = @ControlPowerSupply::Numeric_Volt_CH2;
+  Curr = @ControlPowerSupply::Numeric_Curr_CH2;
+  
+  if(@ControlPowerSupply::Button_Set_CH2 == 1)//Pressed
+  {
+    Switch(PowerSupplyModel)
+    {
+      case OPE305QI:
+        strncpy(buffer[0], "INST OUTP2", 11); //CH1 선택
+        string_PLUS_double("VOLT ", Volt, buffer[1]); //VOLT 12
+        string_PLUS_double("CURR ", Curr, buffer[2]); //CURR 5
+        
+        //Interval 간격으로 날리기
+        timer_RS232SendInterval.Set(TIME_RS232SendInterval);
+        break;
+        
+      case TL305TP:
+        //커맨드 양식 SET:001,VS:12.00,IS:5.00
+        snprintf(buffer_snprintf, 50, "SET:001,VS:%05.2f,IS:%4.2f/n", Volt, Curr); //double to string 총 5자릿 수, 앞자리 없으면 0으로 채워, 소수점 2자리
+        //write("%s", buffer_snprintf);
+        Rs232SendStirng(@ControlPowerSupply::Numeric_PortNum, TL305TP, buffer_snprintf);
+        break;       
+        
+      case GPP2323:
+        //커멘드 양식 VSET1:12
+        //커멘드 양식 ISET:3.5
+        string_PLUS_double("VSET1:", Volt, buffer[0]);
+        Rs232SendStirng(@ControlPowerSupply::Numeric_PortNum, GPP2323, buffer[0]);
+        
+        string_PLUS_double("ISET:", Curr, buffer[1]);
+        Rs232SendStirng(@ControlPowerSupply::Numeric_PortNum, GPP2323, buffer[1]);
+        break;
+      }
+  }
+}
+
+void ConnectPowerSupply()
+{
+  if(@ControlPowerSupply::isConectedPwrSply == 0)
+    {
+        if(RS232Open(@ControlPowerSupply::Numeric_PortNum))
+        {
+          if(!rs232Configure(@ControlPowerSupply::Numeric_PortNum, 9600, 8, 1, 0)) write("Config failed.");
+      
+          @ControlPowerSupply::isConectedPwrSply = 1;
+          SetControlBackColor("ControlPowerSupply", "Button 5", MakeRGB(255,99,71));
+          setControlProperty("ControlPowerSupply", "Button 5", "Text", "Disconnect");
+          
+          write("Port open is successed.");
+          putValueToControl("Battery Control","CAPL Output View 2", "Port open is successed.");
+          
+          //GPP2323 Current max 3.2A
+          if(PowerSupplyModel == GPP2323)
+          {
+            @ControlPowerSupply::Numeric_Curr_CH1 = 3.2;
+            @ControlPowerSupply::Numeric_Curr_CH2 = 3.2;
+          }
+        }
+        
+        else
+        {
+          @ControlPowerSupply::isConectedPwrSply = 0;
+          SetControlBackColor("ControlPowerSupply", "Button 5", MakeRGB(50,205,50));
+          setControlProperty("ControlPowerSupply", "Button 5", "Text", "Connect");
+          
+          write("Port open failed. Check the power supply COMPORT number.");
+          putValueToControl("Battery Control","CAPL Output View 2", "Port open failed. Check the power supply COMPORT number.");
+        }
+    }
+
+    else
+    {
+      if(RS232Close(@ControlPowerSupply::Numeric_PortNum))
+      {
+        @ControlPowerSupply::isConectedPwrSply = 0;
+        SetControlBackColor("ControlPowerSupply", "Button 5", MakeRGB(50,205,50));
+        setControlProperty("ControlPowerSupply", "Button 5", "Text", "Connect");
+        write("Port is closed.");
+      }
+    }
+}

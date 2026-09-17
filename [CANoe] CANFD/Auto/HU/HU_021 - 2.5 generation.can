@@ -1,0 +1,1806 @@
+﻿/*@!Encoding:65001*/
+// Preconditions: - Block CCU, ACC and IGn and ccNC/ccIC switch OFF state, AVN mode
+variables
+{
+  // Timer Declaration
+  mstimer send_IAU_timer;
+  msTimer send_CF_AVN_timer;
+  msTimer send_ICU_ModState_timer;
+  msTimer timer_Send_SMK_TrmnlCtrlGrpStaBDC;
+  
+  // Message Declaration
+  // CAN FD 
+  message HU_CLOCK_01_1000ms _HU_CLOCK_01_1000ms;
+  message HU_BLTN_CAM_01_00ms _HU_BLTN_CAM_01_00ms;
+  message HU_BLTN_CAM_02_200ms _HU_BLTN_CAM_02_200ms;
+  message HU_GW_03_200ms _HU_GW_03_200ms;
+  message IAU_FD_04_200ms _IAU_FD_04_200ms;
+  message BDC_FD_SMK_03_200ms _BDC_FD_SMK_03_200ms;
+  message PDC_FD_10_200ms _PDC_FD_10_200ms;
+  // Global Variable Declaration
+  
+//  byte set_120h_value = 0x1;
+  byte set_120h_value = 0x0;
+  
+  byte arr_RecSet[2] = {0x1,0x2};
+  byte arr_OWPTime[19] = {0x2,0x3,0x4,0x5,0x6,0x7,0x8,0x9,0xA,0xB,0xC,0xD,0xE,0xF,0x10,0x11,0x12,0x13,0x14}; 
+  int arr_EVtime[3] = {0x0,0x5,0xA};
+  byte arr_TMLinterval[3] = {0x1,0x2,0x5};
+  byte arr_CAMAngle[10] = {0x1,0x2,0x3,0x4,0x5,0x11,0x12,0x13,0x14,0x15};
+  byte arr_EVSen[5] = {0x1,0x2,0x3,0x4,0x5};
+ 
+  byte arr_random_setting[21];
+  byte arr_get_setting[21];
+  byte arr_Profile_Guest_setting[21];
+  byte arr_Profile_Driver1_setting[21];
+  byte arr_Profile_Driver2_setting[21];
+
+  int ON_OFF_Option = 0;
+  int index;
+  int i;
+  int flag = 0;
+  int condition1, condition2, condition3;
+  byte ProfileIDRValue;
+  byte ProfileIDRVal;
+}
+
+on timer timer_Send_SMK_TrmnlCtrlGrpStaBDC{
+  switch(ON_OFF_Option){
+    case(2):
+      //CAN FD
+      _BDC_FD_SMK_03_200ms.SMK_TrmnlCtrlGrpStaBDC = 0x1; //ACC
+      output(_BDC_FD_SMK_03_200ms); break;  
+    case(1): 
+      //CAN FD
+      _BDC_FD_SMK_03_200ms.SMK_TrmnlCtrlGrpStaBDC = 0x2; //IGN
+      output(_BDC_FD_SMK_03_200ms); break;
+    case(0):
+      //CAN FD
+      _BDC_FD_SMK_03_200ms.SMK_TrmnlCtrlGrpStaBDC = 0x0; //OFF
+      output(_BDC_FD_SMK_03_200ms); break;
+  }
+  
+  timer_Send_SMK_TrmnlCtrlGrpStaBDC.set(200);
+}
+
+void Connect_PowerSupply(){
+  int flag_Timeout;
+  
+  flag_Timeout = 0;
+  
+  @ControlPowerSupply::RadioBtn_PwrSplyModel = 1;
+  
+  @ControlPowerSupply::Numeric_PortNum=3;
+  
+  while(@ControlPowerSupply::isConectedPwrSply != 1 && flag_Timeout < 30){
+    
+      @ControlPowerSupply::Button_Connect = 0; 
+      testWaitForTimeout(1000);
+      @ControlPowerSupply::Button_Connect = 1;
+      testWaitForTimeout(1000);
+      @ControlPowerSupply::Button_Connect = 0; 
+    
+      testWaitForTimeout(1000);
+      flag_Timeout++;
+}
+  if(flag_Timeout >= 30){
+    write("Error: Something is wrong! Stop measurement.");
+    stop();
+  }
+  write("Connected Power Supply");
+}
+
+void Enter_BLTN_CAM(){
+  // CAN FD
+  _HU_BLTN_CAM_02_200ms.HU_BLTN_CAM_UI_Mode = 0x1; //Enter BLTN_CAM mode  
+  output(_HU_BLTN_CAM_02_200ms);
+}
+
+void Exit_BLTN_CAM(){
+  // CAN FD
+  _HU_BLTN_CAM_02_200ms.HU_BLTN_CAM_UI_Mode = 0x0; //Enter AVN mode - Exit BLTN_CAM Mode
+  output(_HU_BLTN_CAM_02_200ms);  
+}
+
+void CaptureGraphics(){
+  testReportAddWindowCapture("Graphics 2","CF_AVN_ProfileIDRValue;IAU_ProfileIDRVal","Sreenshot","./Husign.jpg");
+}
+ 
+void BLTN_CAM_Settings(){
+  // CAN FD  
+  // Recording Settings
+  _HU_BLTN_CAM_01_00ms.BLTN_CAM_Rec_OWD_NvalueSet = arr_random_setting[0];
+  output(_HU_BLTN_CAM_01_00ms);
+  testWaitForTimeout(200);
+  _HU_BLTN_CAM_01_00ms.BLTN_CAM_Rec_OWP_NvalueSet = arr_random_setting[1];
+  output(_HU_BLTN_CAM_01_00ms);
+  testWaitForTimeout(200);
+  _HU_BLTN_CAM_01_00ms.BLTN_CAM_Rec_DEV_NvalueSet = arr_random_setting[2];
+  output(_HU_BLTN_CAM_01_00ms);
+  testWaitForTimeout(200);  
+  _HU_BLTN_CAM_01_00ms.BLTN_CAM_Rec_PEV_NvalueSet = arr_random_setting[3];
+  output(_HU_BLTN_CAM_01_00ms);
+  testWaitForTimeout(200);  
+  _HU_BLTN_CAM_01_00ms.BLTN_CAM_EV_RecMaxTime_NvalueSet = arr_random_setting[4];
+  output(_HU_BLTN_CAM_01_00ms);
+  testWaitForTimeout(200);  
+  // Time Settings
+  _HU_BLTN_CAM_01_00ms.BLTN_CAM_PrkTime_NvalueSet = arr_random_setting[5];
+  output(_HU_BLTN_CAM_01_00ms);
+  testWaitForTimeout(200);    
+  _HU_BLTN_CAM_01_00ms.BLTN_CAM_TML_Int_NvalueSet = arr_random_setting[6];
+  output(_HU_BLTN_CAM_01_00ms);
+  testWaitForTimeout(200);    
+  _HU_BLTN_CAM_01_00ms.BLTN_CAM_EV_BfrTime_NvalueSet = arr_random_setting[7];
+  output(_HU_BLTN_CAM_01_00ms);
+  testWaitForTimeout(200);  
+  _HU_BLTN_CAM_01_00ms.BLTN_CAM_EV_AftTime_NvalueSet = arr_random_setting[8];
+  output(_HU_BLTN_CAM_01_00ms);
+  testWaitForTimeout(200);  
+  // Stamp Information Settings 
+  _HU_BLTN_CAM_01_00ms.BLTN_CAM_EVSen_Stm_NvalueSet = arr_random_setting[9];
+  output(_HU_BLTN_CAM_01_00ms);
+  testWaitForTimeout(200);  
+  _HU_BLTN_CAM_01_00ms.BLTN_CAM_GearPos_Stm_NvalueSet = arr_random_setting[10];
+  output(_HU_BLTN_CAM_01_00ms);
+  testWaitForTimeout(200);  
+  _HU_BLTN_CAM_01_00ms.BLTN_CAM_Locatn_Stm_NvalueSet = arr_random_setting[11];
+  output(_HU_BLTN_CAM_01_00ms);
+  testWaitForTimeout(200);  
+  _HU_BLTN_CAM_01_00ms.BLTN_CAM_Spd_Stm_NvalueSet = arr_random_setting[12];
+  output(_HU_BLTN_CAM_01_00ms);
+  testWaitForTimeout(200);  
+  _HU_BLTN_CAM_01_00ms.BLTN_CAM_Time_Stm_NvalueSet = arr_random_setting[13];
+  output(_HU_BLTN_CAM_01_00ms);
+  testWaitForTimeout(200);
+  _HU_BLTN_CAM_01_00ms.BLTN_CAM_TrnSig_Stm_NvalueSet = arr_random_setting[14];
+  output(_HU_BLTN_CAM_01_00ms);
+  testWaitForTimeout(200);  
+  _HU_BLTN_CAM_01_00ms.BLTN_CAM_AudRec_NvalueSet = arr_random_setting[15];
+  output(_HU_BLTN_CAM_01_00ms);
+  testWaitForTimeout(200);  
+  // ETC Settings
+  _HU_BLTN_CAM_01_00ms.BLTN_CAM_FR_VerPos_NvalueSet = arr_random_setting[16];
+  output(_HU_BLTN_CAM_01_00ms);
+  testWaitForTimeout(200);  
+  _HU_BLTN_CAM_01_00ms.BLTN_CAM_RR_VerPos_NvalueSet = arr_random_setting[17];
+  output(_HU_BLTN_CAM_01_00ms);
+  testWaitForTimeout(200);  
+  _HU_BLTN_CAM_01_00ms.BLTN_CAM_Sen_DEV_NvalueSet = arr_random_setting[18];
+  output(_HU_BLTN_CAM_01_00ms);
+  testWaitForTimeout(200);  
+  _HU_BLTN_CAM_01_00ms.BLTN_CAM_Sen_PEV_NvalueSet = arr_random_setting[19];
+  output(_HU_BLTN_CAM_01_00ms);
+  testWaitForTimeout(200);  
+  //App Notification
+  if ((arr_random_setting[20] == 0x2 && getSignal(BLTN_CAM_Set_PEV_AppNoti) == 0x1) || (arr_random_setting[20] == 0x1 && getSignal(BLTN_CAM_Set_PEV_AppNoti) == 0x2)){
+    @panel::Button_AppNoti_PEV = 1;
+  }
+}
+void Get_setting(){
+  arr_get_setting[0] = getSignal(BLTN_CAM_RecSet_OWD);
+  arr_get_setting[1] = getSignal(BLTN_CAM_RecSet_OWP);
+  arr_get_setting[2] = getSignal(BLTN_CAM_RecSet_DEV);
+  arr_get_setting[3] = getSignal(BLTN_CAM_RecSet_PEV);
+  arr_get_setting[4] = getSignal(BLTN_CAM_Set_EV_RecMaxTime);
+  arr_get_setting[5] = getSignal(BLTN_CAM_Set_PrkTime);
+  arr_get_setting[6] = getSignal(BLTN_CAM_Set_Drv_TML_Int);
+  arr_get_setting[7] = getSignal(BLTN_CAM_Set_EV_BfrTime);
+  arr_get_setting[8] = getSignal(BLTN_CAM_Set_EV_AftTime);
+  arr_get_setting[9] = getSignal(BLTN_CAM_Set_EVSen_Stm);
+  arr_get_setting[10] = getSignal(BLTN_CAM_Set_GearPos_Stm);
+  arr_get_setting[11] = getSignal(BLTN_CAM_Set_Locatn_Stm);
+  arr_get_setting[12] = getSignal(BLTN_CAM_Set_Spd_Stm);
+  arr_get_setting[13] = getSignal(BLTN_CAM_Set_Tim_Stm);
+  arr_get_setting[14] = getSignal(BLTN_CAM_Set_TrnSig_Stm);
+  arr_get_setting[15] = getSignal(BLTN_CAM_AudRec_Set);
+  arr_get_setting[16] = getSignal(BLTN_CAM_Set_FR_Ver_Pos);
+  arr_get_setting[17] = getSignal(BLTN_CAM_Set_RR_Ver_Pos);
+  arr_get_setting[18] = getSignal(BLTN_CAM_SenSet_DEV);
+  arr_get_setting[19] = getSignal(BLTN_CAM_SenSet_PEV);
+  arr_get_setting[20] = getSignal(BLTN_CAM_Set_PEV_AppNoti);
+}
+
+void Random_Settings(){
+  for(i = 0; i <= 20; i++){
+   if ((i <= 3) || (i >= 9 && i <= 15) || (i == 20)){
+     index = random(2);
+     arr_random_setting[i] = arr_RecSet[index];
+   }
+   else if (i == 4){
+     arr_random_setting[4] = set_120h_value;
+   }
+   else if (i == 5){
+     index = random(19);
+     arr_random_setting[5] = arr_OWPTime[index];
+   }
+   else if (i == 6){
+     index = random(3);
+     arr_random_setting[6] = arr_TMLinterval[index];
+   }
+   else if (i == 7 || i == 8){
+     index = random(3);
+     arr_random_setting[i] = arr_EVtime[index];
+   }
+   else if (i == 16 || i == 17){
+     index = random(10);
+     arr_random_setting[i] = arr_CAMAngle[index];
+   }
+   else{
+     index = random(5);
+     arr_random_setting[i] = arr_EVSen[index];
+   }
+  }
+}
+
+on timer send_CF_AVN_timer{
+  // CAN FD
+  _HU_GW_03_200ms.CF_AVN_ProfileIDRValue = ProfileIDRValue;
+  output(_HU_GW_03_200ms);
+  send_CF_AVN_timer.set(200);  
+}
+
+on timer send_ICU_ModState_timer{
+  // CAN FD
+  _PDC_FD_10_200ms.ICU_PowerAutoCutModSta = 0x2; //Customer Mode
+  output(_PDC_FD_10_200ms);
+  send_ICU_ModState_timer.set(200);
+}
+
+on timer send_IAU_timer{
+  // CAN FD
+  _IAU_FD_04_200ms.IAU_ProfileIDRVal = ProfileIDRVal;
+  output(_IAU_FD_04_200ms);
+  send_IAU_timer.set(200);
+}
+
+void Set_Profile_Driver(){
+  int same;
+  int loop = 0;
+
+  ProfileIDRValue = 0x0;
+  send_CF_AVN_timer.set(200);
+  testWaitForTimeout(1000);
+  send_CF_AVN_timer.cancel();
+  
+  ProfileIDRVal = 0x1; 
+  send_IAU_timer.set(200);
+  
+  testWaitForTimeout(5000);
+  
+  Random_Settings();
+  write("=== RANDOM SETTING ===");
+  for (i = 0; i <= 20; i++){
+   write("arr_random_setting[%d] = 0x%X", i, arr_random_setting[i]);
+  }
+
+  do {
+    Enter_BLTN_CAM();
+    testWaitForTimeout(4000);
+    
+    BLTN_CAM_Settings();
+    
+    Exit_BLTN_CAM();
+    testWaitForTimeout(3000);
+    Get_setting();
+    
+    same = 1;
+    for (i = 0; i <= 20; i++) {
+      if (arr_random_setting[i] != arr_get_setting[i]) {
+        same = 0;
+        switch(i){
+          case(0): write("Mismatch >> OWD: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(1): write("Mismatch >> OWP: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(2): write("Mismatch >> DEV: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(3): write("Mismatch >> PEV: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(4): write("Mismatch >> 120h: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(5): write("Mismatch >> Parking Time: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(6): write("Mismatch >> TML Interval: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(7): write("Mismatch >> Bfr Time: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(8): write("Mismatch >> Aft Time: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(9): write("Mismatch >> EV Sen Stamp: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(10): write("Mismatch >> Gear Stamp: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(11): write("Mismatch >> Location Stamp: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(12): write("Mismatch >> Velocity Stamp: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(13): write("Mismatch >> Time Stamp: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(14): write("Mismatch >> Turn Signal Stamp: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(15): write("Mismatch >> Audio: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(16): write("Mismatch >> FCAM Angle: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(17): write("Mismatch >> RCAM Angle: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(18): write("Mismatch >> DEV Sen Level: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(19): write("Mismatch >> PEV Sen Level: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(20): write("Mismatch >> App Notification: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+        }
+        break;
+      }
+    }
+    loop++;
+    
+    if (loop == 2){
+      switch(i){
+        case(0): @panel::LED_Ctrl_SetOWP = 1; break;
+        case(1): @panel::LED_Ctrl_SetOWD = 1; break;
+        case(2): @panel::LED_Ctrl_SetPEV = 1; break;
+        case(3): @panel::LED_Ctrl_SetDEV = 1; break;
+        case(5): @panel::TrackBar_OWP_TIME = arr_random_setting[5]; break; 
+        case(6): @panel::TrackBar_Timelaps_TIME = arr_random_setting[6]; break;
+        case(7): if (arr_random_setting[7] == 0x0){
+                   @panel::TrackBar_EV_Time_Bfr = 1;
+                 }
+                 else if (arr_random_setting[7] == 0x5){
+                   @panel::TrackBar_EV_Time_Bfr = 2;
+                 }
+                 else {
+                   @panel::TrackBar_EV_Time_Bfr = 3;                   
+                 }
+                 break;
+        case(8): @panel::TrackBar_EV_Time_Aft = arr_random_setting[8] + 10;
+        case(9): @panel::LED_Ctrl_Set_EVSen_Stm = 1; break;  
+        case(10): @panel::LED_Ctrl_Set_GearPos_Stm = 1; break;
+        case(11): @panel::LED_Ctrl_Set_Locatn_Stm = 1; break;
+        case(12): @panel::LED_Ctrl_Set_Spd_Stm = 1; break;           
+        case(13): @panel::LED_Ctrl_Set_Tim_Stm = 1; break; 
+        case(14): @panel::LED_Ctrl_Set_TrnSig_Stm = 1; break; 
+        case(15): @panel::LED_Ctrl_AudRec_Set = 1; break; 
+        case(16): @panel::TrackBar_FR_Ver_Pos = arr_random_setting[16]; break; 
+        case(17): @panel::TrackBar_RR_Ver_Pos = arr_random_setting[17]; break;         
+        case(18): @panel::TrackBar_DEV_Sen = arr_random_setting[19]; break; 
+        case(19): @panel::TrackBar_PEV_Sen = arr_random_setting[19]; break; 
+        case(20): @panel::Button_AppNoti_PEV = 1; break;          
+      }
+    } 
+  } while (!same);
+  
+  loop = 0;
+  
+  write("=== PROFILE GUEST ===");  
+  
+  for (i = 0; i <= 20; i++){
+   arr_Profile_Guest_setting[i] = arr_get_setting[i];
+   write("Profile_Guest_setting[%d] = 0x%X", i, arr_Profile_Guest_setting[i]);
+  }
+  
+  testReportAddWindowCapture("Profile Settings 2.5","","Profile Guest","./profile_setting.jpg");
+  
+
+  testWaitForTimeout(5000);
+  
+  write("======================");  
+  
+  ProfileIDRVal = 0x2;
+  
+  testWaitForTimeout(5000);
+  
+  Random_Settings();
+  write("=== RANDOM SETTING ===");
+  for (i = 0; i <= 20; i++){
+   write("arr_random_setting[%d] = 0x%X", i, arr_random_setting[i]);
+  }
+
+  do {
+    Enter_BLTN_CAM();
+    testWaitForTimeout(4000);
+    
+    BLTN_CAM_Settings();
+
+    Exit_BLTN_CAM();
+    testWaitForTimeout(3000);
+    Get_setting();
+    
+    same = 1;
+    for (i = 0; i <= 20; i++) {
+      if (arr_random_setting[i] != arr_get_setting[i]) {
+        same = 0;
+        switch(i){
+          case(0): write("Mismatch >> OWD: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(1): write("Mismatch >> OWP: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(2): write("Mismatch >> DEV: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(3): write("Mismatch >> PEV: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(4): write("Mismatch >> 120h: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(5): write("Mismatch >> Parking Time: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(6): write("Mismatch >> TML Interval: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(7): write("Mismatch >> Bfr Time: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(8): write("Mismatch >> Aft Time: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(9): write("Mismatch >> EV Sen Stamp: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(10): write("Mismatch >> Gear Stamp: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(11): write("Mismatch >> Location Stamp: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(12): write("Mismatch >> Velocity Stamp: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(13): write("Mismatch >> Time Stamp: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(14): write("Mismatch >> Turn Signal Stamp: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(15): write("Mismatch >> Audio: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(16): write("Mismatch >> FCAM Angle: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(17): write("Mismatch >> RCAM Angle: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(18): write("Mismatch >> DEV Sen Level: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(19): write("Mismatch >> PEV Sen Level: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(20): write("Mismatch >> App Notification: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+        }
+        break;
+      }
+    }
+    loop++;
+    
+    if (loop == 2){
+      switch(i){
+        case(0): @panel::LED_Ctrl_SetOWP = 1; break;
+        case(1): @panel::LED_Ctrl_SetOWD = 1; break;
+        case(2): @panel::LED_Ctrl_SetPEV = 1; break;
+        case(3): @panel::LED_Ctrl_SetDEV = 1; break;
+        case(5): @panel::TrackBar_OWP_TIME = arr_random_setting[5]; break; 
+        case(6): @panel::TrackBar_Timelaps_TIME = arr_random_setting[6]; break;
+        case(7): if (arr_random_setting[7] == 0x0){
+                   @panel::TrackBar_EV_Time_Bfr = 1;
+                 }
+                 else if (arr_random_setting[7] == 0x5){
+                   @panel::TrackBar_EV_Time_Bfr = 2;
+                 }
+                 else {
+                   @panel::TrackBar_EV_Time_Bfr = 3;                   
+                 }
+                 break;
+        case(8): @panel::TrackBar_EV_Time_Aft = arr_random_setting[8] + 10;
+        case(9): @panel::LED_Ctrl_Set_EVSen_Stm = 1; break;  
+        case(10): @panel::LED_Ctrl_Set_GearPos_Stm = 1; break;
+        case(11): @panel::LED_Ctrl_Set_Locatn_Stm = 1; break;
+        case(12): @panel::LED_Ctrl_Set_Spd_Stm = 1; break;           
+        case(13): @panel::LED_Ctrl_Set_Tim_Stm = 1; break; 
+        case(14): @panel::LED_Ctrl_Set_TrnSig_Stm = 1; break; 
+        case(15): @panel::LED_Ctrl_AudRec_Set = 1; break; 
+        case(16): @panel::TrackBar_FR_Ver_Pos = arr_random_setting[16]; break; 
+        case(17): @panel::TrackBar_RR_Ver_Pos = arr_random_setting[17]; break;         
+        case(18): @panel::TrackBar_DEV_Sen = arr_random_setting[19]; break; 
+        case(19): @panel::TrackBar_PEV_Sen = arr_random_setting[19]; break; 
+        case(20): @panel::Button_AppNoti_PEV = 1; break;  
+      }
+    }
+  } while (!same);
+  
+  loop = 0;
+  
+  write("=== PROFILE DRIVER 1 ===");  
+  
+  for (i = 0; i <= 20; i++){
+   arr_Profile_Driver1_setting[i] = arr_get_setting[i];
+   write("Profile_Driver1_setting[%d] = 0x%X", i, arr_Profile_Driver1_setting[i]);
+  }
+
+  testReportAddWindowCapture("Profile Settings 2.5","","Profile Driver 1","./profile_setting.jpg");  
+
+  testWaitForTimeout(5000); 
+
+  write("======================");  
+  
+  ProfileIDRVal = 0x3;  
+  
+  testWaitForTimeout(5000);
+  
+  Random_Settings();
+  write("=== RANDOM SETTING ===");
+  for (i = 0; i <= 20; i++){
+   write("arr_random_setting[%d] = 0x%X", i, arr_random_setting[i]);
+  }
+
+  do {
+    Enter_BLTN_CAM();
+    testWaitForTimeout(4000);
+    
+    BLTN_CAM_Settings();
+
+    Exit_BLTN_CAM();
+    testWaitForTimeout(3000);
+    Get_setting();
+    
+    same = 1;
+    for (i = 0; i <= 20; i++) {
+      if (arr_random_setting[i] != arr_get_setting[i]) {
+        same = 0;
+        switch(i){
+          case(0): write("Mismatch >> OWD: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(1): write("Mismatch >> OWP: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(2): write("Mismatch >> DEV: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(3): write("Mismatch >> PEV: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(4): write("Mismatch >> 120h: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(5): write("Mismatch >> Parking Time: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(6): write("Mismatch >> TML Interval: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(7): write("Mismatch >> Bfr Time: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(8): write("Mismatch >> Aft Time: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(9): write("Mismatch >> EV Sen Stamp: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(10): write("Mismatch >> Gear Stamp: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(11): write("Mismatch >> Location Stamp: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(12): write("Mismatch >> Velocity Stamp: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(13): write("Mismatch >> Time Stamp: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(14): write("Mismatch >> Turn Signal Stamp: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(15): write("Mismatch >> Audio: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(16): write("Mismatch >> FCAM Angle: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(17): write("Mismatch >> RCAM Angle: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(18): write("Mismatch >> DEV Sen Level: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(19): write("Mismatch >> PEV Sen Level: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(20): write("Mismatch >> App Notification: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+        }
+        break;
+      }
+    }
+    loop++;
+    
+    if (loop == 2){
+      switch(i){
+        case(0): @panel::LED_Ctrl_SetOWP = 1; break;
+        case(1): @panel::LED_Ctrl_SetOWD = 1; break;
+        case(2): @panel::LED_Ctrl_SetPEV = 1; break;
+        case(3): @panel::LED_Ctrl_SetDEV = 1; break;
+        case(5): @panel::TrackBar_OWP_TIME = arr_random_setting[5]; break; 
+        case(6): @panel::TrackBar_Timelaps_TIME = arr_random_setting[6]; break;
+        case(7): if (arr_random_setting[7] == 0x0){
+                   @panel::TrackBar_EV_Time_Bfr = 1;
+                 }
+                 else if (arr_random_setting[7] == 0x5){
+                   @panel::TrackBar_EV_Time_Bfr = 2;
+                 }
+                 else {
+                   @panel::TrackBar_EV_Time_Bfr = 3;                   
+                 }
+                 break;
+        case(8): @panel::TrackBar_EV_Time_Aft = arr_random_setting[8] + 10;
+        case(9): @panel::LED_Ctrl_Set_EVSen_Stm = 1; break;  
+        case(10): @panel::LED_Ctrl_Set_GearPos_Stm = 1; break;
+        case(11): @panel::LED_Ctrl_Set_Locatn_Stm = 1; break;
+        case(12): @panel::LED_Ctrl_Set_Spd_Stm = 1; break;           
+        case(13): @panel::LED_Ctrl_Set_Tim_Stm = 1; break; 
+        case(14): @panel::LED_Ctrl_Set_TrnSig_Stm = 1; break; 
+        case(15): @panel::LED_Ctrl_AudRec_Set = 1; break; 
+        case(16): @panel::TrackBar_FR_Ver_Pos = arr_random_setting[16]; break; 
+        case(17): @panel::TrackBar_RR_Ver_Pos = arr_random_setting[17]; break;         
+        case(18): @panel::TrackBar_DEV_Sen = arr_random_setting[19]; break; 
+        case(19): @panel::TrackBar_PEV_Sen = arr_random_setting[19]; break; 
+        case(20): @panel::Button_AppNoti_PEV = 1; break;  
+      }
+    } 
+  } while (!same);
+  
+  loop = 0;
+  
+  write("=== PROFILE DRIVER 2 ===");  
+  
+  for (i = 0; i <= 20; i++){
+   arr_Profile_Driver2_setting[i] = arr_get_setting[i];
+   write("Profile_Driver2_setting[%d] = 0x%X", i, arr_Profile_Driver2_setting[i]);
+  }
+  
+  testReportAddWindowCapture("Profile Settings 2.5","","Profile Driver 2","./profile_setting.jpg");  
+
+  testWaitForTimeout(5000); 
+  
+  ProfileIDRVal = 0x0;
+  testWaitForTimeout(1000);
+  send_IAU_timer.cancel();
+}
+
+void Init(){
+  @panel::Switch_CGWNM = 1;
+  
+  @panel::Switch_Clock = 1;
+  
+  ON_OFF_Option = 1;
+  timer_Send_SMK_TrmnlCtrlGrpStaBDC.set(200); write("KEY_ON()");
+
+  testWaitForTimeout(3000);
+  
+  send_ICU_ModState_timer.set(200);
+
+  while (getSignal(BLTN_CAM_SD_Format_Op_State) != 0x1){
+    @panel::Button_RecReset = 1; 
+    testWaitForSignalChange(BLTN_CAM_SD_Format_Op_State,500);
+  }
+  
+  ProfileIDRVal = 0x0;
+  ProfileIDRValue = 0x0;
+}
+
+testcase HU_021_1(){
+  testStep("Notification","Start test HU_021_1");
+  write("=== START HU_021_1 ===");
+  
+  ProfileIDRVal = 0x1; // Profile Guest
+  send_IAU_timer.set(200); write("Run timer IAU");
+  
+  testWaitForTimeout(7000);
+  
+  write("B+ reset");
+  @ControlPowerSupply::Numeric_Volt_CH2 = 0;
+  @ControlPowerSupply::Button_Set_CH2 = 1; //Pressed
+//  testWaitForTimeout(1000);
+//  @ControlPowerSupply::Button_Set_CH2 = 0; //Released
+  
+  testWaitForTimeout(5000);
+  
+  @ControlPowerSupply::Numeric_Volt_CH2 = 12;
+  @ControlPowerSupply::Button_Set_CH2 = 1; //Pressed
+//  testWaitForTimeout(1000);
+//  @ControlPowerSupply::Button_Set_CH2 = 0; //Released
+  
+  testWaitForTimeout(10000);
+  
+  write("Run Get_setting()"); Get_setting(); 
+  
+  for( i = 0; i <= 20; i++){
+    if(arr_Profile_Guest_setting[i] == arr_get_setting[i]){
+      flag++;
+    }
+    else{
+      testStepFail("Fail","Test-case is NG");
+      write("Fail: Test-case is NG");
+      switch(i){
+          case(0): write("Mismatch >> OWD: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(1): write("Mismatch >> OWP: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(2): write("Mismatch >> DEV: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(3): write("Mismatch >> PEV: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(4): write("Mismatch >> 120h: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(5): write("Mismatch >> Parking Time: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(6): write("Mismatch >> TML Interval: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(7): write("Mismatch >> Bfr Time: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(8): write("Mismatch >> Aft Time: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(9): write("Mismatch >> EV Sen Stamp: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(10): write("Mismatch >> Gear Stamp: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(11): write("Mismatch >> Location Stamp: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(12): write("Mismatch >> Velocity Stamp: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(13): write("Mismatch >> Time Stamp: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(16): write("Mismatch >> FCAM Angle: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(17): write("Mismatch >> RCAM Angle: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(18): write("Mismatch >> DEV Sen Level: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(19): write("Mismatch >> PEV Sen Level: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(20): write("Mismatch >> App Notification: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+      }
+    }
+  }
+  if(flag == 21){
+    testStepPass("Pass", "Test-case is OK");
+    write("Pass: Test-case is OK");    
+  }
+  
+  CaptureGraphics(); write("Run Capture Graphics()");
+  testReportAddWindowCapture("Profile Settings 2.5","","Profile Guest","./profile_setting.jpg");  
+  
+  flag = 0;
+  
+  ProfileIDRVal = 0x0;
+  testWaitForTimeout(1000);
+  send_IAU_timer.cancel(); write("Cancel timer");
+  
+  write("=== FINISH HU_021_1 ===");  
+}
+
+testcase HU_021_3(){
+  testStep("Notification","Start test HU_021_3");
+  write("=== START HU_021_3 ===");
+  
+  ProfileIDRVal = 0x2; // Profile Driver 1
+  send_IAU_timer.set(200); write("Run timer IAU");
+  
+  testWaitForTimeout(7000);
+  
+  write("B+ reset");
+  @ControlPowerSupply::Numeric_Volt_CH2 = 0;
+  @ControlPowerSupply::Button_Set_CH2 = 1; //Pressed
+//  testWaitForTimeout(1000);
+//  @ControlPowerSupply::Button_Set_CH2 = 0; //Released
+  
+  testWaitForTimeout(5000);
+  
+  @ControlPowerSupply::Numeric_Volt_CH2 = 12;
+  @ControlPowerSupply::Button_Set_CH2 = 1; //Pressed
+//  testWaitForTimeout(1000);
+//  @ControlPowerSupply::Button_Set_CH2 = 0; //Released
+  
+  testWaitForTimeout(10000);
+  
+  write("Run Get_setting()"); Get_setting(); 
+  
+  for( i = 0; i <= 20; i++){
+    if(arr_Profile_Driver1_setting[i] == arr_get_setting[i]){
+      flag++;
+    }
+    else{
+      testStepFail("Fail","Test-case is NG");
+      write("Fail: Test-case is NG");
+      switch(i){
+          case(0): write("Mismatch >> OWD: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(1): write("Mismatch >> OWP: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(2): write("Mismatch >> DEV: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(3): write("Mismatch >> PEV: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(4): write("Mismatch >> 120h: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(5): write("Mismatch >> Parking Time: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(6): write("Mismatch >> TML Interval: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(7): write("Mismatch >> Bfr Time: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(8): write("Mismatch >> Aft Time: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(9): write("Mismatch >> EV Sen Stamp: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(10): write("Mismatch >> Gear Stamp: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(11): write("Mismatch >> Location Stamp: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(12): write("Mismatch >> Velocity Stamp: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(14): write("Mismatch >> Turn Signal Stamp: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(15): write("Mismatch >> Audio: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(16): write("Mismatch >> FCAM Angle: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(17): write("Mismatch >> RCAM Angle: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(18): write("Mismatch >> DEV Sen Level: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(19): write("Mismatch >> PEV Sen Level: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(20): write("Mismatch >> App Notification: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+      }
+    }
+  }
+  if(flag == 21){
+    testStepPass("Pass", "Test-case is OK");
+    write("Pass: Test-case is OK");    
+  }
+  
+  CaptureGraphics(); write("Run Capture Graphics()");
+  testReportAddWindowCapture("Profile Settings 2.5","","Profile Driver 1","./profile_setting.jpg");  
+  
+  flag = 0;
+  
+  ProfileIDRVal = 0x0;
+  testWaitForTimeout(1000);
+  send_IAU_timer.cancel(); write("Cancel timer");
+  
+  write("=== HU_021_3 ===");    
+}
+
+testcase HU_021_5(){
+  testStep("Notification","Start test HU_021_5");
+  write("=== START HU_021_5 ===");
+  
+  ProfileIDRVal = 0x3; // Profile Driver 2
+  send_IAU_timer.set(200); write("Run timer IAU");
+  
+  testWaitForTimeout(7000);
+  
+  write("B+ reset");
+  @ControlPowerSupply::Numeric_Volt_CH2 = 0;
+  @ControlPowerSupply::Button_Set_CH2 = 1; //Pressed
+  testWaitForTimeout(1000);
+  @ControlPowerSupply::Button_Set_CH2 = 0; //Released
+  
+  testWaitForTimeout(5000);
+  
+  @ControlPowerSupply::Numeric_Volt_CH2 = 12;
+  @ControlPowerSupply::Button_Set_CH2 = 1; //Pressed
+  testWaitForTimeout(1000);
+  @ControlPowerSupply::Button_Set_CH2 = 0; //Released
+  
+  testWaitForTimeout(10000);
+  
+  write("Run Get_setting()"); Get_setting(); 
+  
+  for( i = 0; i <= 20; i++){
+    if(arr_Profile_Driver2_setting[i] == arr_get_setting[i]){
+      flag++;
+    }
+    else{
+      testStepFail("Fail","Test-case is NG");
+      write("Fail: Test-case is NG");
+      switch(i){
+          case(0): write("Mismatch >> OWD: drive2 = 0x%X, get = 0x%X", arr_Profile_Driver2_setting[i], arr_get_setting[i]); break;
+          case(1): write("Mismatch >> OWP: drive2 = 0x%X, get = 0x%X", arr_Profile_Driver2_setting[i], arr_get_setting[i]); break;
+          case(2): write("Mismatch >> DEV: drive2 = 0x%X, get = 0x%X", arr_Profile_Driver2_setting[i], arr_get_setting[i]); break;
+          case(3): write("Mismatch >> PEV: drive2 = 0x%X, get = 0x%X", arr_Profile_Driver2_setting[i], arr_get_setting[i]); break;
+          case(4): write("Mismatch >> 120h: drive2 = 0x%X, get = 0x%X", arr_Profile_Driver2_setting[i], arr_get_setting[i]); break;
+          case(5): write("Mismatch >> Parking Time: drive2 = 0x%X, get = 0x%X", arr_Profile_Driver2_setting[i], arr_get_setting[i]); break;
+          case(6): write("Mismatch >> TML Interval: drive2 = 0x%X, get = 0x%X", arr_Profile_Driver2_setting[i], arr_get_setting[i]); break;
+          case(7): write("Mismatch >> Bfr Time: drive2 = 0x%X, get = 0x%X", arr_Profile_Driver2_setting[i], arr_get_setting[i]); break;
+          case(8): write("Mismatch >> Aft Time: drive2 = 0x%X, get = 0x%X", arr_Profile_Driver2_setting[i], arr_get_setting[i]); break;
+          case(9): write("Mismatch >> EV Sen Stamp: drive2 = 0x%X, get = 0x%X", arr_Profile_Driver2_setting[i], arr_get_setting[i]); break;
+          case(10): write("Mismatch >> Gear Stamp: drive2 = 0x%X, get = 0x%X", arr_Profile_Driver2_setting[i], arr_get_setting[i]); break;
+          case(11): write("Mismatch >> Location Stamp: drive2 = 0x%X, get = 0x%X", arr_Profile_Driver2_setting[i], arr_get_setting[i]); break;
+          case(12): write("Mismatch >> Velocity Stamp: drive2 = 0x%X, get = 0x%X", arr_Profile_Driver2_setting[i], arr_get_setting[i]); break;
+          case(13): write("Mismatch >> Time Stamp: drive2 = 0x%X, get = 0x%X", arr_Profile_Driver2_setting[i], arr_get_setting[i]); break;
+          case(14): write("Mismatch >> Turn Signal Stamp: drive2 = 0x%X, get = 0x%X", arr_Profile_Driver2_setting[i], arr_get_setting[i]); break;
+          case(15): write("Mismatch >> Audio: random = 0x%X, get = 0x%X", arr_Profile_Driver2_setting[i], arr_get_setting[i]); break;
+          case(16): write("Mismatch >> FCAM Angle: drive2 = 0x%X, get = 0x%X", arr_Profile_Driver2_setting[i], arr_get_setting[i]); break;
+          case(17): write("Mismatch >> RCAM Angle: drive2 = 0x%X, get = 0x%X", arr_Profile_Driver2_setting[i], arr_get_setting[i]); break;
+          case(18): write("Mismatch >> DEV Sen Level: drive2 = 0x%X, get = 0x%X", arr_Profile_Driver2_setting[i], arr_get_setting[i]); break;
+          case(19): write("Mismatch >> PEV Sen Level: drive2 = 0x%X, get = 0x%X", arr_Profile_Driver2_setting[i], arr_get_setting[i]); break;
+          case(20): write("Mismatch >> App Notification: drive2 = 0x%X, get = 0x%X", arr_Profile_Driver2_setting[i], arr_get_setting[i]); break;
+      }
+    }
+  }
+  if(flag == 21){
+    testStepPass("Pass", "Test-case is OK");
+    write("Pass: Test-case is OK");    
+  }
+  
+  CaptureGraphics(); write("Run Capture Graphics()");
+  testReportAddWindowCapture("Profile Settings 2.5","","Profile Driver 2","./profile_setting.jpg");  
+  
+  flag = 0;
+  
+  ProfileIDRVal = 0x0;
+  testWaitForTimeout(1000);
+  send_IAU_timer.cancel(); write("Cancel timer");
+  
+  write("=== FINISH HU_021_5 ===");    
+}
+
+testcase HU_021_7(){
+  testStep("Notification","Start test HU_021_7");
+  write("=== START HU_021_7 ===");
+
+  ProfileIDRVal = 0x1; // Profile Guest
+  send_IAU_timer.set(200); write("Run timer IAU");
+  
+  testWaitForTimeout(3000);
+  
+  ON_OFF_Option = 2;
+  testWaitForTimeout(5000);
+  
+  ProfileIDRVal = 0x2; // Profile Driver 1
+  
+  testWaitForTimeout(5000);
+  
+  write("Run Get_setting()"); Get_setting(); 
+  
+  for( i = 0; i <= 20; i++){
+    if(arr_Profile_Guest_setting[i] == arr_get_setting[i]){
+      flag++;
+    }
+    else{
+      testStepFail("Fail","Test-case is NG");
+      write("Fail: Test-case is NG");
+      switch(i){
+          case(0): write("Mismatch >> OWD: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(1): write("Mismatch >> OWP: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(2): write("Mismatch >> DEV: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(3): write("Mismatch >> PEV: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(4): write("Mismatch >> 120h: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(5): write("Mismatch >> Parking Time: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(6): write("Mismatch >> TML Interval: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(7): write("Mismatch >> Bfr Time: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(8): write("Mismatch >> Aft Time: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(9): write("Mismatch >> EV Sen Stamp: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(10): write("Mismatch >> Gear Stamp: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(11): write("Mismatch >> Location Stamp: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(12): write("Mismatch >> Velocity Stamp: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(13): write("Mismatch >> Time Stamp: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(16): write("Mismatch >> FCAM Angle: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(17): write("Mismatch >> RCAM Angle: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(18): write("Mismatch >> DEV Sen Level: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(19): write("Mismatch >> PEV Sen Level: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(20): write("Mismatch >> App Notification: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+      }
+    }
+  }
+  if(flag == 21){
+    testStepPass("Pass", "Test-case is OK");
+    write("Pass: Test-case is OK");    
+  }
+  
+  testWaitForTimeout(2000);
+  testReportAddWindowCapture("Graphics 2","IAU_ProfileIDRVal","Sreenshot","./Husign.jpg");
+  testReportAddWindowCapture("Profile Settings 2.5","","Profile Guest","./profile_setting.jpg");  
+
+  ProfileIDRVal = 0x0;
+  testWaitForTimeout(1000);  
+  send_IAU_timer.cancel(); write("Cancel timer");
+  
+  write("=== FINISH HU_021_7 ==="); 
+  
+  ON_OFF_Option = 1;
+}
+
+testcase HU_021_8(){
+  testStep("Notification","Start test HU_021_8");
+  write("=== START HU_021_8 ===");
+  
+  ProfileIDRVal = 0x1; // Profile Guest
+  send_IAU_timer.set(200); write("Run timer IAU");
+  
+  testWaitForTimeout(5000);
+  
+  ON_OFF_Option = 2;
+  testWaitForTimeout(2000);
+  
+  ProfileIDRVal = 0x3; // Profile Driver 2
+  
+  testWaitForTimeout(5000);
+  
+  write("Run Get_setting()"); Get_setting(); 
+  
+  for( i = 0; i <= 20; i++){
+    if(arr_Profile_Guest_setting[i] == arr_get_setting[i]){
+      flag++;
+    }
+    else{
+      testStepFail("Fail","Test-case is NG");
+      write("Fail: Test-case is NG");
+      switch(i){
+          case(0): write("Mismatch >> OWD: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(1): write("Mismatch >> OWP: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(2): write("Mismatch >> DEV: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(3): write("Mismatch >> PEV: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(4): write("Mismatch >> 120h: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(5): write("Mismatch >> Parking Time: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(6): write("Mismatch >> TML Interval: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(7): write("Mismatch >> Bfr Time: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(8): write("Mismatch >> Aft Time: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(9): write("Mismatch >> EV Sen Stamp: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(10): write("Mismatch >> Gear Stamp: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(11): write("Mismatch >> Location Stamp: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(12): write("Mismatch >> Velocity Stamp: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(13): write("Mismatch >> Time Stamp: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(16): write("Mismatch >> FCAM Angle: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(17): write("Mismatch >> RCAM Angle: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(18): write("Mismatch >> DEV Sen Level: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(19): write("Mismatch >> PEV Sen Level: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(20): write("Mismatch >> App Notification: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+      }
+    }
+  }
+  if(flag == 21){
+    testStepPass("Pass", "Test-case is OK");
+    write("Pass: Test-case is OK");    
+  }
+  
+  testWaitForTimeout(2000);
+  testReportAddWindowCapture("Graphics 2","IAU_ProfileIDRVal","Sreenshot","./Husign.jpg");
+  testReportAddWindowCapture("Profile Settings 2.5","","Profile Guest","./profile_setting.jpg");  
+
+  ProfileIDRVal = 0x1;
+  testWaitForTimeout(1000);
+  send_IAU_timer.cancel(); write("Cancel timer");
+  
+  ON_OFF_Option = 1;
+  
+  write("=== FINISH HU_021_8 ==="); 
+}
+
+testcase HU_021_9(){
+  testStep("Notification","Start test HU_021_9");
+  write("=== START HU_021_9 ===");
+  
+  ProfileIDRVal = 0x1; // Profile Guest
+  send_IAU_timer.set(200); write("Run timer IAU");
+  
+  testWaitForTimeout(5000);
+
+  @panel::Button_Timelaps_Stop = 1;
+  
+  testWaitForTimeout(500);
+  
+  @panel::Button_Timelaps_Start = 1;
+  
+  testWaitForTimeout(10000);
+  
+  ProfileIDRVal = 0x2; // Profile Driver 1
+  
+  if(testWaitForSignalChange(BLTN_CAM_RecSta_TML,10000) == 1){
+    testStepPass("Pass: Test-case is OK");
+  }
+  else {
+    testStepFail("Fail: Test-case is NG");
+  }
+  
+  testWaitForTimeout(2000);
+  testReportAddWindowCapture("Graphics 2","BLTN_CAM_RecSta_TML;IAU_ProfileIDRVal","Sreenshot","./Husign.jpg"); 
+  
+  ProfileIDRVal = 0x0;
+  testWaitForTimeout(1000);
+  send_IAU_timer.cancel(); write("Cancel timer");
+  
+  write("=== FINISH HU_021_9 ===");      
+}
+
+testcase HU_021_10(){
+  byte remember_OWD_recset;
+  
+  testStep("Notification","Start test HU_021_10");
+  write("=== START HU_021_10 ===");
+  
+  ProfileIDRVal = 0x1; // Profile Guest
+  send_IAU_timer.set(200); write("Run timer IAU");
+  
+  testWaitForTimeout(10000);
+  
+  write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM(); 
+  testWaitForTimeout(3000);
+  
+  remember_OWD_recset = $BLTN_CAM_RecSet_OWD;
+  
+  if (remember_OWD_recset == 0x1){
+    do{
+      
+      write("Turn OWD ON"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x1);
+  } 
+  
+  write("Run Exit BLTN_CAM()"); Exit_BLTN_CAM();
+  
+  if(testWaitForSignalChange(BLTN_CAM_RecSta_OWD,10000) == 1){
+    
+    write("OWD recording is started");
+    
+    testWaitForTimeout(10000);
+    
+    ProfileIDRVal = 0x2; // Profile Driver 1
+  
+    if(testWaitForSignalChange(BLTN_CAM_RecSta_OWD,20000) == 1){
+      testStepPass("Pass","Test-case is OK");
+      write("OWD recording has ended");
+    }
+    else{
+      testStepFail("Fail","Test-case is NG");
+      write("Test case is NG because OWD hasn't ended");
+    }
+  }
+  else {
+    if (remember_OWD_recset == 0x1){
+      
+      do {
+        
+      Enter_BLTN_CAM(); write("Run Enter_BLTN_CAM()");
+      testWaitForTimeout(3000);
+    
+      write("Turn OFF OWD"); @panel::LED_Ctrl_SetOWD = 1;  
+
+      testWaitForTimeout(1000);
+        
+      } while (getSignal(BLTN_CAM_RecSet_OWD) == 0x2);
+  
+      Exit_BLTN_CAM(); write("Run Exit_BLTN_CAM()");
+    }
+    testStepFail("Fail","OWD recording hasn't started");
+  }
+  
+  testWaitForTimeout(2000);
+  testReportAddWindowCapture("Graphics 2","BLTN_CAM_RecSta_OWD;IAU_ProfileIDRVal","Sreenshot","./Husign.jpg"); 
+  
+  testReportAddWindowCapture("Profile Settings 2.5","","Profile Driver 1","./profile_setting.jpg");  
+  
+  if (remember_OWD_recset == 0x1){
+      
+    do {
+        
+    Enter_BLTN_CAM(); write("Run Enter_BLTN_CAM()");
+    testWaitForTimeout(3000);
+    
+    write("Turn OFF OWD"); @panel::LED_Ctrl_SetOWD = 1;  
+
+    testWaitForTimeout(1000);
+        
+    } while (getSignal(BLTN_CAM_RecSet_OWD) == 0x2);
+  
+    Exit_BLTN_CAM(); write("Run Exit_BLTN_CAM()");
+  }
+  
+  ProfileIDRVal = 0x0;
+  testWaitForTimeout(1000);
+  
+  send_IAU_timer.cancel(); write("Cancel timer");
+  
+  write("=== FINISH HU_021_10 ===");
+}
+
+testcase HU_021_11(){
+  testStep("Notification","Start test HU_021_11");
+  write("=== START HU_021_11 ===");
+  
+  ProfileIDRValue = 0x1; //Profile Guest
+  send_CF_AVN_timer.set(200); write("Run timer CF_AVN");
+    
+  ProfileIDRVal = 0x2; // Profile Driver 1
+  send_IAU_timer.set(200); write("Run timer IAU");
+  
+  testWaitForTimeout(10000);
+  
+  write("Run Get_setting()"); Get_setting(); 
+  
+  for( i = 0; i <= 20; i++){
+    if(arr_Profile_Driver1_setting[i] == arr_get_setting[i]){
+      flag++;
+    }
+    else{
+      testStepFail("Fail","Test-case is NG");
+      write("Fail: Test-case is NG");
+      switch(i){
+          case(0): write("Mismatch >> OWD: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(1): write("Mismatch >> OWP: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(2): write("Mismatch >> DEV: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(3): write("Mismatch >> PEV: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(4): write("Mismatch >> 120h: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(5): write("Mismatch >> Parking Time: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(6): write("Mismatch >> TML Interval: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(7): write("Mismatch >> Bfr Time: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(8): write("Mismatch >> Aft Time: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(9): write("Mismatch >> EV Sen Stamp: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(10): write("Mismatch >> Gear Stamp: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(11): write("Mismatch >> Location Stamp: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(12): write("Mismatch >> Velocity Stamp: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(14): write("Mismatch >> Turn Signal Stamp: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(15): write("Mismatch >> Audio: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(16): write("Mismatch >> FCAM Angle: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(17): write("Mismatch >> RCAM Angle: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(18): write("Mismatch >> DEV Sen Level: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(19): write("Mismatch >> PEV Sen Level: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(20): write("Mismatch >> App Notification: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+      }
+    }
+  }
+  if(flag == 21){
+    testStepPass("Pass", "Test-case is OK");
+    write("Pass: Test-case is OK");    
+  }
+  
+  CaptureGraphics(); write("Run Capture Graphics()");
+  testReportAddWindowCapture("Profile Settings 2.5","","Profile Guest","./profile_setting.jpg");  
+  
+  flag = 0;
+  
+  ProfileIDRValue = 0x0;
+  ProfileIDRVal = 0x0;
+  testWaitForTimeout(1000);
+  send_IAU_timer.cancel(); write("Cancel timer");
+  send_CF_AVN_timer.cancel();
+  
+  write("=== FINISH HU_021_11 ===");
+}
+
+testcase HU_021_12(){
+  testStep("Notification","Start test HU_021_12");
+  write("=== START HU_021_12 ===");
+  
+  ProfileIDRVal = 0x2; //Profile Driver 1
+  send_IAU_timer.set(10); write("Run timer IAU");
+  testWaitForTimeout(1000);
+  send_IAU_timer.cancel();
+  
+  ProfileIDRValue = 0x1; //Profile Guest
+  send_CF_AVN_timer.set(200); write("Run timer CF_AVN");
+  
+  testWaitForTimeout(10000);
+  
+  write("Run Get_setting()"); Get_setting(); 
+  
+  for( i = 0; i <= 20; i++){
+    if(arr_Profile_Guest_setting[i] == arr_get_setting[i]){
+      flag++;
+    }
+    else{
+      testStepFail("Fail","Test-case is NG");
+      write("Fail: Test-case is NG");
+      switch(i){
+          case(0): write("Mismatch >> OWD: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(1): write("Mismatch >> OWP: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(2): write("Mismatch >> DEV: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(3): write("Mismatch >> PEV: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(4): write("Mismatch >> 120h: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(5): write("Mismatch >> Parking Time: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(6): write("Mismatch >> TML Interval: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(7): write("Mismatch >> Bfr Time: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(8): write("Mismatch >> Aft Time: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(9): write("Mismatch >> EV Sen Stamp: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(10): write("Mismatch >> Gear Stamp: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(11): write("Mismatch >> Location Stamp: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(12): write("Mismatch >> Velocity Stamp: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(13): write("Mismatch >> Time Stamp: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(16): write("Mismatch >> FCAM Angle: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(17): write("Mismatch >> RCAM Angle: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(18): write("Mismatch >> DEV Sen Level: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(19): write("Mismatch >> PEV Sen Level: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(20): write("Mismatch >> App Notification: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+      }
+    }
+  }
+  if(flag == 21){
+    testStepPass("Pass", "Test-case is OK");
+    write("Pass: Test-case is OK");    
+  }
+  
+  CaptureGraphics(); write("Run Capture Graphics()");
+  testReportAddWindowCapture("Profile Settings 2.5","","Profile Guest","./profile_setting.jpg");  
+  
+  flag = 0;
+  
+  ProfileIDRValue = 0x0;
+  testWaitForTimeout(1000);
+  send_CF_AVN_timer.cancel(); write("Cancel timer");
+  
+  write("=== FINISH HU_021_12 ===");
+}
+
+testcase HU_021_13(){
+  testStep("Notification","Start test HU_021_13");
+  write("=== START HU_021_13 ===");
+  
+  ProfileIDRVal = 0x2; //Profile Driver 1
+  send_IAU_timer.set(10); write("Run timer IAU");
+  testWaitForTimeout(1000);
+  send_IAU_timer.cancel();
+  
+  ProfileIDRValue = 0x1; //Profile Guest
+  send_CF_AVN_timer.set(200); write("Run timer CF_AVN");
+  
+  testWaitForTimeout(10000);
+  
+  write("B+ reset");
+  @ControlPowerSupply::Numeric_Volt_CH2 = 0;
+  @ControlPowerSupply::Button_Set_CH2 = 1; //Pressed
+//  testWaitForTimeout(1000);
+//  @ControlPowerSupply::Button_Set_CH2 = 0; //Released
+  
+  testWaitForTimeout(5000);
+  
+  @ControlPowerSupply::Numeric_Volt_CH2 = 12;
+  @ControlPowerSupply::Button_Set_CH2 = 1; //Pressed
+//  testWaitForTimeout(1000);
+//  @ControlPowerSupply::Button_Set_CH2 = 0; //Released
+  
+  testWaitForTimeout(10000);
+  
+  write("Run Get_setting()"); Get_setting(); 
+  
+  for( i = 0; i <= 20; i++){
+    if(arr_Profile_Guest_setting[i] == arr_get_setting[i]){
+      flag++;
+    }
+    else{
+      testStepFail("Fail","Test-case is NG");
+      write("Fail: Test-case is NG");
+      switch(i){
+          case(0): write("Mismatch >> OWD: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(1): write("Mismatch >> OWP: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(2): write("Mismatch >> DEV: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(3): write("Mismatch >> PEV: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(4): write("Mismatch >> 120h: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(5): write("Mismatch >> Parking Time: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(6): write("Mismatch >> TML Interval: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(7): write("Mismatch >> Bfr Time: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(8): write("Mismatch >> Aft Time: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(9): write("Mismatch >> EV Sen Stamp: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(10): write("Mismatch >> Gear Stamp: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(11): write("Mismatch >> Location Stamp: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(12): write("Mismatch >> Velocity Stamp: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(13): write("Mismatch >> Time Stamp: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(16): write("Mismatch >> FCAM Angle: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(17): write("Mismatch >> RCAM Angle: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(18): write("Mismatch >> DEV Sen Level: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(19): write("Mismatch >> PEV Sen Level: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(20): write("Mismatch >> App Notification: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+      }    
+    }
+  }
+  if(flag == 21){
+    testStepPass("Pass", "Test-case is OK");
+    write("Pass: Test-case is OK");    
+  }
+  
+  CaptureGraphics(); write("Run Capture Graphics()");
+  testReportAddWindowCapture("Profile Settings 2.5","","Profile Guest","./profile_setting.jpg");  
+  
+  flag = 0;
+  
+  ProfileIDRValue = 0x0;
+  testWaitForTimeout(1000);
+  send_CF_AVN_timer.cancel(); write("Cancel timer");
+  
+  write("=== FINISH HU_021_13 ===");  
+}
+
+testcase HU_021_14(){
+  testStep("Notification","Start test HU_021_14");
+  write("=== START HU_021_14 ===");
+
+  ProfileIDRVal = 0x2; //Profile Driver 1
+  send_IAU_timer.set(10); write("Run timer IAU");
+  testWaitForTimeout(1000);
+  send_IAU_timer.cancel();  
+  
+  ProfileIDRValue = 0x1; //Profile Guest
+  send_CF_AVN_timer.set(200); write("Run timer CF_AVN");
+  
+  testWaitForTimeout(10000);
+  
+  send_CF_AVN_timer.cancel(); write("Cancel timer");
+  
+  testWaitForTimeout(5000);
+  
+  write("Run Get_setting()"); Get_setting(); 
+  
+  for( i = 0; i <= 20; i++){
+    if(arr_Profile_Guest_setting[i] == arr_get_setting[i]){
+      flag++;
+    }
+    else{
+      testStepFail("Fail","Test-case is NG");
+      write("Fail: Test-case is NG");
+      switch(i){
+          case(0): write("Mismatch >> OWD: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(1): write("Mismatch >> OWP: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(2): write("Mismatch >> DEV: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(3): write("Mismatch >> PEV: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(4): write("Mismatch >> 120h: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(5): write("Mismatch >> Parking Time: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(6): write("Mismatch >> TML Interval: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(7): write("Mismatch >> Bfr Time: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(8): write("Mismatch >> Aft Time: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(9): write("Mismatch >> EV Sen Stamp: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(10): write("Mismatch >> Gear Stamp: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(11): write("Mismatch >> Location Stamp: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(12): write("Mismatch >> Velocity Stamp: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(13): write("Mismatch >> Time Stamp: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(16): write("Mismatch >> FCAM Angle: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(17): write("Mismatch >> RCAM Angle: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(18): write("Mismatch >> DEV Sen Level: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(19): write("Mismatch >> PEV Sen Level: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(20): write("Mismatch >> App Notification: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+      }    
+    }
+  }
+  if(flag == 21){
+    testStepPass("Pass", "Test-case is OK");
+    write("Pass: Test-case is OK");    
+  }
+  
+  CaptureGraphics(); write("Run Capture Graphics()");
+  testReportAddWindowCapture("Profile Settings 2.5","","Profile Guest","./profile_setting.jpg");  
+  
+  flag = 0;
+  
+  write("=== FINISH HU_021_14 ===");
+}
+
+testcase HU_021_15(){
+  testStep("Notification","Start test HU_021_15");
+  write("=== START HU_021_15 ===");
+  
+  ProfileIDRVal = 0x2; //Profile Guest
+  send_IAU_timer.set(200); write("Run timer IAU");
+  
+  testWaitForTimeout(10000);
+  
+  send_IAU_timer.cancel(); write("Cancel timer");
+  
+  testWaitForTimeout(5000);
+  
+  write("Run Get_setting()"); Get_setting(); 
+  
+  for( i = 0; i <= 20; i++){
+    if(arr_Profile_Driver1_setting[i] == arr_get_setting[i]){
+      flag++;
+    }
+    else{
+      testStepFail("Fail","Test-case is NG");
+      write("Fail: Test-case is NG");
+      switch(i){
+          case(0): write("Mismatch >> OWD: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(1): write("Mismatch >> OWP: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(2): write("Mismatch >> DEV: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(3): write("Mismatch >> PEV: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(4): write("Mismatch >> 120h: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(5): write("Mismatch >> Parking Time: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(6): write("Mismatch >> TML Interval: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(7): write("Mismatch >> Bfr Time: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(8): write("Mismatch >> Aft Time: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(9): write("Mismatch >> EV Sen Stamp: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(10): write("Mismatch >> Gear Stamp: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(11): write("Mismatch >> Location Stamp: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(12): write("Mismatch >> Velocity Stamp: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(14): write("Mismatch >> Turn Signal Stamp: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(15): write("Mismatch >> Audio: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(16): write("Mismatch >> FCAM Angle: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(17): write("Mismatch >> RCAM Angle: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(18): write("Mismatch >> DEV Sen Level: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(19): write("Mismatch >> PEV Sen Level: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(20): write("Mismatch >> App Notification: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+      }    
+    }
+  }
+  if(flag == 21){
+    testStepPass("Pass", "Test-case is OK");
+    write("Pass: Test-case is OK");    
+  }
+  
+  CaptureGraphics(); write("Run Capture Graphics()");
+  testReportAddWindowCapture("Profile Settings 2.5","","Profile Driver 1","./profile_setting.jpg");  
+  
+  flag = 0;
+  
+  write("=== FINISH HU_021_15 ===");
+}
+
+testcase HU_021_16(){
+  testStep("Notification","Start test HU_021_16");
+  write("=== START HU_021_16 ===");
+  
+  //=== PHASE 1 ===//
+  
+  ProfileIDRValue = 0x1; //Profile Guest
+  send_CF_AVN_timer.set(200); write("Run timer CF_AVN");
+  
+  testWaitForTimeout(1000);  
+  
+  ProfileIDRVal = 0x2; // Profile Driver 1
+  send_IAU_timer.set(200); write("Run timer IAU");
+  
+  testWaitForTimeout(10000);  
+  
+  write("Run Get_setting()"); Get_setting(); 
+  
+  for( i = 0; i <= 20; i++){
+    if(arr_Profile_Driver1_setting[i] == arr_get_setting[i]){
+      flag++;
+    }
+    else{
+      testStepFail("Fail","Test-case is NG");
+      write("Fail: Test-case is NG");
+      switch(i){
+          case(0): write("Mismatch >> OWD: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(1): write("Mismatch >> OWP: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(2): write("Mismatch >> DEV: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(3): write("Mismatch >> PEV: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(4): write("Mismatch >> 120h: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(5): write("Mismatch >> Parking Time: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(6): write("Mismatch >> TML Interval: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(7): write("Mismatch >> Bfr Time: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(8): write("Mismatch >> Aft Time: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(9): write("Mismatch >> EV Sen Stamp: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(10): write("Mismatch >> Gear Stamp: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(11): write("Mismatch >> Location Stamp: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(12): write("Mismatch >> Velocity Stamp: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(14): write("Mismatch >> Turn Signal Stamp: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(15): write("Mismatch >> Audio: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(16): write("Mismatch >> FCAM Angle: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(17): write("Mismatch >> RCAM Angle: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(18): write("Mismatch >> DEV Sen Level: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(19): write("Mismatch >> PEV Sen Level: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(20): write("Mismatch >> App Notification: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+      }
+            
+      CaptureGraphics(); write("Run Capture Graphics()");
+      testReportAddWindowCapture("Profile Settings 2.5","","Profile Driver 1","./profile_setting.jpg");      
+      }      
+    }
+  
+  if(flag == 21){
+    condition1 = 1;
+      
+    CaptureGraphics(); write("Run Capture Graphics()");
+    testReportAddWindowCapture("Profile Settings 2.5","","Profile Driver 1","./profile_setting.jpg"); 
+    
+    flag = 0;
+  
+    //=== PHASE 2===//
+  
+    send_IAU_timer.cancel();
+  
+    testWaitForTimeout(10000);
+  
+    write("Run Get_setting()"); Get_setting(); 
+  
+    for( i = 0; i <= 20; i++){
+      if(arr_Profile_Guest_setting[i] == arr_get_setting[i]){
+        flag++;
+      }
+      else{
+        testStepFail("Fail","Test-case is NG");
+        write("Fail: Test-case is NG");
+      switch(i){
+          case(0): write("Mismatch >> OWD: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(1): write("Mismatch >> OWP: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(2): write("Mismatch >> DEV: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(3): write("Mismatch >> PEV: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(4): write("Mismatch >> 120h: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(5): write("Mismatch >> Parking Time: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(6): write("Mismatch >> TML Interval: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(7): write("Mismatch >> Bfr Time: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(8): write("Mismatch >> Aft Time: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(9): write("Mismatch >> EV Sen Stamp: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(10): write("Mismatch >> Gear Stamp: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(11): write("Mismatch >> Location Stamp: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(12): write("Mismatch >> Velocity Stamp: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(13): write("Mismatch >> Time Stamp: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(16): write("Mismatch >> FCAM Angle: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(17): write("Mismatch >> RCAM Angle: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(18): write("Mismatch >> DEV Sen Level: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(19): write("Mismatch >> PEV Sen Level: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(20): write("Mismatch >> App Notification: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+      }    
+      }
+    }
+  
+    if(flag == 21){
+      condition2 = 1;  
+    }
+  
+    if(condition1 == 1 && condition2 == 1){
+      testStepPass("Pass","Setting value changed from 0x2 (Profile1) to 0x1 (Guest). So test-case is OK");
+      write("Setting value changed from 0x2 (Profile1) to 0x1 (Guest). So test-case is OK");
+    }
+    else{
+      testStepFail("Fail","Test-case is NG");
+      write("Fail: Test-case is NG");
+    }
+  
+    CaptureGraphics(); write("Run Capture Graphics()");
+    testReportAddWindowCapture("Profile Settings 2.5","","Profile Guest","./profile_setting.jpg");  
+} 
+  flag = 0;
+    
+  ProfileIDRValue = 0x0;
+  ProfileIDRVal = 0x0;
+  testWaitForTimeout(1000);
+  send_CF_AVN_timer.cancel(); send_IAU_timer.cancel();
+   
+  write("=== FINISH HU_021_16 ===");
+}
+
+testcase HU_021_17(){
+  testStep("Notification","Start test HU_021_17");
+  write("=== START HU_021_17 ===");
+  
+  //=== PHASE 1 ===//
+  
+  ProfileIDRValue = 0x1; //Profile Guest
+  send_CF_AVN_timer.set(200); write("Run timer CF_AVN");
+  
+  testWaitForTimeout(1000);
+  
+  ProfileIDRVal = 0x2; // Profile Driver 1
+  send_IAU_timer.set(200); write("Run timer IAU");
+  
+  testWaitForTimeout(10000);  
+  
+  write("Run Get_setting()"); Get_setting(); 
+  
+  for( i = 0; i <= 20; i++){
+    if(arr_Profile_Driver1_setting[i] == arr_get_setting[i]){
+      flag++;
+    }
+    else{
+      testStepFail("Fail","Test-case is NG");
+      write("Fail: Test-case is NG");
+      switch(i){
+          case(0): write("Mismatch >> OWD: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(1): write("Mismatch >> OWP: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(2): write("Mismatch >> DEV: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(3): write("Mismatch >> PEV: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(4): write("Mismatch >> 120h: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(5): write("Mismatch >> Parking Time: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(6): write("Mismatch >> TML Interval: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(7): write("Mismatch >> Bfr Time: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(8): write("Mismatch >> Aft Time: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(9): write("Mismatch >> EV Sen Stamp: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(10): write("Mismatch >> Gear Stamp: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(11): write("Mismatch >> Location Stamp: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(12): write("Mismatch >> Velocity Stamp: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(13): write("Mismatch >> Time Stamp: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(14): write("Mismatch >> Turn Signal Stamp: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(15): write("Mismatch >> Audio: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(16): write("Mismatch >> FCAM Angle: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(17): write("Mismatch >> RCAM Angle: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(18): write("Mismatch >> DEV Sen Level: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(19): write("Mismatch >> PEV Sen Level: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+          case(20): write("Mismatch >> App Notification: random = 0x%X, get = 0x%X", arr_random_setting[i], arr_get_setting[i]); break;
+      
+      CaptureGraphics(); write("Run Capture Graphics()");
+      testReportAddWindowCapture("Profile Settings 2.5","","Profile Driver 1","./profile_setting.jpg");                  
+      } 
+    }
+  }
+  
+  if(flag == 21){
+    condition1 = 1;
+    
+    CaptureGraphics(); write("Run Capture Graphics()");
+    testReportAddWindowCapture("Profile Settings 2.5","","Profile Driver 1","./profile_setting.jpg"); 
+    
+    flag = 0;
+  
+    //=== PHASE 2 ===//
+  
+    send_IAU_timer.cancel();
+  
+    testWaitForTimeout(10000);
+  
+    write("Run Get_setting()"); Get_setting(); 
+  
+    for( i = 0; i <= 20; i++){
+      if(arr_Profile_Guest_setting[i] == arr_get_setting[i]){
+        flag++;
+      }
+      else{
+        testStepFail("Fail","Test-case is NG");
+        write("Fail: Test-case is NG");
+      switch(i){
+          case(0): write("Mismatch >> OWD: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(1): write("Mismatch >> OWP: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(2): write("Mismatch >> DEV: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(3): write("Mismatch >> PEV: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(4): write("Mismatch >> 120h: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(5): write("Mismatch >> Parking Time: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(6): write("Mismatch >> TML Interval: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(7): write("Mismatch >> Bfr Time: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(8): write("Mismatch >> Aft Time: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(9): write("Mismatch >> EV Sen Stamp: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(10): write("Mismatch >> Gear Stamp: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(11): write("Mismatch >> Location Stamp: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(12): write("Mismatch >> Velocity Stamp: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(13): write("Mismatch >> Time Stamp: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(16): write("Mismatch >> FCAM Angle: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(17): write("Mismatch >> RCAM Angle: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(18): write("Mismatch >> DEV Sen Level: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(19): write("Mismatch >> PEV Sen Level: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+          case(20): write("Mismatch >> App Notification: guest = 0x%X, get = 0x%X", arr_Profile_Guest_setting[i], arr_get_setting[i]); break;
+            
+          CaptureGraphics(); write("Run Capture Graphics()");
+          testReportAddWindowCapture("Profile Settings 2.5","","Profile Guest","./profile_setting.jpg");    
+        }        
+      }
+    }
+    if(flag == 21){
+      condition2 = 1;
+      
+      CaptureGraphics(); write("Run Capture Graphics()");
+      testReportAddWindowCapture("Profile Settings 2.5","","Profile Guest","./profile_setting.jpg");  
+      
+      flag = 0;
+  
+      //=== PHASE 3 ===//
+  
+      send_IAU_timer.set(200); write("Run timer IAU");
+  
+      testWaitForTimeout(10000);
+  
+      write("Run Get_setting()"); Get_setting(); 
+  
+      for( i = 0; i <= 20; i++){
+        if(arr_Profile_Driver1_setting[i] == arr_get_setting[i]){
+          flag++;
+        }
+        else{
+          testStepFail("Fail","Test-case is NG");
+          write("Fail: Test-case is NG");
+      switch(i){
+          case(0): write("Mismatch >> OWD: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(1): write("Mismatch >> OWP: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(2): write("Mismatch >> DEV: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(3): write("Mismatch >> PEV: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(4): write("Mismatch >> 120h: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(5): write("Mismatch >> Parking Time: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(6): write("Mismatch >> TML Interval: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(7): write("Mismatch >> Bfr Time: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(8): write("Mismatch >> Aft Time: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(9): write("Mismatch >> EV Sen Stamp: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(10): write("Mismatch >> Gear Stamp: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(11): write("Mismatch >> Location Stamp: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(12): write("Mismatch >> Velocity Stamp: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(14): write("Mismatch >> Turn Signal Stamp: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(15): write("Mismatch >> Audio: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(16): write("Mismatch >> FCAM Angle: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(17): write("Mismatch >> RCAM Angle: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(18): write("Mismatch >> DEV Sen Level: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(19): write("Mismatch >> PEV Sen Level: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+          case(20): write("Mismatch >> App Notification: driver1 = 0x%X, get = 0x%X", arr_Profile_Driver1_setting[i], arr_get_setting[i]); break;
+              
+          CaptureGraphics(); write("Run Capture Graphics()");
+          testReportAddWindowCapture("Profile Settings 2.5","","Profile Driver 1","./profile_setting.jpg");     
+          }          
+        }
+      }
+  
+      if(flag == 21){
+        condition3 = 1;
+        
+        CaptureGraphics(); write("Run Capture Graphics()");
+        testReportAddWindowCapture("Profile Settings 2.5","","Profile Driver 1","./profile_setting.jpg");     
+      }  
+  
+      if(condition1 == 1 && condition2 == 1 && condition3 == 1){
+        testStepPass("Pass","Setting value changes from 0x2 (Profile1) to 0x1 (Guest) and returns to 0x2 (Profile1). So test-case is OK");
+        write("Setting value changes from 0x2 (Profile1) to 0x1 (Guest) and returns to 0x2 (Profile1). So test-case is OK");
+      }
+      else{
+        testStepFail("Fail","Test-case is NG");
+        write("Fail: Test-case is NG");
+      }
+    }
+  }
+
+  flag = 0;
+  
+  ProfileIDRValue = 0x0;
+  ProfileIDRVal = 0x0;
+  testWaitForTimeout(1000);
+  write("Cancel timer"); send_CF_AVN_timer.cancel(); send_IAU_timer.cancel();
+
+  write("=== FINISH HU_021_17 ===");  
+}
+
+void MainTest(){
+  write("Run Connect_PowerSupply"); Connect_PowerSupply();
+  
+  write("Run Init()"); Init(); 
+  
+  write("Run Set_Profile_Driver()"); Set_Profile_Driver(); 
+ 
+  do {
+  testWaitForValueInput("Notification: Enter the testcase ID:",300000); 
+  
+  switch(testGetValueInput()){
+    case(1): HU_021_1();break;
+    
+    case(2): HU_021_3();break;
+    
+    case(3): HU_021_5();break;
+      
+    case(4): HU_021_7();break;
+      
+    case(5): HU_021_8();break;   
+      
+    case(6): HU_021_9();break;
+      
+    case(7): HU_021_10();break;         
+      
+    case(8): HU_021_11();break;
+
+    case(9): HU_021_12();break;       
+
+    case(10): HU_021_13();break;
+      
+    case(11): HU_021_14();break;
+      
+    case(12): HU_021_15();break;
+
+    case(13): HU_021_16();break;
+      
+    case(14): HU_021_17();break;
+      
+    case(15):
+      HU_021_1();
+      HU_021_3();
+      HU_021_5();
+      HU_021_7();
+      HU_021_8();
+      HU_021_9();
+      HU_021_10();
+      HU_021_11();
+      HU_021_12();
+      HU_021_13();
+      HU_021_14();
+      HU_021_15();
+      HU_021_16();
+      HU_021_17();
+      break; 
+      
+    case(18):
+      HU_021_11();
+      HU_021_12();
+      HU_021_13();
+      HU_021_14();
+      HU_021_15();
+      HU_021_16();
+      HU_021_17();
+      break;
+      
+    case(36):
+      HU_021_1();
+      HU_021_3();
+      HU_021_5();
+      HU_021_7();
+      HU_021_8();
+      HU_021_9();
+      HU_021_10();      
+      break;
+  }
+  } while (testGetValueInput() != 666);
+  write("KEY_OFF"); ON_OFF_Option = 0;
+  testWaitForTimeout(1000);
+  timer_Send_SMK_TrmnlCtrlGrpStaBDC.cancel();
+  
+  
+  testWaitForTimeout(1000);
+  
+  send_ICU_ModState_timer.cancel();
+  
+  @panel::Switch_CGWNM = 0;
+  
+  @panel::Switch_Clock = 0;
+}
+

@@ -1,0 +1,716 @@
+﻿/*@!Encoding:65001*/
+variables { 
+  // Global Variable Declaration
+  float count_PEVRec_time = 0.0;
+  int flag_RecSet_error = 0;
+  byte value_Bfr = 0x0;
+  byte value_Aft = 0x0;
+  char PLBM_Battery[4] = {'P','L','B','M'};
+  char eAGM_Battery[4] = {'E','A','G','M'};
+  char answer[4];     
+  // Message Declaration for CAN FD
+  message HU_BLTN_CAM_02_200ms _HU_BLTN_CAM_02_200ms;
+  message HU_BLTN_CAM_01_00ms _HU_BLTN_CAM_01_00ms;
+  message HU_CLOCK_01_1000ms _HU_CLOCK_01_1000ms;
+  message BDC_FD_04_200ms _BDC_FD_04_200ms;
+}
+
+int checkBatteryType(char a[], int size)
+{
+  int i, matchPLBM, matchEAGM;
+  
+  matchPLBM = 1;
+  
+  matchEAGM = 1;
+  
+  for (i = 0; i < size; i++)
+  {
+    if (a[i] != PLBM_Battery[i])
+    {
+      matchPLBM = 0;
+    }
+    if (a[i] != eAGM_Battery[i])
+    {
+      matchEAGM = 0;
+    }
+  }
+
+  if (matchPLBM)
+    return 1;
+  else if (matchEAGM)
+    return 2;
+  else
+    return 0;
+}
+
+void Set_Battery(){
+  int flag_Timeout; 
+  int battery_Type; 
+  
+  flag_Timeout = 0;
+  battery_Type = 0;
+  
+  @panel::Switch_CGWNM = 1;
+  
+  KEY_ON();
+  
+  do
+  {
+    testWaitForStringInput("Please enter kind of battery (PLBM or EAGM):", 300000);
+    
+    testGetStringInput(answer, 5);
+    
+    write("You entered: %c%c%c%c", answer[0], answer[1], answer[2], answer[3]);
+    
+    battery_Type = checkBatteryType(answer,4);
+    
+    if(battery_Type == 0){
+      write("Invalid input! Please enter 'PLBM' or 'EAGM'.");
+    }
+  } while(battery_Type == 0);
+  
+  switch(battery_Type){
+    case(1): 
+      write("Battery type is PLBM.");     
+      @ControlPowerSupply::RadioBtn_PwrSplyModel = 1; //Choose model power suplly TL305TP
+      @ControlPowerSupply::Numeric_PortNum = 3; //Choose numberic port to connect PC 
+ 
+      if( @ControlPowerSupply::RadioBtn_PwrSplyModel == 1 && @ControlPowerSupply::Numeric_PortNum == 3 ){
+        while (@ControlPowerSupply::isConectedPwrSply == 0 && flag_Timeout <= 30){
+        @ControlPowerSupply::Button_Connect = 0; 
+        testWaitForTimeout(1000);
+        @ControlPowerSupply::Button_Connect = 1;
+        testWaitForTimeout(1000);  
+        @ControlPowerSupply::Button_Connect = 0;
+        flag_Timeout++;  
+        }
+      }
+      flag_Timeout = 0;
+      break;
+    case(2):
+      write("Battery type is EAGM.");
+      setSignal(ICU_BS2SoC, 0x64); break;
+  }
+
+  KEY_OFF();
+  
+  @panel::Switch_CGWNM = 0;
+}
+
+void BLTN_CAM_Settings(int Choose_Option){
+  switch (Choose_Option){
+    case(1):
+      if ($BLTN_CAM_RecSet_PEV == 0x1){
+        @panel::LED_Ctrl_SetPEV = 1; 
+        
+        testWaitForTimeout(500);
+        
+        if ($BLTN_CAM_RecSet_PEV == 0x2){
+          
+          write("PEV: 0x%X (ON)",$BLTN_CAM_RecSet_PEV);
+        } 
+        else if ($BLTN_CAM_RecSet_PEV == 0x1){
+          
+          write("PEV: 0x%X (OFF)",$BLTN_CAM_RecSet_PEV);
+          
+        }
+      }
+      testWaitForTimeout(500);
+      value_Bfr = 0x0; write("Bft: -10"); @panel::TrackBar_EV_Time_Bfr = 3;/*Before Time Setting: -10s*/
+      testWaitForTimeout(500);
+      value_Aft = 0x0; write("Aft: +10"); @panel::TrackBar_EV_Time_Aft = 10;/*After Time Setting: +10s*/break;    
+    case(2):
+      if ($BLTN_CAM_RecSet_PEV == 0x1){
+        @panel::LED_Ctrl_SetPEV = 1; 
+        
+        testWaitForTimeout(500);
+        
+        if ($BLTN_CAM_RecSet_PEV == 0x2){
+          
+          write("PEV: 0x%X (ON)",$BLTN_CAM_RecSet_PEV);
+        } 
+        else if ($BLTN_CAM_RecSet_PEV == 0x1){
+          
+          write("PEV: 0x%X (OFF)",$BLTN_CAM_RecSet_PEV);
+          
+        }
+      }
+      testWaitForTimeout(500);
+      value_Bfr = 0x5; write("Bft: -15"); @panel::TrackBar_EV_Time_Bfr = 2;/*Before Time Setting: -15s*/
+      testWaitForTimeout(500);
+      value_Aft = 0x0; write("Aft: +10"); @panel::TrackBar_EV_Time_Aft = 10;/*After Time Setting: +10s*/break;        
+    case(3):
+      if ($BLTN_CAM_RecSet_PEV == 0x1){
+        @panel::LED_Ctrl_SetPEV = 1; 
+        
+        testWaitForTimeout(500);
+        
+        if ($BLTN_CAM_RecSet_PEV == 0x2){
+          
+          write("PEV: 0x%X (ON)",$BLTN_CAM_RecSet_PEV);
+        } 
+        else if ($BLTN_CAM_RecSet_PEV == 0x1){
+          
+          write("PEV: 0x%X (OFF)",$BLTN_CAM_RecSet_PEV);
+          
+        }
+      }
+      testWaitForTimeout(500);
+      value_Bfr = 0xA; write("Bft: -20"); @panel::TrackBar_EV_Time_Bfr = 1;/*Before Time Setting: -20s*/
+      testWaitForTimeout(500);
+      value_Aft = 0x0; write("Aft: +10"); @panel::TrackBar_EV_Time_Aft = 10;/*After Time Setting: +10s*/break;        
+    case(4):
+      if ($BLTN_CAM_RecSet_PEV == 0x1){
+        @panel::LED_Ctrl_SetPEV = 1; 
+        
+        testWaitForTimeout(500);
+        
+        if ($BLTN_CAM_RecSet_PEV == 0x2){
+          
+          write("PEV: 0x%X (ON)",$BLTN_CAM_RecSet_PEV);
+        } 
+        else if ($BLTN_CAM_RecSet_PEV == 0x1){
+          
+          write("PEV: 0x%X (OFF)",$BLTN_CAM_RecSet_PEV);
+          
+        }
+      }
+      testWaitForTimeout(500);
+      value_Bfr = 0x0; write("Bft: -10"); @panel::TrackBar_EV_Time_Bfr = 3;/*Before Time Setting: -10s*/
+      testWaitForTimeout(500);
+      value_Aft = 0x5; write("Aft: +15"); @panel::TrackBar_EV_Time_Aft = 15;/*After Time Setting: +15s*/break;       
+    case(5):
+      if ($BLTN_CAM_RecSet_PEV == 0x1){
+        @panel::LED_Ctrl_SetPEV = 1; 
+        
+        testWaitForTimeout(500);
+        
+        if ($BLTN_CAM_RecSet_PEV == 0x2){
+          
+          write("PEV: 0x%X (ON)",$BLTN_CAM_RecSet_PEV);
+        } 
+        else if ($BLTN_CAM_RecSet_PEV == 0x1){
+          
+          write("PEV: 0x%X (OFF)",$BLTN_CAM_RecSet_PEV);
+          
+        }
+      }
+      testWaitForTimeout(500);
+      value_Bfr = 0x5; write("Bft: -15"); @panel::TrackBar_EV_Time_Bfr = 2;/*Before Time Setting: -15s*/
+      testWaitForTimeout(500);
+      value_Aft = 0x5; write("Aft: +15"); @panel::TrackBar_EV_Time_Aft = 15;/*After Time Setting: +15s*/break;       
+    case(6):
+      if ($BLTN_CAM_RecSet_PEV == 0x1){
+        @panel::LED_Ctrl_SetPEV = 1; 
+        
+        testWaitForTimeout(500);
+        
+        if ($BLTN_CAM_RecSet_PEV == 0x2){
+          
+          write("PEV: 0x%X (ON)",$BLTN_CAM_RecSet_PEV);
+        } 
+        else if ($BLTN_CAM_RecSet_PEV == 0x1){
+          
+          write("PEV: 0x%X (OFF)",$BLTN_CAM_RecSet_PEV);
+          
+        }
+      }
+      testWaitForTimeout(500);
+      value_Bfr = 0xA; write("Bft: -20"); @panel::TrackBar_EV_Time_Bfr = 1;/*Before Time Setting: -20s*/
+      testWaitForTimeout(500);
+      value_Aft = 0x5; write("Aft: +15"); @panel::TrackBar_EV_Time_Aft = 15;/*After Time Setting: +15s*/break;       
+    case(7):
+      if ($BLTN_CAM_RecSet_PEV == 0x1){
+        @panel::LED_Ctrl_SetPEV = 1; 
+        
+        testWaitForTimeout(500);
+        
+        if ($BLTN_CAM_RecSet_PEV == 0x2){
+          
+          write("PEV: 0x%X (ON)",$BLTN_CAM_RecSet_PEV);
+        } 
+        else if ($BLTN_CAM_RecSet_PEV == 0x1){
+          
+          write("PEV: 0x%X (OFF)",$BLTN_CAM_RecSet_PEV);
+          
+        }
+      }   
+      testWaitForTimeout(500);
+      value_Bfr = 0x0; write("Bft: -10"); @panel::TrackBar_EV_Time_Bfr = 3;/*Before Time Setting: -10s*/
+      testWaitForTimeout(500);
+      value_Aft = 0xA; write("Aft: +20"); @panel::TrackBar_EV_Time_Aft = 20;/*After Time Setting: +20s*/break;    
+    case(8):
+      if ($BLTN_CAM_RecSet_PEV == 0x1){
+        @panel::LED_Ctrl_SetPEV = 1; 
+        
+        testWaitForTimeout(500);
+        
+        if ($BLTN_CAM_RecSet_PEV == 0x2){
+          
+          write("PEV: 0x%X (ON)",$BLTN_CAM_RecSet_PEV);
+        } 
+        else if ($BLTN_CAM_RecSet_PEV == 0x1){
+          
+          write("PEV: 0x%X (OFF)",$BLTN_CAM_RecSet_PEV);
+          
+        }
+      }
+      testWaitForTimeout(500);
+      value_Bfr = 0x5; write("Bft: -15"); @panel::TrackBar_EV_Time_Bfr = 2;/*Before Time Setting: -15s*/
+      testWaitForTimeout(500);
+      value_Aft = 0xA; write("Aft: +20"); @panel::TrackBar_EV_Time_Aft = 20;/*After Time Setting: +20s*/break;         
+    case(9):
+      if ($BLTN_CAM_RecSet_PEV == 0x1){
+        @panel::LED_Ctrl_SetPEV = 1; 
+        
+        testWaitForTimeout(500);
+        
+        if ($BLTN_CAM_RecSet_PEV == 0x2){
+          
+          write("PEV: 0x%X (ON)",$BLTN_CAM_RecSet_PEV);
+        } 
+        else if ($BLTN_CAM_RecSet_PEV == 0x1){
+          
+          write("PEV: 0x%X (OFF)",$BLTN_CAM_RecSet_PEV);
+          
+        }
+      }
+      testWaitForTimeout(500);
+      value_Bfr = 0xA; write("Bft: -20"); @panel::TrackBar_EV_Time_Bfr = 1;/*Before Time Setting: -20s*/
+      testWaitForTimeout(500);
+      value_Aft = 0xA; write("Aft: +20"); @panel::TrackBar_EV_Time_Aft = 20;/*After Time Setting: +20s*/break;    
+  }
+  
+  testWaitForTimeout(500);
+    
+  if($BLTN_CAM_Set_EV_BfrTime != value_Bfr){
+      
+    write("Bfr_time is not match");
+    
+    write("Stop test"); stop();
+    
+  }
+  else if($BLTN_CAM_Set_EV_AftTime != value_Aft){
+    
+    write("Aft_time is not match");
+    
+    write("Stop test"); stop();
+    
+  }  
+}
+
+void KEY_ON(){
+  setSignal(SMK_TrmnlCtrlGrpStaBDC,0x1); // Power ON
+}
+
+void KEY_OFF(){
+   setSignal(SMK_TrmnlCtrlGrpStaBDC,0x0); // Power OFF
+}
+
+void Enter_BLTN_CAM(){
+  // CAN FD
+  _HU_BLTN_CAM_02_200ms.HU_BLTN_CAM_UI_Mode = 0x1; //Enter BLTN_CAM mode
+  output(_HU_BLTN_CAM_02_200ms);
+}
+
+void Exit_BLTN_CAM(){
+  // CAN FD 
+  _HU_BLTN_CAM_02_200ms.HU_BLTN_CAM_UI_Mode = 0x0; //Enter AVN mode - Exit BLTN_CAM Mode
+  output(_HU_BLTN_CAM_02_200ms);
+}
+
+void CaptureGraphics(){
+  testWaitForTimeout(3000);
+  testReportAddWindowCapture("Graphics 2","BLTN_CAM_RecSta_PEV","Sreenshot","./Husign.jpg");
+}
+
+void Turn_OFF_RecSet(){
+  if (getSignal(BLTN_CAM_RecSet_OWD) == 0x2 || getSignal(BLTN_CAM_RecSet_OWP) == 0x2 || getSignal(BLTN_CAM_RecSet_DEV) == 0x2 || getSignal(BLTN_CAM_RecSet_PEV) == 0x2){
+    @panel::Switch_CGWNM = 1;
+  
+    KEY_ON();
+    testWaitForTimeout(3000);
+      
+    do {
+      Enter_BLTN_CAM();
+      testWaitForTimeout(3000);
+      
+      if (getSignal(BLTN_CAM_RecSet_OWD) == 0x2){
+        write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1; testWaitForTimeout(1000);
+      } 
+      
+      else if (getSignal(BLTN_CAM_RecSet_OWP) == 0x2){
+        write("OWP Off"); @panel::LED_Ctrl_SetOWP = 1; testWaitForTimeout(1000);
+      } 
+      
+      else if (getSignal(BLTN_CAM_RecSet_DEV) == 0x2){
+        write("DEV Off"); @panel::LED_Ctrl_SetDEV = 1; testWaitForTimeout(1000);
+      } 
+      
+      else if (getSignal(BLTN_CAM_RecSet_PEV) == 0x2){
+        write("PEV Off"); @panel::LED_Ctrl_SetPEV = 1; testWaitForTimeout(1000);
+      } 
+
+      Exit_BLTN_CAM();
+      
+      flag_RecSet_error++;
+      
+    } while((getSignal(BLTN_CAM_RecSet_OWD) == 0x2 || getSignal(BLTN_CAM_RecSet_OWP) == 0x2 || getSignal(BLTN_CAM_RecSet_DEV) == 0x2 || getSignal(BLTN_CAM_RecSet_PEV) == 0x2) && (flag_RecSet_error <= 15));
+    
+    flag_RecSet_error = 0; 
+    
+    testWaitForTimeout(3000); 
+    KEY_OFF();
+  }
+  else {
+    write("Notifications: All recording setting are turned OFF.");
+  }
+}
+
+void Setup_Function(int Option, long Wait_Time){
+  float start_sec, end_sec;
+  
+    @panel::Switch_CGWNM = 1;
+  
+    KEY_ON();
+    testWaitForTimeout(3000);
+  
+    Enter_BLTN_CAM();
+    testWaitForTimeout(3000);
+
+    BLTN_CAM_Settings(Option);
+    testWaitForTimeout(2000);
+    
+    @panel::Switch_Clock = 1;
+  
+    Exit_BLTN_CAM();
+    testWaitForTimeout(3000);
+  
+    KEY_OFF();
+
+    testWaitForTimeout(Wait_Time);
+  
+    openPanel("Note"); 
+  
+    if (testWaitForSignalChange(BLTN_CAM_RecSta_PEV, 10000) == 1){
+      write("PEV recording is started");
+      start_sec = timeNow()/100000.0;
+    }
+    else {
+      write("Error: PEV recording hasn't started. Stop test !!!");
+      testStepFail("Fail","PEV recording hasn't started");
+    }
+  
+    if (testWaitForSignalChange(BLTN_CAM_RecSta_PEV, 30000) == 1){
+      write("PEV recording is stopped");
+      end_sec = timeNow()/100000.0; 
+    }
+  
+    count_PEVRec_time = end_sec - start_sec;
+    
+    closePanel("Note");    
+}
+
+void Setup_End_test(){
+  
+  KEY_ON();
+  testWaitForTimeout(3000);
+  
+
+  while(getSignal(BLTN_CAM_RecSet_PEV) == 0x2 && flag_RecSet_error < 15){
+    
+    Enter_BLTN_CAM();
+    testWaitForTimeout(3000);
+    write("PEV Off"); @panel::LED_Ctrl_SetPEV = 1;
+    testWaitForTimeout(1000);
+    Exit_BLTN_CAM();
+    testWaitForTimeout(1000);      
+    flag_RecSet_error++;
+    
+  }
+  
+  flag_RecSet_error = 0;
+}
+
+void Init(){
+  @panel::Switch_CGWNM = 1; 
+  
+  KEY_ON();
+  
+  while (getSignal(BLTN_CAM_SD_Format_Op_State) != 0x1){
+    @panel::Button_RecReset = 1; 
+    testWaitForSignalChange(BLTN_CAM_SD_Format_Op_State,500);
+  }
+  
+  write("Run Set_Battery()");
+  Set_Battery();
+  
+  KEY_OFF();
+  
+  @panel::Switch_CGWNM = 0; 
+}
+
+testcase OWP_009_1(){
+  testStep("Notification","Start test OWP_009_1");
+  write("Start test OWP_009_1");
+
+  Setup_Function(1, 15000); write("Run Setup_Function()");
+ 
+  write("count_PEVRec_time = %.2f",count_PEVRec_time);
+  
+  CaptureGraphics(); write("Run CaptureGraphics()");
+  
+  Setup_End_test(); write("Run Setup_End_test()"); 
+  
+  @panel::Switch_Clock = 0;
+  
+  @panel::Switch_CGWNM = 0;
+  
+  count_PEVRec_time = 0.0;
+  
+  KEY_OFF(); write("Run KEY_OFF()"); 
+  
+  testStep("Notifications","Finish OWP_009_1");
+  write("Finish OWP_009_1");  
+}
+
+testcase OWP_009_2(){
+  testStep("Notification","Start test OWP_009_2");
+  write("Start test OWP_009_2");
+  
+  Setup_Function(2, 20000); write("Run Setup_Function()");
+ 
+  write("count_PEVRec_time = %.2f",count_PEVRec_time);
+  
+  CaptureGraphics();  write("Run CaptureGraphics()");
+  
+  Setup_End_test(); write("Run Setup_End_test()"); 
+  
+  @panel::Switch_Clock = 0;
+  
+  @panel::Switch_CGWNM = 0;
+  
+  count_PEVRec_time = 0.0;
+  
+  KEY_OFF(); write("Run KEY_OFF()");  
+  
+  testStep("Notifications","Finish OWP_009_2");
+  write("Finish OWP_009_2");  
+}
+
+testcase OWP_009_3(){
+  testStep("Notification","Start test OWP_009_3");
+  write("Start test OWP_009_3");
+
+  Setup_Function(3, 25000); write("Run Setup_Function()");
+ 
+  write("count_PEVRec_time = %.2f",count_PEVRec_time);
+  
+  CaptureGraphics(); write("Run CaptureGraphics()");
+  
+  Setup_End_test(); write("Run Setup_End_test()"); 
+  
+  @panel::Switch_Clock = 0;
+  
+  @panel::Switch_CGWNM = 0;
+
+  count_PEVRec_time = 0.0;
+  
+  KEY_OFF(); write("Run KEY_OFF()"); 
+  
+  testStep("Notifications","Finish OWP_009_3");
+  write("Finish OWP_009_3");  
+}
+
+testcase OWP_009_4(){
+  testStep("Notification","Start test OWP_009_4");
+  write("Start test OWP_009_4");
+
+  Setup_Function(4, 15000); write("Run Setup_Function()");
+ 
+  write("count_PEVRec_time = %.2f",count_PEVRec_time);
+  
+  CaptureGraphics(); write("Run CaptureGraphics()");
+  
+  Setup_End_test(); write("Run Setup_End_test()"); 
+  
+  @panel::Switch_Clock = 0;
+  
+  @panel::Switch_CGWNM = 0;
+
+  count_PEVRec_time = 0.0;  
+  
+  KEY_OFF(); write("Run KEY_OFF()"); 
+  
+  testStep("Notifications","Finish OWP_009_4");
+  write("Finish OWP_009_4");  
+}
+
+testcase OWP_009_5(){
+  testStep("Notification","Start test OWP_009_5");
+  write("Start test OWP_009_5");
+  
+  Setup_Function(5, 20000); write("Run Setup_Function()");
+ 
+  write("count_PEVRec_time = %.2f",count_PEVRec_time);
+  
+  CaptureGraphics(); write("Run CaptureGraphics()");
+  
+  Setup_End_test(); write("Run Setup_End_test()"); 
+  
+  @panel::Switch_Clock = 0;
+  
+  @panel::Switch_CGWNM = 0;
+
+  count_PEVRec_time = 0.0;  
+  
+  KEY_OFF(); write("Run KEY_OFF()"); 
+  
+  testStep("Notifications","Finish OWP_009_5");
+  write("Finish OWP_009_5");  
+}
+
+testcase OWP_009_6(){
+  testStep("Notification","Start test OWP_009_6");
+  write("Start test OWP_009_6");
+  
+  Setup_Function(6, 25000); write("Run Setup_Function()");
+ 
+  write("count_PEVRec_time = %.2f",count_PEVRec_time);
+  
+  CaptureGraphics(); write("Run CaptureGraphics()");
+  
+  Setup_End_test(); write("Run Setup_End_test()"); 
+  
+  @panel::Switch_Clock = 0;
+  
+  @panel::Switch_CGWNM = 0;
+
+  count_PEVRec_time = 0.0;  
+  
+  KEY_OFF(); write("Run KEY_OFF()"); 
+  
+  testStep("Notifications","Finish OWP_009_6");
+  write("Finish OWP_009_6");  
+}
+
+testcase OWP_009_7(){
+  testStep("Notification","Start test OWP_009_7");
+  write("Start test OWP_009_7");
+
+  Setup_Function(7, 15000); write("Run Setup_Function()");
+ 
+  write("count_PEVRec_time = %.2f",count_PEVRec_time);
+  
+  CaptureGraphics(); write("Run CaptureGraphics()");
+  
+  Setup_End_test(); write("Run Setup_End_test()"); 
+  
+  @panel::Switch_Clock = 0;
+  
+  @panel::Switch_CGWNM = 0;
+ 
+  count_PEVRec_time = 0.0;  
+  
+  KEY_OFF(); write("Run KEY_OFF()"); 
+  
+  testStep("Notifications","Finish OWP_009_7");
+  write("Finish OWP_009_7");  
+}
+
+testcase OWP_009_8(){
+  testStep("Notification","Start test OWP_009_8");
+  write("Start test OWP_009_8");
+
+  Setup_Function(8, 20000); write("Run Setup_Function()");
+ 
+  write("count_PEVRec_time = %.2f",count_PEVRec_time);
+  
+  CaptureGraphics(); write("Run CaptureGraphics()");
+  
+  Setup_End_test(); write("Run Setup_End_test()"); 
+  
+  @panel::Switch_Clock = 0;
+  
+  @panel::Switch_CGWNM = 0;
+
+  count_PEVRec_time = 0.0;  
+  
+  KEY_OFF(); write("Run KEY_OFF()"); 
+  
+  testStep("Notifications","Finish OWP_009_8");
+  write("Finish OWP_009_8");
+}
+
+testcase OWP_009_9(){
+  testStep("Notification","Start test OWP_009_9");
+  write("Start test OWP_009_9");
+
+  Setup_Function(9, 25000); write("Run Setup_Function()");
+ 
+  write("count_PEVRec_time = %.2f",count_PEVRec_time);
+  
+  CaptureGraphics(); write("Run CaptureGraphics()");
+  
+  Setup_End_test(); write("Run Setup_End_test()"); 
+  
+  @panel::Switch_Clock = 0;
+  
+  @panel::Switch_CGWNM = 0;
+
+  count_PEVRec_time = 0.0;  
+  
+  KEY_OFF(); write("Run KEY_OFF()"); 
+  
+  testStep("Notifications","Finish OWP_009_9");
+  write("Finish OWP_009_9");  
+}
+
+void MainTest(){
+  write("Turn_OFF_RecSet()");Turn_OFF_RecSet();
+  
+  write("Init()"); Init();
+  
+  TestWaitForValueInput("Please enter the ID testcase number:",300000); 
+  switch (testGetValueInput()){
+    
+    case (1): OWP_009_1(); break;
+    
+    case (2): OWP_009_2(); break;
+    
+    case (3): OWP_009_3(); break;
+      
+    case (4): OWP_009_4(); break;
+    
+    case (5): OWP_009_5(); break;  
+
+    case (6): OWP_009_6(); break;  
+      
+    case (7): OWP_009_7(); break;  
+
+    case (8): OWP_009_8(); break;
+      
+    case (9): OWP_009_9(); break;
+    
+    case (10): 
+      OWP_009_1(); 
+      
+      OWP_009_2();
+      
+      OWP_009_3();
+      
+      OWP_009_4();
+      
+      OWP_009_5();
+      
+      OWP_009_6();
+      
+      OWP_009_7();
+      
+      OWP_009_8();
+      
+      OWP_009_9();
+      
+      break;        
+  }  
+}

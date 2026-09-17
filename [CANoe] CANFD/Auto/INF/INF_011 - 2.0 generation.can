@@ -1,0 +1,1229 @@
+﻿/*@!Encoding:65001*/
+//Precondition: Simulation Setup -> Block CGW_CCU; ccNC/ccIC switch OFF; All recording setting OFF; Enter AVN mode
+//Add signals to graphic: BLTN_CAM_RecSta_OWD; Lamp_TrnSigLmpLftOnReq/Lamp_TrnSigLmpRtOnReq
+includes 
+{
+  #include "DeclarationFunction_Gen2.h"
+}
+
+variables
+{ 
+  // Global Variable Declaration
+  byte i;
+  byte lamp_Lft_value = 0x0;
+  byte lamp_Rt_value = 0x0;
+  int flag_RecSet_error = 0;
+  char arr_ICE_modeType[3] = {'I','C','E'};
+  char arr_HEV_modeType[3] = {'H','E','V'};
+  char arr_EV_modeType[2] = {'E','V'};
+  char answer[3];  
+  // CAN Message Declaration
+  message HU_BLTN_CAM_E_00 _HU_BLTN_CAM_E_00;
+  message HU_BLTN_CAM_PE_00_200ms _HU_BLTN_CAM_PE_00_200ms;
+  message ICU_04_200ms _ICU_04_200ms;
+  message TCU_01_10ms_1 _TCU_01_10ms;
+  message HTCU_05_10ms_1 _HTCU_05_10ms_1;
+  message HTCU_04_10ms_1 _HTCU_04_10ms_1;
+  message VCU_01_10ms_1 _VCU_01_10ms_1;  
+  // Timer Declaration 
+  msTimer send_ICU_04_200ms_timer;
+  msTimer send_TCU_01_10ms_timer;
+  msTimer send_HTCU_04_10ms_timer;
+  msTimer send_VCU_01_10ms_timer;  
+}
+
+on timer send_ICU_04_200ms_timer{
+  _ICU_04_200ms.Lamp_TrnSigLmpLftOnReq = lamp_Lft_value;
+  _ICU_04_200ms.Lamp_TrnSigLmpRtOnReq = lamp_Rt_value;
+  output(_ICU_04_200ms);  
+  
+  send_ICU_04_200ms_timer.set(200);
+} 
+
+testcase INF_011_1(){
+  testStep("Notifications","Start test INF_011_1");
+  write("=== START INF_011_1 ===");
+
+  @panel::Switch_CGWNM = 1;
+  @panel::Switch_Clock = 1;
+  
+  lamp_Lft_value = 0x0;
+  lamp_Rt_value = 0x0;
+  send_ICU_04_200ms_timer.set(200);
+  
+  if ($BLTN_CAM_RecSet_OWD == 0x1){
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+      testWaitForTimeout(3000);
+      
+      if ($BLTN_CAM_RecSet_OWD == 0x1) {write("OWD On"); @panel::LED_Ctrl_SetOWD = 1; testWaitForTimeout(1000);}   
+      
+      flag_RecSet_error++;
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x1 && (flag_RecSet_error < 15));
+    
+    flag_RecSet_error = 0;     
+  }
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWD,10000)){
+   
+    write("OWD recording is started");
+    
+    testWaitForTimeout(10000);
+    
+    write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+    write("Run CaptureGraphics_Lft()"); CaptureGraphics_Lft();
+    
+    do {
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;
+    
+    write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+  }
+  else {
+    
+    write("Error: OWD recording hasn't started");
+    
+    testStepFail("Warning","OWD recording hasn't started");
+    
+    write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+    testWaitForTimeout(3000);
+    
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+      testWaitForTimeout(3000);
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;
+
+    write("Stop mearsurement"); stop();    
+  }
+  
+  @panel::Switch_CGWNM = 0;
+  @panel::Switch_Clock = 0;
+  
+  lamp_Lft_value = 0x0;
+  lamp_Rt_value = 0x0;
+  testWaitForTimeout(1000);
+  
+  send_ICU_04_200ms_timer.cancel();   
+
+  testStep("Notifications","Done test INF_011_1");
+  write("=== FINISH INF_011_1 ===");
+}
+
+testcase INF_011_2(){
+  testStep("Notifications","Start test INF_011_2");
+  write("=== START INF_011_2 ===");
+  
+  @panel::Switch_CGWNM = 1;
+  @panel::Switch_Clock = 1;
+  
+  lamp_Lft_value = 0x1;
+  lamp_Rt_value = 0x0;
+  
+  send_ICU_04_200ms_timer.set(200);
+  
+  if ($BLTN_CAM_RecSet_OWD == 0x1){
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+      testWaitForTimeout(3000);
+      
+      if ($BLTN_CAM_RecSet_OWD == 0x1) {write("OWD On"); @panel::LED_Ctrl_SetOWD = 1; testWaitForTimeout(1000);}   
+      
+      flag_RecSet_error++;
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x1 && (flag_RecSet_error < 15));
+    
+    flag_RecSet_error = 0;     
+  }
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWD,10000)){
+   
+    write("OWD recording is started");
+    
+    testWaitForTimeout(10000);
+    
+    write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+    write("Run CaptureGraphics_Lft()"); CaptureGraphics_Lft();
+    
+    do {
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;
+    
+    write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+  }
+  else {
+    
+    write("Error: OWD recording hasn't started");
+    
+    testStepFail("Warning","OWD recording hasn't started");
+    
+    write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+    testWaitForTimeout(3000);
+    
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+      testWaitForTimeout(3000);
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;
+    
+    write("Stop mearsurement"); stop();    
+  }
+  
+  @panel::Switch_CGWNM = 0;
+  @panel::Switch_Clock = 0;
+  
+  lamp_Lft_value = 0x0;
+  lamp_Rt_value = 0x0;
+  testWaitForTimeout(1000);
+  
+  send_ICU_04_200ms_timer.cancel();   
+  
+  testStep("Notifications","Done test INF_011_2");
+  write("=== FINISH INF_011_2 ===");
+}
+
+testcase INF_011_3(){
+  testStep("Notifications","Start test INF_011_3");
+  write("=== START INF_011_3 ===");
+  
+  @panel::Switch_CGWNM = 1;
+  @panel::Switch_Clock = 1;
+  
+  lamp_Lft_value = 0x2;
+  lamp_Rt_value = 0x0;
+  send_ICU_04_200ms_timer.set(200);  
+  
+  if ($BLTN_CAM_RecSet_OWD == 0x1){
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+      testWaitForTimeout(3000);
+      
+      if ($BLTN_CAM_RecSet_OWD == 0x1) {write("OWD On"); @panel::LED_Ctrl_SetOWD = 1; testWaitForTimeout(1000);}   
+      
+      flag_RecSet_error++;
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x1 && (flag_RecSet_error < 15));
+    
+    flag_RecSet_error = 0;     
+  }
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWD,10000)){
+   
+    write("OWD recording is started");
+    
+    testWaitForTimeout(10000);
+    
+    write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+    write("Run CaptureGraphics_Lft()"); CaptureGraphics_Lft();
+    
+    do {
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;
+    
+    write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+  }
+  else {
+    
+    write("Error: OWD recording hasn't started");
+    
+    testStepFail("Warning","OWD recording hasn't started");
+    
+    write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+    testWaitForTimeout(3000);
+    
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+      testWaitForTimeout(3000);
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;
+    
+    write("Stop mearsurement"); stop();    
+  }
+  
+  @panel::Switch_CGWNM = 0;
+  @panel::Switch_Clock = 0;
+  
+  lamp_Lft_value = 0x0;
+  lamp_Rt_value = 0x0;
+  testWaitForTimeout(1000);
+
+  send_ICU_04_200ms_timer.cancel();  
+  
+  testStep("Notifications","Done test INF_011_3");
+  write("=== FINISH INF_011_3 ===");
+}
+
+testcase INF_011_4(){
+  testStep("Notifications","Start test INF_011_4");
+  write("=== START INF_011_4 ===");
+  
+  @panel::Switch_CGWNM = 1;
+  @panel::Switch_Clock = 1;
+  
+  lamp_Lft_value = 0x3;
+  lamp_Rt_value = 0x0;
+  send_ICU_04_200ms_timer.set(200);  
+  
+  if ($BLTN_CAM_RecSet_OWD == 0x1){
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+      testWaitForTimeout(3000);
+      
+      if ($BLTN_CAM_RecSet_OWD == 0x1) {write("OWD On"); @panel::LED_Ctrl_SetOWD = 1; testWaitForTimeout(1000);}   
+      
+      flag_RecSet_error++;
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x1 && (flag_RecSet_error < 15));
+    
+    flag_RecSet_error = 0;     
+  }
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWD,10000)){
+   
+    write("OWD recording is started");
+    
+    testWaitForTimeout(10000);
+    
+    write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+    write("Run CaptureGraphics_Lft()"); CaptureGraphics_Lft();
+    
+    do {
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;
+    
+    write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+  }
+  else {
+    
+    write("Error: OWD recording hasn't started");
+    
+    testStepFail("Warning","OWD recording hasn't started");
+    
+    write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+    testWaitForTimeout(3000);
+    
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+      testWaitForTimeout(3000);
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;
+    
+    write("Stop mearsurement"); stop();    
+  }
+  
+  @panel::Switch_CGWNM = 0;
+  @panel::Switch_Clock = 0;
+  
+  lamp_Lft_value = 0x0;
+  lamp_Rt_value = 0x0;
+  testWaitForTimeout(1000);
+
+  send_ICU_04_200ms_timer.cancel();  
+  
+  testStep("Notifications","Done test INF_011_4");
+  write("=== FINISH INF_011_4 ===");
+}
+
+testcase INF_011_5(){
+  testStep("Notifications","Start test INF_011_5");
+  write("=== START INF_011_5 ===");
+  
+  @panel::Switch_CGWNM = 1;
+  @panel::Switch_Clock = 1;
+  
+  lamp_Lft_value = 0x2;
+  lamp_Rt_value = 0x0;
+  send_ICU_04_200ms_timer.set(200);  
+  
+  if ($BLTN_CAM_RecSet_OWD == 0x1){
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+      testWaitForTimeout(3000);
+      
+      if ($BLTN_CAM_RecSet_OWD == 0x1) {write("OWD On"); @panel::LED_Ctrl_SetOWD = 1; testWaitForTimeout(1000);}   
+      
+      flag_RecSet_error++;
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x1 && (flag_RecSet_error < 15));
+    
+    flag_RecSet_error = 0;     
+  }
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWD,10000)){
+   
+    write("OWD recording is started");
+    
+    testWaitForTimeout(5000); 
+    
+    send_ICU_04_200ms_timer.cancel();
+    
+    testWaitForTimeout(5000); 
+    
+    write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+    write("Run CaptureGraphics_Lft()"); CaptureGraphics_Lft();
+    
+    do {
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;
+    
+    write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+  }
+  else {
+    
+    write("Error: OWD recording hasn't started");
+    
+    testStepFail("Warning","OWD recording hasn't started");
+    
+    write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+    testWaitForTimeout(3000);
+    
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+      testWaitForTimeout(3000);
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;
+    
+    write("Stop mearsurement"); stop();    
+  }
+  
+  @panel::Switch_CGWNM = 0;
+  @panel::Switch_Clock = 0;
+  
+  lamp_Lft_value = 0x0;
+  lamp_Rt_value = 0x0;
+
+  send_ICU_04_200ms_timer.set(200);   
+  testWaitForTimeout(1000);
+  send_ICU_04_200ms_timer.cancel();   
+  
+  testStep("Notifications","Done test INF_011_5");
+  write("=== FINISH INF_011_5 ===");
+}
+
+testcase INF_011_6(){
+  testStep("Notifications","Start test INF_011_6");
+  write("=== START INF_011_6 ===");
+  
+  @panel::Switch_CGWNM = 1;
+  @panel::Switch_Clock = 1;
+  
+  lamp_Lft_value = 0x2;
+  lamp_Rt_value = 0x0;
+  if ($BLTN_CAM_RecSet_OWD == 0x1){
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+      testWaitForTimeout(3000);
+      
+      if ($BLTN_CAM_RecSet_OWD == 0x1) {write("OWD On"); @panel::LED_Ctrl_SetOWD = 1; testWaitForTimeout(1000);}   
+      
+      flag_RecSet_error++;
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x1 && (flag_RecSet_error < 15));
+    
+    flag_RecSet_error = 0;     
+  }
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWD,10000)){
+   
+    write("OWD recording is started");
+    
+    testWaitForTimeout(5000); 
+    
+    send_ICU_04_200ms_timer.set(200);  
+    
+    testWaitForTimeout(5000); 
+    
+    write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+    write("Run CaptureGraphics_Lft()"); CaptureGraphics_Lft();
+    
+    do {
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;
+    
+    write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+  }
+  else {
+    
+    write("Error: OWD recording hasn't started");
+    
+    testStepFail("Warning","OWD recording hasn't started");
+    
+    write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+    testWaitForTimeout(3000);
+    
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+      testWaitForTimeout(3000);
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;
+    
+    write("Stop mearsurement"); stop();    
+  }
+  
+  @panel::Switch_CGWNM = 0;
+  @panel::Switch_Clock = 0;
+  
+  lamp_Lft_value = 0x0;
+  lamp_Rt_value = 0x0;
+  testWaitForTimeout(1000);
+  
+  send_ICU_04_200ms_timer.cancel();   
+  
+  testStep("Notifications","Done test INF_011_6");
+  write("=== FINISH INF_011_6 ===");
+}
+
+testcase INF_011_7(){
+  testStep("Notifications","Start test INF_011_7");
+  write("=== START INF_011_7 ===");
+  
+  @panel::Switch_CGWNM = 1;
+  @panel::Switch_Clock = 1;
+  
+  lamp_Rt_value = 0x0;
+  lamp_Lft_value = 0x0;
+  send_ICU_04_200ms_timer.set(200);
+  
+  if ($BLTN_CAM_RecSet_OWD == 0x1){
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+      testWaitForTimeout(3000);
+      
+      if ($BLTN_CAM_RecSet_OWD == 0x1) {write("OWD On"); @panel::LED_Ctrl_SetOWD = 1; testWaitForTimeout(1000);}   
+      
+      flag_RecSet_error++;
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x1 && (flag_RecSet_error < 15));
+    
+    flag_RecSet_error = 0;     
+  }
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWD,10000)){
+   
+    write("OWD recording is started");
+    
+    testWaitForTimeout(10000);
+    
+    write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+    write("Run CaptureGraphics_Rt()"); CaptureGraphics_Rt();
+    
+    do {
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;
+    
+    write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+  }
+  else {
+    
+    write("Error: OWD recording hasn't started");
+    
+    testStepFail("Warning","OWD recording hasn't started");
+    
+    write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+    testWaitForTimeout(3000);
+    
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+      testWaitForTimeout(3000);
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;
+    
+    write("Stop mearsurement"); stop();    
+  }
+  
+  @panel::Switch_CGWNM = 0;
+  @panel::Switch_Clock = 0;
+  
+  lamp_Lft_value = 0x0;
+  lamp_Rt_value = 0x0;
+  testWaitForTimeout(1000);
+
+  send_ICU_04_200ms_timer.cancel();  
+  
+  testStep("Notifications","Done test INF_011_7");
+  write("=== FINISH INF_011_7 ===");
+}
+
+testcase INF_011_8(){
+  testStep("Notifications","Start test INF_011_8");
+  write("=== START INF_011_8 ===");
+  
+  @panel::Switch_CGWNM = 1;
+  @panel::Switch_Clock = 1;
+  
+  lamp_Rt_value = 0x1;
+  lamp_Lft_value = 0x0;  
+  send_ICU_04_200ms_timer.set(200);
+  
+  if ($BLTN_CAM_RecSet_OWD == 0x1){
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+      testWaitForTimeout(3000);
+      
+      if ($BLTN_CAM_RecSet_OWD == 0x1) {write("OWD On"); @panel::LED_Ctrl_SetOWD = 1; testWaitForTimeout(1000);}   
+      
+      flag_RecSet_error++;
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x1 && (flag_RecSet_error < 15));
+    
+    flag_RecSet_error = 0;     
+  }
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWD,10000)){
+   
+    write("OWD recording is started");
+    
+    testWaitForTimeout(10000);
+    
+    write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+    write("Run CaptureGraphics_Rt()"); CaptureGraphics_Rt();
+    
+    do {
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;
+    
+    write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+  }
+  else {
+    
+    write("Error: OWD recording hasn't started");
+    
+    testStepFail("Warning","OWD recording hasn't started");
+    
+    write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+    testWaitForTimeout(3000);
+    
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+      testWaitForTimeout(3000);
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;
+    
+    write("Stop mearsurement"); stop();    
+  }
+  
+  @panel::Switch_CGWNM = 0;
+  @panel::Switch_Clock = 0;
+  
+  lamp_Lft_value = 0x0;
+  lamp_Rt_value = 0x0;
+  testWaitForTimeout(1000);
+  
+  send_ICU_04_200ms_timer.cancel();   
+  
+  testStep("Notifications","Done test INF_011_8");
+  write("=== FINISH INF_011_8 ===");
+}
+
+testcase INF_011_9(){
+  testStep("Notifications","Start test INF_011_9");
+  write("=== START INF_011_9 ===");
+  
+  @panel::Switch_CGWNM = 1;
+  @panel::Switch_Clock = 1;
+  
+  lamp_Rt_value = 0x2;
+  lamp_Lft_value = 0x0;
+  send_ICU_04_200ms_timer.set(200);  
+  
+  if ($BLTN_CAM_RecSet_OWD == 0x1){
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+      testWaitForTimeout(3000);
+      
+      if ($BLTN_CAM_RecSet_OWD == 0x1) {write("OWD On"); @panel::LED_Ctrl_SetOWD = 1; testWaitForTimeout(1000);}   
+      
+      flag_RecSet_error++;
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x1 && (flag_RecSet_error < 15));
+    
+    flag_RecSet_error = 0;     
+  }
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWD,10000)){
+   
+    write("OWD recording is started");
+    
+    testWaitForTimeout(10000);
+    
+    write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+    write("Run CaptureGraphics_Rt()"); CaptureGraphics_Rt();
+    
+    do {
+      
+      write("OWD Off");@panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;
+    
+    write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+  }
+  else {
+    
+    write("Error: OWD recording hasn't started");
+    
+    testStepFail("Warning","OWD recording hasn't started");
+    
+    write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+    testWaitForTimeout(3000);
+    
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+      testWaitForTimeout(3000);
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;
+    
+    write("Stop mearsurement"); stop();    
+  }
+  
+  @panel::Switch_CGWNM = 0;
+  @panel::Switch_Clock = 0;
+  
+  lamp_Lft_value = 0x0;
+  lamp_Rt_value = 0x0;
+  testWaitForTimeout(1000);
+
+  send_ICU_04_200ms_timer.cancel();  
+  
+  testStep("Notifications","Done test INF_011_9");
+  write("=== FINISH INF_011_9 ===");
+}
+
+testcase INF_011_10(){
+  testStep("Notifications","Start test INF_011_10");
+  write("=== START INF_011_10 ===");
+  
+  @panel::Switch_CGWNM = 1;
+  @panel::Switch_Clock = 1;
+  
+  lamp_Rt_value = 0x3;
+  lamp_Lft_value = 0x0;
+  send_ICU_04_200ms_timer.set(200);  
+  
+  if ($BLTN_CAM_RecSet_OWD == 0x1){
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+      testWaitForTimeout(3000);
+      
+      if ($BLTN_CAM_RecSet_OWD == 0x1) {write("OWD On"); @panel::LED_Ctrl_SetOWD = 1; testWaitForTimeout(1000);}   
+      
+      flag_RecSet_error++;
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x1 && (flag_RecSet_error < 15));
+    
+    flag_RecSet_error = 0;     
+  }
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWD,10000)){
+   
+    write("OWD recording is started");
+    
+    testWaitForTimeout(10000);
+    
+    write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+    write("Run CaptureGraphics_Rt()"); CaptureGraphics_Rt();
+    
+    do {
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;
+    
+    write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+  }
+  else {
+    
+    write("Error: OWD recording hasn't started");
+    
+    testStepFail("Warning","OWD recording hasn't started");
+    
+    write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+    testWaitForTimeout(3000);
+    
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+      testWaitForTimeout(3000);
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;
+    
+    write("Stop mearsurement"); stop();    
+  }
+  
+  @panel::Switch_CGWNM = 0;
+  @panel::Switch_Clock = 0;
+  
+  lamp_Lft_value = 0x0;
+  lamp_Rt_value = 0x0;
+  testWaitForTimeout(1000);
+
+  send_ICU_04_200ms_timer.cancel();  
+  
+  testStep("Notifications","Done test INF_011_10");
+  write("=== FINISH INF_011_10 ===");
+}
+
+testcase INF_011_11(){
+  testStep("Notifications","Start test INF_011_11");
+  write("=== START INF_011_11 ===");
+  
+  @panel::Switch_CGWNM = 1;
+  @panel::Switch_Clock = 1;
+  
+  lamp_Rt_value = 0x2;
+  lamp_Lft_value = 0x0;
+  send_ICU_04_200ms_timer.set(200);  
+  
+  if ($BLTN_CAM_RecSet_OWD == 0x1){
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+      testWaitForTimeout(3000);
+      
+      if ($BLTN_CAM_RecSet_OWD == 0x1) {write("OWD On"); @panel::LED_Ctrl_SetOWD = 1; testWaitForTimeout(1000);}   
+      
+      flag_RecSet_error++;
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x1 && (flag_RecSet_error < 15));
+    
+    flag_RecSet_error = 0;     
+  }
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWD,10000)){
+   
+    write("OWD recording is started");
+    
+    testWaitForTimeout(5000); 
+    
+    send_ICU_04_200ms_timer.cancel();
+    
+    testWaitForTimeout(5000); 
+    
+    write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+    write("Run CaptureGraphics_Rt()"); CaptureGraphics_Rt();
+    
+    do {
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;
+    
+    write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+  }
+  else {
+    
+    write("Error: OWD recording hasn't started");
+    
+    testStepFail("Warning","OWD recording hasn't started");
+    
+    write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+    testWaitForTimeout(3000);
+    
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+      testWaitForTimeout(3000);
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;
+    
+    write("Stop mearsurement"); stop();    
+  }
+  
+  @panel::Switch_CGWNM = 0;
+  @panel::Switch_Clock = 0;
+  
+  lamp_Lft_value = 0x0;
+  lamp_Rt_value = 0x0;
+
+  send_ICU_04_200ms_timer.set(200);   
+  testWaitForTimeout(1000);
+  send_ICU_04_200ms_timer.cancel();   
+  
+  testStep("Notifications","Done test INF_011_11");
+  write("=== FINISH INF_011_11 ===");
+}
+
+testcase INF_011_12(){
+  testStep("Notifications","Start test INF_011_12");
+  write("=== START INF_011_12 ===");
+  
+  @panel::Switch_CGWNM = 1;
+  @panel::Switch_Clock = 1;
+  
+  lamp_Rt_value = 0x2;
+  lamp_Lft_value = 0x0; 
+  if ($BLTN_CAM_RecSet_OWD == 0x1){
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+      testWaitForTimeout(3000);
+      
+      if ($BLTN_CAM_RecSet_OWD == 0x1) {write("OWD On"); @panel::LED_Ctrl_SetOWD = 1; testWaitForTimeout(1000);}   
+      
+      flag_RecSet_error++;
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x1 && (flag_RecSet_error < 15));
+    
+    flag_RecSet_error = 0;     
+  }
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_OWD,10000)){
+   
+    write("OWD recording is started");
+    
+    testWaitForTimeout(5000); 
+    
+    send_ICU_04_200ms_timer.set(200);  
+    
+    testWaitForTimeout(5000); 
+    
+    write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+    write("Run CaptureGraphics_Rt()"); CaptureGraphics_Rt();
+    
+    do {
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;
+    
+    write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+  }
+  else {
+    
+    write("Error: OWD recording hasn't started");
+    
+    testStepFail("Warning","OWD recording hasn't started");
+    
+    write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+    testWaitForTimeout(3000);
+    
+    do {
+      
+      write("Run Enter_BLTN_CAM()"); Enter_BLTN_CAM();
+    
+      testWaitForTimeout(3000);
+      
+      write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1;
+      
+      testWaitForTimeout(1000);
+      
+      write("Run Exit_BLTN_CAM()"); Exit_BLTN_CAM();
+      
+      flag_RecSet_error++; 
+      
+    } while ($BLTN_CAM_RecSet_OWD == 0x2 && flag_RecSet_error);
+    
+    flag_RecSet_error = 0;
+ 
+    write("Stop mearsurement"); stop();    
+  }
+  
+  @panel::Switch_CGWNM = 0;
+  @panel::Switch_Clock = 0;
+  
+  lamp_Lft_value = 0x0;
+  lamp_Rt_value = 0x0;
+  send_ICU_04_200ms_timer.cancel();   
+  
+  testStep("Notifications","Done test INF_011_12");
+  write("=== FINISH INF_011_12 ===");
+}
+
+void MainTest(){
+  write("Run Init()"); Init();
+  
+  TestWaitForValueInput("Please enter the test ID (1/2/3/4/5/6/7/8/9/10/11/12/13)", 300000); 
+  switch (TestGetValueInput()){
+    
+   case(1) : INF_011_1();INF_011_2();INF_011_3();INF_011_4();INF_011_5();INF_011_6(); break;
+   case(2) : INF_011_2(); break;
+   case(3) : INF_011_3(); break; 
+   case(4) : INF_011_4(); break;
+   case(5) : INF_011_5(); break;
+   case(6) : INF_011_6(); break;
+   case(7) : INF_011_7();INF_011_8();INF_011_9();INF_011_10();INF_011_11();INF_011_12(); break;
+   case(8) : INF_011_8(); break;
+   case(9) : INF_011_9(); break;
+   case(10) : INF_011_10(); break;
+   case(11) : INF_011_11(); break;
+   case(12) : INF_011_12(); break;
+   case(13): INF_011_1();INF_011_2();INF_011_3();INF_011_4();INF_011_5();INF_011_6();INF_011_7();INF_011_8();INF_011_9();INF_011_10();INF_011_11();INF_011_12(); break;   
+
+  } 
+}

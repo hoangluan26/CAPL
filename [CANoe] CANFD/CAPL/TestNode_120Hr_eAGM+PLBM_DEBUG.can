@@ -1,0 +1,372 @@
+/*@!Encoding:949*/
+variables
+{
+/*
+  테스트 시나리오
+  0. KEY OFF 전
+     - ICU SOC = 87%
+     - PLBM SOC = 88%(17시간 가능)
+
+  1. 17시간 시점에 빌트인캠이 LIN Wake up 하여 PLBM SOC 확인
+   -> 3%
+
+  2. 빌트인캠이 CAN Wake up 하여 ICU SOC 확인
+   -> 87%
+
+  3. ICU가 충분하니 B+ 전원으로 전환
+
+  4. 주차녹화 시작 후 22시간 시점에 ICU SOC 80% 까지 소진되어 Network Wakeup 되고 보충전(차량에서 CAN Wake up)
+     - ICU SOC 충전(1시간) 80% -> 88%
+     - PLBM SOC 충전(1시간)  3% -> 87%
+
+  5. Sleep 진입
+  
+  6. 5회 반복(22시간 * 5 = 110시간) -> 11시간 대기 후 테스트 종료(총 121시간 소요)
+*/
+  
+  int countMainTC = 0;
+  
+  //---------------------------사전설정 값---------------------------//
+  
+  long prDelayTestTime = 5000;//12 * 3600 * 1000; // N시간 뒤에 시작
+  long judgeTime = 2 * 1000; // 판단 대기시간(초)
+  long delayTime = 2.3 * 60 * 1000; // 1%당 충전 소요시간(분)
+  int StartExpectedOperableTime = 12; // 시작 기댓값(80% = 12시간)
+    
+  
+  //---------------------------PLBM 설정---------------------------//
+  int PLBM_SOC = 16; //디버그 3; // PLBM 방전 직전 SOC 3%(RG3 KV 측정값)
+  int PLBM_Start_SOC = 16;//3; //디버그
+  int PLBM_END_SOC = 100;// 87; // PLBM 보충전 완료 SOC 87%(RG3 KV 측정값)
+  
+  msTimer timer_PLBM_Charging;
+  long TIME_PLBM_Charging = 42 * 1000; //평균 42초당 1% 충전
+  
+  long TIME_PLBM_Discharing = 17 * 3600 * 1000; //PLBM 방전시간
+  
+  int countPLBM_Charge =0; //PLBM 충전 횟수
+  
+  //-------------------------ICU SOC 설정-------------------------//
+  int ICU_SOC = 80; //80% 부터 보충전
+  int ICU_Start_SOC = 80; //80% 부터 보충전
+  int ICU_END_SOC = 88; //88% 까지 보충전 완료(RG3 KV 측정값)
+  
+  msTimer timer_ICUSOC_Charging;
+  long TIME_ICUSOC_Charging = 7.5 * 60 * 1000; //평균 7.5분당 1% 충전(80%->87%)
+  
+  long TIME_ICUSOC_FullCharge = 1 * 3600 * 1000; //1시간동안 충전
+
+  long TIME_ICUSOC_Discharing = 4 * 3600 * 1000; //4시간동안 ICU 방전(87%->80%)
+  
+  msTimer timer_MainTC;
+  long TIME_MainTC = 22 * 3600 * 1000; //22시간 마다 보충전 수행
+  
+  int countICUSOC_Charge = 0; //ICU SOC 충전 횟수
+  
+  int isFirst_CAN_MessageReceived = 0 ;
+  
+  //디버그용
+  msTimer timer_CAN_TIME_Init;
+  long TIME_CAN_TIME_Init = 5 * 60 * 1000;
+  
+  //디버그용
+  msTimer timer_DEBUG_LIN_Wakeup;
+  long TIME_DEBUG_LIN_Wakeup = 22 * 3600 * 1000; //22시간 마다 LIN Wak up
+  
+  //17시간 카운트
+  msTimer timer_DEBUG_first_LIN_wakeup;
+  long TIME_DEBUG_first_LIN_wakeup = 17 * 3600 * 1000; //17시간
+  
+  //17시간 한번만
+  int isFirst_LIN_wakeup = 1;
+  
+  //---------------------------사전설정 값---------------------------//
+  
+  int isRecStaON = 1;
+  int isRecStaOFF = 0;
+  
+  int MeasuredOperableTime;
+  int MeasuredOWPSta;
+    
+  char titleString[200]; //Test Case Title
+  char resultString[200]; //Test Case Result
+  
+  //시간 기록용
+  long time[9];
+  long currentTime[7];
+  long Year1 = 20, Year2, Month, Day, Hour, Minute, Second;
+  
+
+}
+
+void MainTest()
+{
+  //디버그를 위한 테스트시간 10분으로 스케일링
+  // (TIME_MainTC 22시간 * 5번) + (TIME_MainTC/2) = 121시간 -> 7260분
+  // 7260분 -> 10분으로 축소 
+  long timeScale = 1452;
+
+  TIME_DEBUG_LIN_Wakeup /= timeScale; //17시간 시점에 22시간 마다 LIN Wakeup 수행하여 빌트인캠을 모사함
+  TIME_DEBUG_first_LIN_wakeup /= timeScale;
+  
+  TIME_CAN_TIME_Init /= timeScale;
+  
+  TIME_PLBM_Charging /= timeScale;
+  TIME_PLBM_Discharing /= timeScale;
+  
+  TIME_ICUSOC_Charging /= timeScale;
+  TIME_ICUSOC_FullCharge /= timeScale;
+  
+  TIME_ICUSOC_Discharing /= timeScale;
+  TIME_MainTC /= timeScale;
+  
+  
+  ////////////////////////////////////
+  
+  
+  //KEY OFF 전 SOC
+//  setSignal(ICU_BS2SoC, );
+//  setSignal(BAT_SOC_for_BLTN_CAM, 88);
+  
+ 
+  //디버그시 사용
+  linGotoSleep();
+    PLBM_SOC = getSignal(BAT_SOC_for_BLTN_CAM);
+  ICU_SOC = getSignal(ICU_BS2SoC);
+  //TestWaitForMessageBox("KEY OFF 후 Sleep에 들어가면 확인을 누르세요", 5 * 60*1000, "알림", 0);
+  
+  //테스트 시작
+  MainTC();
+}
+
+testcase MainTC()
+{
+  write("Start MainTC");
+  testCaseTitle("TC_00","MainTC");
+  
+  PLBM_SOC = getSignal(BAT_SOC_for_BLTN_CAM);
+  ICU_SOC = getSignal(ICU_BS2SoC);
+  
+  //DEBUG LIN Wakeup 타이머 시작
+  write("Start timer_DEBUG_first_LIN_wakeupMainTC");
+  timer_DEBUG_first_LIN_wakeup.set(TIME_DEBUG_first_LIN_wakeup);
+  
+  timer_MainTC.set(TIME_MainTC);
+  
+  //125시간동안 테스트케이스가 종료되기를 대기함.
+  testWaitForTextEvent("END_MainTC", 125 * 3600 * 1000);
+}
+
+
+testcase TC_ICUSOC_PLBM_Charging()
+{
+  write("Start TC_ICUSOC_PLBM_Charging");
+  testCaseTitle("TC_01","TC_ICUSOC_PLBM_Charging");
+
+  //테스트케이스 종료 알림이 올 때 까지 대기
+  testWaitForTextEvent("END_TC_ICUSOC_PLBM_Charging", TIME_ICUSOC_FullCharge + 60 * 1000); //마진 1분 추가
+}
+
+//17시간 뒤에 한번 처음으로 웨이크업
+on timer timer_DEBUG_first_LIN_wakeup
+{
+  write("LIN wake up(timer_DEBUG_first_LIN_wakeup)");
+  
+  //처음이 아니면 22시간 간격으로 깨우기
+  if(!isFirst_LIN_wakeup)
+  {
+    timer_DEBUG_LIN_Wakeup.set(TIME_DEBUG_LIN_Wakeup);
+    isFirst_LIN_wakeup = 0;
+  }
+  //처음이면 17시간 타이머는 종료.
+  else
+  {
+    linSendWakeup(1000, 3);
+    write("cancel timer_DEBUG_first_LIN_wakeup");
+    cancelTimer(timer_DEBUG_first_LIN_wakeup);
+  }
+}
+
+on timer timer_DEBUG_LIN_Wakeup
+{
+  //3번 웨이크업 날려서 LIN SOC 확인
+  write("timer_DEBUG_LIN_Wakeup: linSendWakeup");
+  linSendWakeup(1000, 3);
+  linGotoSleep();
+  timer_DEBUG_LIN_Wakeup.set(TIME_DEBUG_LIN_Wakeup);
+}
+
+//22시간마다 보충전
+on timer timer_MainTC
+{
+  //CAN BUS를 깨움
+  write("CGWM_WM ON");
+  @panel::Switch_CGWNM = 1;
+  
+  //SOC가 부족한 상태를 모사
+  setSignal(BAT_SOC_for_BLTN_CAM, PLBM_Start_SOC);
+
+  //보충전 테스트 시작
+  //TC_ICUSOC_PLBM_Charging();
+  {
+    //ICU SOC 충전 시작
+    timer_ICUSOC_Charging.set(TIME_ICUSOC_Charging);
+    
+    //PLBM SOC 충전 시작
+    timer_PLBM_Charging.set(TIME_PLBM_Charging);
+  }
+  
+  //5번 반복됐으면 그만반복(110시간)
+  if( countMainTC > 6)
+  {
+    testWaitForTimeout(TIME_MainTC * 5 + TIME_MainTC / 2); //110시간 + 11시간 까지 대기
+    
+    cancelTimer(timer_MainTC);
+    TestSupplyTextEvent("END_MainTC"); 
+  }
+  else
+  {   
+    timer_MainTC.set(TIME_MainTC); //22시간 타이머 셋
+  }
+  
+}
+
+//타이머 이벤트 발생 시 PLBM SOC 증가
+on timer timer_PLBM_Charging
+{
+  int isAwakeLINBUS;
+  isAwakeLINBUS = linBusIsAwake();
+  
+  //100%까지 충전하기
+  if( PLBM_SOC < PLBM_END_SOC && isAwakeLINBUS)
+  {
+    write("input PLBM soc: %d", PLBM_SOC);
+    
+    setSignal(BAT_SOC_for_BLTN_CAM, PLBM_SOC++);
+    timer_PLBM_Charging.set(TIME_PLBM_Charging);
+  }
+
+  else
+  { 
+    if(!isAwakeLINBUS)
+    {
+      write("Timer canceled: LIN BUS is Sleep");
+      testCaseFail();
+      //타이머 종료
+      cancelTimer(timer_PLBM_Charging);
+    }
+    else
+    {
+      write("Timer canceled: PLBM is full charged");
+
+      write("LIN Go to sleep");
+      linGotoSleep();
+      
+      countPLBM_Charge++;
+      TestCaseReportMeasuredValue("%d번째 PLBM 충전 완료", countPLBM_Charge);
+      
+      //디버그
+      
+      //타이머 종료
+      cancelTimer(timer_PLBM_Charging);
+    }
+  }
+}
+
+on timer timer_ICUSOC_Charging
+{
+  int isAwakeCANBUS;
+  isAwakeCANBUS = canGetBusLoad(2);  
+  
+  write("ICU SOC Timer. ICU SOC: %d, CAN_BUSLoad: %d", ICU_SOC, isAwakeCANBUS);
+  
+  //100%까지 충전하기
+  if( (ICU_SOC < ICU_END_SOC) && isAwakeCANBUS )
+  {
+    write("CAN BUS is awake");
+    write("input soc: %d", ICU_SOC);
+    
+    setSignal(ICU_BS2SoC, ICU_SOC++);
+    timer_ICUSOC_Charging.set(TIME_ICUSOC_Charging);
+  }
+
+  else
+  { 
+    if(!isAwakeCANBUS)
+    {
+      write("Timer canceled: CAN BUS is Sleep");
+      testStepFail("ICU SOC 충전 중 CAN Network가 Sleep 되었음.");
+      TestSupplyTextEvent("END_TC_ICUSOC_Charging"); 
+    }
+    else
+    {
+      write("CGWM_WM OFF");
+      @panel::Switch_CGWNM = 0;
+      
+      write("Timer canceled: ICU SOC is full charged");
+      testStepPass("ICU SOC 충전이 완료됨.");
+      
+      countICUSOC_Charge++;
+      TestCaseReportMeasuredValue("%d번째 ICUSOC 충전 완료", countICUSOC_Charge);
+    
+      //테스트케이스가 종료됨을 알림
+      TestSupplyTextEvent("END_TC_ICUSOC_Charging"); 
+    }
+    
+    //타이머 종료
+    cancelTimer(timer_ICUSOC_Charging);
+  }
+}
+
+//주차녹화 중 LIN Wake up 시 PLBM SOC가 3%로 녹화 가능시간 = 0시간
+on linWakeupFrame 
+{
+ㅕ
+  
+  testCaseComment("linWakeupFrame");
+  write("linWakeupFrame");
+  
+  //PLBM으로부터 수신된 마지막 SOC가 PLBM_END_SOC(보충전 완) 였는데 빌트인캠이 LIN Wakeup 하여 SOC 확인 시 PLBM은 방전상태(3%)
+  if(PLBM_SOC == PLBM_END_SOC)
+  {
+    write("Set PLBM SOC %d %",PLBM_Start_SOC);
+    
+    TestCaseReportMeasuredValue("Set PLBM SOC = %d", PLBM_Start_SOC);
+
+    setSignal(BAT_SOC_for_BLTN_CAM, PLBM_Start_SOC);
+    
+    //디버그 ICU SOC 확인하는거
+    canSetChannelOutput(2,1);
+    output(_NM_CGW_CCU); //생성한 메시지 출력
+
+  }
+}
+
+//주차녹화 중 PLBM의 SOC 부족으로 ICU SOC 확인을 위해 BLTN_CAM이 CAN Wake up 시 ICU SOC는 충분함.
+on message PDC_FD_11_200ms
+{
+  //해당 신호가 수신되면 처음에 한번만 수행.
+  if(isFirst_CAN_MessageReceived == 0)
+  {
+    if(PLBM_SOC == PLBM_Start_SOC)
+    {
+      TestCaseReportMeasuredValue("PDC_FD_11_200ms received. Set ICU SOC = %d %", ICU_Start_SOC);
+
+      setSignal(ICU_BS2SoC, ICU_Start_SOC);
+    }
+
+      //첫 수신 플래그 변수 업데이트
+      isFirst_CAN_MessageReceived = 1;
+  }
+}
+
+//5분마다 체크하여 이번 CAN Awake는 끝났음(isFirst_CAN_MessageReceived = 0 초기화) 을 표시
+on timer timer_CAN_TIME_Init
+{
+ if(canGetBusLoad(2) == 0) 
+  isFirst_CAN_MessageReceived = 0;
+
+ timer_CAN_TIME_Init.set(TIME_CAN_TIME_Init);
+}
+
+//종료 시 termiate info 확인하는 TC Step 추가하기.

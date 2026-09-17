@@ -1,0 +1,137 @@
+﻿/*@!Encoding:65001*/
+includes
+{
+  
+}
+
+variables
+{
+  int AccelPdVal, SpdVal, BrkVal= 0;
+  int TrnSigVal_Lft = 1, TrnSigVal_Rt = 2;
+  int GearVal =0;
+  int SASAngVal = -700;
+  
+  msTimer timer_AccelPdVal;
+  int TIME_timer_AccelPdVal = 10;
+  
+  msTimer timer_SAS;
+  int TIME_timer_SAS = 10;
+  
+  msTimer timer_SpdVal;
+  int TIME_timer_SpdVal = 90;
+  
+  msTimer timer_Brk;
+  int TIME_timer_Brk = 1000;
+  
+  msTimer timer_Gear;
+  int TIME_timer_Gear = 1000;
+  
+  msTimer timer_TurnSignal;
+  int TIME_timer_TurnSignal=1000;
+}
+
+on start
+{
+  timer_AccelPdVal.Set(TIME_timer_AccelPdVal);  
+  timer_SAS.Set(TIME_timer_SAS);  
+  timer_SpdVal.Set(TIME_timer_SpdVal);  
+  timer_SpdVal.Set(TIME_timer_Brk);  
+  timer_Brk.Set(TIME_timer_Brk);
+  timer_Gear.Set(TIME_timer_Gear);
+  timer_TurnSignal.Set(TIME_timer_TurnSignal);
+}
+
+on timer timer_AccelPdVal
+{ 
+  if(@sysvar::panel::EnableDrvInfo)
+      setsignal(ENG_AccelPdlVal, ++AccelPdVal);
+  
+  if(AccelPdVal < 100)
+    timer_AccelPdVal.Set(TIME_timer_AccelPdVal);
+  else
+  {
+    timer_AccelPdVal.Set(2000);
+    AccelPdVal = 0;
+  }
+}
+
+on timer timer_SAS
+{
+  if(@sysvar::panel::EnableDrvInfo)
+    setsignal(SAS_AnglVal, ++SASAngVal);
+  
+  if(SASAngVal < 700)
+    timer_SAS.Set(TIME_timer_SAS);
+  else
+  {
+    timer_SAS.Set(2000);
+    SASAngVal = -700;
+  }
+}
+
+on timer timer_SpdVal
+{ 
+  if(@sysvar::panel::EnableDrvInfo)
+    setsignal(CLU_DisSpdVal, ++SpdVal);
+  
+  if(SpdVal < 400)
+    timer_SpdVal.Set(TIME_timer_SpdVal);
+  
+  else
+  {
+    timer_SpdVal.Set(2000);
+    SpdVal = 0;
+  }
+}
+
+on timer timer_Brk
+{ 
+  if(@sysvar::panel::EnableDrvInfo)
+  {
+    if(BrkVal)
+      BrkVal = 0;
+    else
+      BrkVal = 1;
+      
+    setsignal(ENG_BrkSwSta, BrkVal);
+  }
+  timer_Brk.Set(TIME_timer_Brk);
+}
+
+on timer timer_Gear
+{ 
+  if(@sysvar::panel::EnableDrvInfo)
+  {
+    if(GearVal >= 15)
+      GearVal = 0;
+    
+    switch(@sysvar::panel::RadioBtn_Vehicle_Type)
+    {
+      case 0: setsignal(TCU_GearSlctDis, GearVal); break;
+      case 1: setsignal(HTCU_GearSlctrDis, GearVal); break;    
+      case 2: setsignal(VCU_GearPosStaDisp, GearVal); break;
+    }
+    
+    GearVal++;
+  }
+  timer_Gear.Set(TIME_timer_Gear);  
+}
+on timer timer_TurnSignal
+{
+    if(@sysvar::panel::EnableDrvInfo)
+  {
+    if(TrnSigVal_Lft == 2){
+     TrnSigVal_Lft  = 1;
+     TrnSigVal_Rt = 2;
+    } 
+    else{
+     TrnSigVal_Lft  = 2;
+     TrnSigVal_Rt = 1;       
+    }
+    
+    setsignal(Lamp_TrnSigLmpLftOnReq, TrnSigVal_Lft);
+    setsignal(Lamp_TrnSigLmpRtOnReq, TrnSigVal_Rt);
+  }
+  timer_TurnSignal.Set(TIME_timer_TurnSignal);
+}
+

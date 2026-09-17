@@ -1,0 +1,79 @@
+/*@!Encoding:949*/
+includes
+{
+}
+
+variables
+{
+}
+
+on prestart
+{
+}
+void MainTest()
+{
+  @sysvar::panel::EnableDrvInfo = 1;
+  tunrsignal(5);
+  @sysvar::panel::EnableDrvInfo = 0;
+}
+
+void tunrsignal(int time)
+{
+  int i = 0;
+  
+  //현대기아
+  setPictureBoxImage("BLTN_CAM_Gen2_DrvInfo","Picture Box 1", "..\\image\\분85회.png");
+  for(i=0; i < 85/time; i++)
+  {
+    setSignal(Lamp_TrnSigLmpRtOnReq, 2);//Right ON
+    setSignal(Lamp_TrnSigLmpLftOnReq, 2);//Left ON
+    testWaitForTimeout(706/2);
+    setSignal(Lamp_TrnSigLmpRtOnReq, 1);//Right OFF
+    setSignal(Lamp_TrnSigLmpLftOnReq, 1);//Left OFF
+    testWaitForTimeout(706/2);
+  }
+  
+  testWaitForTimeout(2000);
+  
+  //제네시스
+  setPictureBoxImage("BLTN_CAM_Gen2_DrvInfo","Picture Box 1", "..\\image\\분66회.png");
+  for(i=0; i < 66/time; i++)
+  {
+    setSignal(Lamp_TrnSigLmpRtOnReq, 2);//Right ON
+    setSignal(Lamp_TrnSigLmpLftOnReq, 2);//Left ON
+    testWaitForTimeout(910/2);
+    setSignal(Lamp_TrnSigLmpRtOnReq, 1);//Right OFF
+    setSignal(Lamp_TrnSigLmpLftOnReq, 1);//Left OFF
+    testWaitForTimeout(910/2);
+  }
+  
+  testWaitForTimeout(2000);
+  
+  //double blink
+  setPictureBoxImage("BLTN_CAM_Gen2_DrvInfo","Picture Box 1", "..\\image\\분150회.png");
+  for(i=0; i < 85/time; i++)
+  {
+    setSignal(Lamp_TrnSigLmpRtOnReq, 2);//Right ON
+    setSignal(Lamp_TrnSigLmpLftOnReq, 2);//Left ON
+    testWaitForTimeout(400/2);
+    setSignal(Lamp_TrnSigLmpRtOnReq, 1);//Right OFF
+    setSignal(Lamp_TrnSigLmpLftOnReq, 1);//Left OFF
+    testWaitForTimeout(400/2);
+  }
+  
+  testWaitForTimeout(2000);
+  
+  // 주기: 2초
+  setPictureBoxImage("BLTN_CAM_Gen2_DrvInfo","Picture Box 1", "..\\image\\2초 주기.png");
+  for(i=0; i < 30/time; i++)
+  {
+    setSignal(Lamp_TrnSigLmpRtOnReq, 2);//Right ON
+    setSignal(Lamp_TrnSigLmpLftOnReq, 2);//Left ON
+    testWaitForTimeout(2000/2);
+    setSignal(Lamp_TrnSigLmpRtOnReq, 1);//Right OFF
+    setSignal(Lamp_TrnSigLmpLftOnReq, 1);//Left OFF
+    testWaitForTimeout(2000/2);
+  }
+}
+
+

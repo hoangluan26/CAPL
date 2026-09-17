@@ -1,0 +1,281 @@
+﻿/*@!Encoding:65001*/
+
+//Preconditions: - ACC and IGN and ccNC/ccIC switch OFF, AVN mode
+//Add signal to graphic 2: BLTN_CAM_RecSta_TML
+
+#include "DeclarationFunction_Gen2.5.h"
+
+void BLTN_CAM_Settings(int Choose_Option){
+  switch (Choose_Option){
+    case(1):
+      @panel::TrackBar_Timelaps_TIME = 1;/* Interval 1 second, 20 mins */
+      
+      testWaitForTimeout(500);
+      
+      if ($BLTN_CAM_Set_Drv_TML_Int == 0x1) {
+        write("TML Interval: 1 FPS"); 
+      }
+      else {
+        do {
+          write("Set TML Interval");
+          Enter_BLTN_CAM();
+          testWaitForTimeout(3000);          
+          @panel::TrackBar_Timelaps_TIME = 1;
+          testWaitForTimeout(3000);
+          Exit_BLTN_CAM();
+        } while ($BLTN_CAM_Set_Drv_TML_Int != 0x1);
+      }
+    
+      break;
+    case(2):
+      @panel::TrackBar_Timelaps_TIME = 2;/* Interval 2 second, 40 mins */
+      
+      testWaitForTimeout(500);
+      
+      if ($BLTN_CAM_Set_Drv_TML_Int == 0x2) {
+        write("TML Interval: 0.5 FPS"); 
+      }
+      else {
+        do {
+          write("Set TML Interval");
+          Enter_BLTN_CAM();
+          testWaitForTimeout(3000);          
+          @panel::TrackBar_Timelaps_TIME = 2;
+          testWaitForTimeout(3000);
+          Exit_BLTN_CAM();
+        } while ($BLTN_CAM_Set_Drv_TML_Int != 0x2);
+      }
+    
+      break; 
+    case(3):
+      @panel::TrackBar_Timelaps_TIME = 5;/* Interval 5 second, 100 mins */
+      
+      testWaitForTimeout(500);
+      
+      if ($BLTN_CAM_Set_Drv_TML_Int == 0x5) {
+        write("TML Interval: 0.2 FPS"); 
+      }
+      else {
+        do {
+          write("Set TML Interval");
+          Enter_BLTN_CAM();
+          testWaitForTimeout(3000);          
+          @panel::TrackBar_Timelaps_TIME = 5;
+          testWaitForTimeout(3000);
+          Exit_BLTN_CAM();
+        } while ($BLTN_CAM_Set_Drv_TML_Int != 0x5);
+      }
+    
+      break;     
+  }
+}
+
+void KEY_ON(){
+  setSignal(SMK_TrmnlCtrlGrpStaBDC,0x1); // Power ON
+}
+
+void KEY_OFF(){
+   setSignal(SMK_TrmnlCtrlGrpStaBDC,0x0); // Power OFF
+}
+
+void Enter_BLTN_CAM(){
+  // CAN FD
+  _HU_BLTN_CAM_02_200ms.HU_BLTN_CAM_UI_Mode = 0x1; //Enter BLTN_CAM mode
+  output(_HU_BLTN_CAM_02_200ms);
+}
+
+void Exit_BLTN_CAM(){
+  // CAN FD 
+  _HU_BLTN_CAM_02_200ms.HU_BLTN_CAM_UI_Mode = 0x0; //Enter AVN mode - Exit BLTN_CAM Mode
+  output(_HU_BLTN_CAM_02_200ms); 
+}
+
+void CaptureGraphics(){
+  testWaitForTimeout(3000);
+  testReportAddWindowCapture("Graphics 2","BLTN_CAM_RecSta_TML","Sreenshot","./Husign.jpg");
+}
+
+void Clock_Down(long CD_time){
+  write("=== START COUNTDOWN CLOCK ===");
+  while (CD_time > 0){
+    write("Remaining time: %02d:%02d", CD_time/60,CD_time%60);
+    testWaitForTimeout(60000);
+    CD_time--;
+  }
+}
+
+void Turn_OFF_RecSet(){
+  if (getSignal(BLTN_CAM_RecSet_OWD) == 0x2 || getSignal(BLTN_CAM_RecSet_OWP) == 0x2 || getSignal(BLTN_CAM_RecSet_DEV) == 0x2 || getSignal(BLTN_CAM_RecSet_PEV) == 0x2){
+    @panel::Switch_CGWNM = 1;
+  
+    KEY_ON();
+    testWaitForTimeout(3000);
+
+      
+    do {
+      Enter_BLTN_CAM();
+      testWaitForTimeout(3000);
+      
+      if (getSignal(BLTN_CAM_RecSet_OWD) == 0x2){
+        write("OWD Off"); @panel::LED_Ctrl_SetOWD = 1; testWaitForTimeout(1000);
+      } 
+      
+      else if (getSignal(BLTN_CAM_RecSet_OWP) == 0x2){
+        write("OWP Off"); @panel::LED_Ctrl_SetOWP = 1; testWaitForTimeout(1000);
+      } 
+      
+      else if (getSignal(BLTN_CAM_RecSet_DEV) == 0x2){
+        write("DEV Off"); @panel::LED_Ctrl_SetDEV = 1; testWaitForTimeout(1000);
+      } 
+      
+      else if (getSignal(BLTN_CAM_RecSet_PEV) == 0x2){
+        write("PEV Off"); @panel::LED_Ctrl_SetPEV = 1; testWaitForTimeout(1000);
+      } 
+
+      Exit_BLTN_CAM();
+      
+      flag_RecSet_error++;
+      
+    } while((getSignal(BLTN_CAM_RecSet_OWD) == 0x2 || getSignal(BLTN_CAM_RecSet_OWP) == 0x2 || getSignal(BLTN_CAM_RecSet_DEV) == 0x2 || getSignal(BLTN_CAM_RecSet_PEV) == 0x2) && (flag_RecSet_error <= 15));
+    
+    flag_RecSet_error = 0; 
+    
+    testWaitForTimeout(3000); 
+    KEY_OFF();
+  }
+  else {
+    write("Notifications: All recording setting are turned OFF.");
+  }
+}
+
+void Setup_Function(int Choose_TMLInterval){
+  @panel::Switch_CGWNM = 1;
+  
+  KEY_ON();
+  testWaitForTimeout(3000);
+  
+  @panel::Switch_CGWNM = 0;
+  
+  Enter_BLTN_CAM();
+  testWaitForTimeout(3000);
+  
+  BLTN_CAM_Settings(Choose_TMLInterval);
+  testWaitForTimeout(2000);
+  
+  @panel::Switch_Clock = 1;
+  
+  Exit_BLTN_CAM();
+
+  testWaitForTimeout(2000);
+  
+  @panel::Button_Timelaps_Stop = 1;
+  
+  testWaitForTimeout(500);
+  
+  @panel::Button_Timelaps_Start = 1;
+  
+  if (testWaitForSignalChange(BLTN_CAM_RecSta_TML,100000) == 1){
+    write("TML recording is in progress...");
+  }
+  else{
+    write("Error: TML recording hasn't started");
+
+    stop();
+  }  
+}
+
+void Rec_Reset(){
+  @panel::Switch_CGWNM = 1; 
+  
+  KEY_ON();
+  
+  while (getSignal(BLTN_CAM_SD_Format_Op_State) != 0x1){
+    @panel::Button_RecReset = 1; 
+    testWaitForSignalChange(BLTN_CAM_SD_Format_Op_State,500);
+  }
+  
+  KEY_OFF();
+  
+  @panel::Switch_CGWNM = 0; 
+}
+
+testcase OWD_025_1_2(){
+  testStep("Notification","Start test OWD_025_1_2");
+  write("=== START TEST OWD_025_1_2 ===");
+
+  write("Run Setup_Function()"); Setup_Function(1); 
+  
+  Clock_Down(20);
+  
+   write("Run CaptureGraphics()"); CaptureGraphics();
+  
+  @panel::Switch_Clock = 0;
+  
+  write("KEY_OFF()"); KEY_OFF(); 
+  
+  testStep("Notifications","Finish OWD_025_1_2");
+  write("=== FINISH TEST OWD_025_1_2 ===");
+}
+
+testcase OWD_025_3_4(){
+  testStep("Notification","Start test OWD_025_3_4");
+  write("=== START TEST OWD_025_3_4 ===");
+
+   write("Run Setup_Function()"); Setup_Function(2);
+  
+  Clock_Down(40);
+  
+   write("Run CaptureGraphics()"); CaptureGraphics();
+  
+  @panel::Switch_Clock = 0;
+  
+  write("KEY_OFF()"); KEY_OFF();
+  
+  testStep("Notifications","Finish OWD_025_3_4");
+  write("=== FINISH TEST OWD_025_3_4 ===");
+}
+
+testcase OWD_025_5_6(){
+  testStep("Notification","Start test OWD_025_5_6");
+  write("=== START TEST OWD_025_5_6 ===");
+
+   write("Run Setup_Function()"); Setup_Function(3);
+  
+  Clock_Down(100);
+  
+   write("Run CaptureGraphics()"); CaptureGraphics();
+  
+  @panel::Switch_Clock = 0;
+  
+  write("KEY_OFF()"); KEY_OFF();
+  
+  testStep("Notifications","Finish OWD_025_5_6");
+  write("=== FINISH TEST OWD_025_5_6 ===");
+}
+
+void Maintest(){
+  write("Run Turn_OFF_RecSet()"); Turn_OFF_RecSet();
+  
+  write("Run Rec_Reset()"); Rec_Reset();
+  
+  TestWaitForValueInput("Please enter the ID testcase number:",300000);
+  
+  switch (testGetValueInput()){
+    
+    case (1): OWD_025_1_2(); break;
+    
+    case (2): OWD_025_3_4(); break;
+      
+    case (3): OWD_025_5_6(); break;
+      
+    case (4):
+      OWD_025_1_2();
+      
+      OWD_025_3_4();
+      
+      OWD_025_5_6();
+      
+      break;
+  }
+}
+

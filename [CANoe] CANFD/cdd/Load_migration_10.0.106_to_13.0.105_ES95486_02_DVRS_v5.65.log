@@ -1,0 +1,30 @@
+Encoding: iso-8859-1
+Detected dtd version 10.0.106
+VCANdelaPersistorImpl::GetFileVersion: DTD version '10.0.106' detected
+Loading 'D:\Config_Canoe\CAN FD\CAN FD\[CANoe] CANFD\cdd\ES95486_02_DVRS_v5.65.cdd'...
+  dtd version: file 10.0.106, program 13.0.105
+Document supports the languages (en-US)
+Document contains the uptodate languages (en-US)
+Template: Qualifier : Door, SaveNo : 20, Label : --
+  template data loaded
+  variant 'CommonDiagnostics' loaded
+AUTOSAR fault memory migration, Read snapshots: there are no relevant protocol services.
+AUTOSAR fault memory migration, Read extended data records: migrating protocol service 1906 "($19) ReadDtcInformation - ReportDTCExtendedDataRecordByDTCNumber"...
+AUTOSAR fault memory migration, Read extended data records: ...Success
+AUTOSAR fault memory migration, Read extended data records: migrating protocol service 1910 "($19) ReadDtcInformation - ReportMirrorMemoryDTCExtendedDataRecordByDTCNumber"...
+AUTOSAR fault memory migration, Read extended data records: ...Success
+Document version: 00.00.04
+Done loading.
+  Logging turned on again
+Checking consistency of document. This may take a while, please be patient...
+Warning: Text table data type 'SID-RQ' contains 1 entries without any assigned text.
+Error: Variable Value 0x11 exceeds bounds of textual mapping 'SendKey (Unlock_Flash)' of data type 'Subfunctions of SecurityAccess' used in diagnostic instance 'RequestSeed (Unlock Flash)'
+Error: Identifier (Variable Value) of diagnostic instance 'qpath:/CommonDiagnostics/Security_Access/RequestSeed_Unlock_Flash' violates textual mapping or range exclusion.
+       Please correct the Identifier (Variable Value: LocalID, subfunction etc.) of the instance.
+Error: Variable Value 0x12 exceeds bounds of textual mapping 'SendKey (Unlock_Flash)' of data type 'Subfunctions of SecurityAccess' used in diagnostic instance 'SendKey (Unlock Flash)'
+Error: Identifier (Variable Value) of diagnostic instance 'qpath:/CommonDiagnostics/Security_Access/SendKey_Unlock_Flash' violates textual mapping or range exclusion.
+       Please correct the Identifier (Variable Value: LocalID, subfunction etc.) of the instance.
+Inconsistencies detected.
+ComParamMan: Unidentified ComParam UudtCanIdType
+Checking service prefixes in base variant 'CommonDiagnostics' ... OK
+Non-fatal inconsistencies detected in document.

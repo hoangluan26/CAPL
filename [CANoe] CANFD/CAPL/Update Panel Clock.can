@@ -1,0 +1,19 @@
+/*@!Encoding:949*/
+includes
+{
+  
+}
+
+variables
+{
+  
+}
+
+//on message HU_CLOCK_PE_02 //CAN
+on message HU_CLOCK_01_1000ms //CANFD
+{ 
+  setClockControlTime("BLTN_CAM_Gen2_DrvInfo","Clock Control 1", $HU_DisplayHour,$HU_DisplayMinute,$HU_DisplaySecond);
+  setClockControlTime("Recording_Setting","Clock Control 1", $HU_DisplayHour,$HU_DisplayMinute,$HU_DisplaySecond);
+  setClockControlTime("Panel_TestBench","Clock Control 1", $HU_DisplayHour,$HU_DisplayMinute,$HU_DisplaySecond);
+  
+}

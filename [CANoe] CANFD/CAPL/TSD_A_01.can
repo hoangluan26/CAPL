@@ -1,0 +1,54 @@
+/*@!Encoding:949*/
+includes
+{
+  
+}
+
+variables
+{
+  
+  msTimer timer_HU_CLOCK_PE;
+  int TIME_HU_CLOCK = 1000;
+}
+
+on preStart
+{
+  //차량모드 고객모드로 세팅
+  setSignal(CAN2::ICU_08_200ms::ICU_PowerAutoCutModSta,0x2);
+  setSignal(CAN2::ICU_10_200ms::ICU_BS2SoC, 100);
+}
+
+on start
+{
+    timer_HU_CLOCK_PE.set(TIME_HU_CLOCK);
+}
+
+on timer timer_HU_CLOCK_PE
+{
+  if(@sysvar::KHC::Switch_Clock == 1)
+  {
+    message CAN2::HU_CLOCK_PE_02 _HU_CLOCK_PE_02;
+
+    long time[9];
+    getLocalTime(time);
+    
+    _HU_CLOCK_PE_02.HU_DisplayYear1 = 0x1;
+    _HU_CLOCK_PE_02.HU_DisplayYear2 = (time[5]+1900) - 2000;
+    _HU_CLOCK_PE_02.HU_DisplayMonth = time[4]+1;
+    _HU_CLOCK_PE_02.HU_DisplayDay = time[3];
+    _HU_CLOCK_PE_02.HU_DisplayHour = time[2];
+    _HU_CLOCK_PE_02.HU_DisplayMinute= time[1];
+    _HU_CLOCK_PE_02.HU_DisplaySecond = time[0]; 
+    
+    _HU_CLOCK_PE_02.HU_Status = 0x2; //GPS Time receving
+    _HU_CLOCK_PE_02.HU_TimeSetting = 0x2; //GPS Time
+    
+    output(_HU_CLOCK_PE_02);
+  }
+  
+  else
+  {
+  }
+
+  timer_HU_CLOCK_PE.Set(TIME_HU_CLOCK);
+}

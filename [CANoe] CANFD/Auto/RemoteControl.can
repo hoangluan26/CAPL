@@ -1,0 +1,104 @@
+/*@!Encoding:1252*/
+/*@!Encoding:1252*/
+includes
+{
+}
+
+variables
+{ int i;
+  char scpiResponse[100];
+  char scpiCmd[100];
+  msTimer timer_RS232ReceiveInterval;
+  int TIME_RS232ReceiveInterval = 1000;
+  char receiverBuffer[50];
+}
+
+on key '1'  
+{
+  sendSCPICommand(":COMMUNICATE:REMOTE ON");
+
+}
+
+on key '2'  
+{
+  sendSCPICommand("DISPLAY:PAGE INTEGRAL");
+}
+
+on key '3'  
+{
+  sendSCPICommand("MEAS:VOLT?\r\n");
+}
+
+on key '4'{
+  sendSCPICommand(":DISPLAY:PAGE: SETUP");
+}
+
+on start
+{
+  if (RS232Open(6))
+  {
+    if (0 != RS232Configure(6, 9600, 8, 1, 0)){
+      write("Port Open");
+      write("COM5 configured: 9600-8-N-1");
+    }
+    else
+      write("Failed to configure COM6");
+  }
+  else
+  {
+    write("Failed to open COM6");
+  }
+}
+
+void sendSCPICommand(char scpiCmd[])
+{
+  int i;
+  long len;
+  byte sendBuf[100];
+  len = strlen(scpiCmd);
+
+  for (i = 0; i < len; i++)
+  sendBuf[i] = scpiCmd[i];
+
+  sendBuf[len] = 0x0A; 
+
+  if (RS232Send(6, sendBuf, len + 1) == 1)
+  {
+    write("SCPI Sent: %s", scpiCmd);
+    setTimer(timer_RS232ReceiveInterval,1000);
+
+  }
+  else
+  {
+    write("Failed to send SCPI command.");
+  }
+}
+
+  void Rs232ReceiveMsg()
+{
+  timer_RS232ReceiveInterval.set(TIME_RS232ReceiveInterval);
+}
+
+/// <RS232 - Receive Msg>
+on timer timer_RS232ReceiveInterval
+{
+  byte byteBuffer[100];
+  char rxStr[100];
+  dword len;
+  len = RS232Receive(6, byteBuffer, elcount(byteBuffer));
+  if (len == 1)
+  {
+    int i;
+    for (i = 0; i < len; i++)
+     rxStr[i] = byteBuffer[i];
+    rxStr[len] = '\0';
+
+    write("Received SCPI Response: %s", rxStr);
+  }
+  else if (len == 0)
+  {
+    write("No data received from device.");
+  }
+
+  cancelTimer(timer_RS232ReceiveInterval);
+}
